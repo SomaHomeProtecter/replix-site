@@ -1,0 +1,77 @@
+<!doctype html>
+<!-- HP-186 초대 스텁 (C안, 2026-07-24 김지호 확정) — https://replix.tv/invite?w=<watch id>&t=<초대 토큰>
+     역할: 미설치자를 넷플릭스 해당 회차로 보낸다(설치자는 확장 background가 이 페이지 도달 전에 가로챔).
+     자동 이동 + 수동 버튼(인앱 브라우저가 자동 리다이렉트를 막는 경우 대비) + 파라미터 오류 안내.
+     계약 정본 = Jira HP-186 코멘트 11185 · HP-87 코멘트 11191. HP-87 랜딩이 완성되면 이 파일을
+     랜딩형 초대 페이지로 교체한다(URL·파라미터 불변). 외부 리소스 0 — 단일 파일 유지. -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- 초대 토큰이 실린 URL이 검색에 잡히지 않게 — 토큰은 fragment(#)로만 나르므로 서버·리퍼러로도 안 나간다 -->
+  <meta name="robots" content="noindex">
+  <title>Replix</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0b0b0f; color: #cfcfd6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    main { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+    main[hidden] { display: none; }
+    .wordmark {
+      font-weight: 800; font-size: 28px; letter-spacing: -0.01em;
+      background: linear-gradient(160deg, #e50914, #ff5b63);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .spinner {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.12); border-top-color: #e50914;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: rgba(255, 255, 255, 0.35); } }
+    .msg { font-size: 15px; color: #e8e8ec; }
+    .sub { font-size: 12.5px; color: #8b8b96; }
+    .btn {
+      display: inline-block; background: #e50914; color: #fff; text-decoration: none;
+      border-radius: 10px; padding: 13px 26px; font-size: 15px; font-weight: 700; margin-top: 4px;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:focus-visible { outline: 2px solid #ff5b63; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <main id="go" hidden>
+    <div class="wordmark">Replix</div>
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="msg">넷플릭스로 이동하고 있어요…</p>
+    <a id="open" class="btn">넷플릭스에서 열기</a>
+    <p class="sub">자동으로 이동하지 않으면 눌러 주세요</p>
+  </main>
+  <main id="bad" hidden>
+    <div class="wordmark">Replix</div>
+    <p class="msg">유효하지 않은 초대 링크예요</p>
+    <p class="sub">초대한 친구에게 새 링크를 받아 주세요</p>
+  </main>
+  <script>
+    var p = new URLSearchParams(location.search);
+    var w = p.get('w');
+    var t = p.get('t');
+    if (w && t) {
+      // 토큰은 해시(#)로 나른다 — fragment는 서버로 전송되지 않아 넷플릭스가 토큰을 보지 못하고,
+      // 설치된 확장(content script)만 읽는다. encodeURIComponent는 URL 조립 방어(값은 base64url).
+      var url = 'https://www.netflix.com/watch/' + encodeURIComponent(w)
+        + '#replix-invite=' + encodeURIComponent(t);
+      document.getElementById('open').href = url;
+      document.getElementById('go').hidden = false;
+      // 수동 버튼을 먼저 그린 뒤 자동 이동 — 일부 인앱 브라우저가 replace를 막아도 길이 남는다.
+      location.replace(url);
+    } else {
+      document.getElementById('bad').hidden = false;
+    }
+  </script>
+</body>
+</html>
