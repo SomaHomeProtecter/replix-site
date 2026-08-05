@@ -46,9 +46,11 @@ kubectl -n "$NS" set image "deployment/$DEPLOY" landing="$REGISTRY/$REPO:$TAG"
 kubectl -n "$NS" rollout status "deployment/$DEPLOY" --timeout=180s
 
 echo "▶ 검증"
-# DNS 가 아직 안 붙었어도 확인할 수 있도록 ALB 주소에 Host 헤더를 실어 때린다.
+# DNS(가비아 CNAME)가 아직 안 붙었어도 확인할 수 있도록, 호스트 이름은 그대로 두고
+# 주소만 ALB 로 강제한다(--resolve). ⚠️ URL 을 ALB 이름으로 바꾸면 안 된다 — 인증서가
+# *.replix-dev.site 라 SNI 가 ALB 이름이 되는 순간 TLS 검증에서 깨진다.
 ALB=$(kubectl -n "$NS" get ingress replix-dev -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: $HOST" "https://$ALB/" --resolve "$HOST:443:$(dig +short "$ALB"|head -1)" || true)
+code=$(curl -s -o /dev/null -w '%{http_code}' "https://$HOST/" --resolve "$HOST:443:$(dig +short "$ALB"|head -1)" || true)
 echo "  https://$HOST/ → $code  (ALB: $ALB)"
 [[ "$code" == "200" ]] || { echo "✗ 200 이 아니다 — 파드/인그레스 상태를 확인할 것"; exit 1; }
 echo "✓ 배포 완료: $TAG"
