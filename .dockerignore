@@ -1,0 +1,12 @@
+# 이미지에 들어갈 것은 landing/ 의 화면 파일뿐이다.
+# 문서·도구·다른 표면(초대 스텁, 자리 지킴)은 서빙 대상이 아니다.
+.git
+.github
+draft
+invite
+scripts
+README.md
+CNAME
+index.html
+landing/README.md
+**/.DS_Store
