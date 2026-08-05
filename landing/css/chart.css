@@ -19,6 +19,8 @@
 .chart-live { display: inline-flex; align-items: center; gap: 8px; margin-top: auto;
   font-size: 13px; color: var(--muted); }
 .chart-live .dot-live { background: #059669; animation-name: dot-pulse-light; }
+/* 3단계(대체 목록)에서만 보인다 — 어디서 가져온 순위인지 출처를 밝힌다. */
+.chart-source { margin-top: 18px; font-size: 12px; color: var(--muted); }
 @keyframes dot-pulse-light {
   0% { box-shadow: 0 0 0 0 rgba(5,150,105,.4); } 70% { box-shadow: 0 0 0 7px rgba(5,150,105,0); }
   100% { box-shadow: 0 0 0 0 rgba(5,150,105,0); }
@@ -89,6 +91,13 @@
 .epi-stats b { font-family: var(--mono); font-weight: 600; color: #fff; }
 .epi--big .epi-desc { margin-top: 11px; max-width: 44ch; font-size: 14px;
   line-height: 1.66; color: rgba(255,255,255,.68); }
+
+/* 실제 시청자가 남긴 반응 인용 — 1단계(실시간)에서만 나온다. 저자 정보가 없는 순수 텍스트라
+   말풍선(.epi-msg)과 달리 인용부호로만 표시한다. */
+.epi-quote { margin-top: 10px; max-width: 44ch; font-size: 13px; font-style: italic;
+  line-height: 1.6; color: rgba(255,255,255,.72); }
+.epi-quote::before { content: "\201C"; } .epi-quote::after { content: "\201D"; }
+.epi--big .epi-quote { margin-top: 13px; font-size: 14.5px; max-width: 48ch; }
 
 /* 방금 도착한 말 - 어두운 유리 알약. 큰 카드는 두 줄을 쌓는다. */
 .epi-msgs { margin-top: 13px; display: grid; gap: 8px; justify-items: start; max-width: 100%; }

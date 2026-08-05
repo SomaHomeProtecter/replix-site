@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="description" content="넷플릭스 재생 화면에 채팅창이 붙습니다. 이 장면을 먼저 본 사람들의 말이 그 지점에 닿을 때 도착합니다.">
+<!-- 실데이터를 읽어 오는 BE. 승격(replix.tv) 때는 정식 API 도메인으로 이 한 줄만 바꾸면 된다
+     (js/stats.js·js/chart.js가 여기서 읽는다) — 코드 여러 곳에 흩어 두지 않는다. -->
+<meta name="api-base" content="https://api.replix-dev.site">
 <title>Replix - 혼자서도 같이 보는 즐거움, 넷플릭스에서</title>
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
@@ -166,20 +169,15 @@
   </div>
 </section>
 
-<!-- 라이브 수치 -->
-<div class="strip">
+<!-- 라이브 수치 — 실데이터가 하한선을 넘을 때만 스크립트가 보여준다(js/stats.js).
+     기본은 숨김(hidden) — 데이터 도착 전 빈 숫자가 스치는 것을 막는다. -->
+<div class="strip" id="strip" hidden>
   <div class="wrap strip-in reveal" data-stagger>
     <div class="stat stat--live" style="--i:0">
-      <b class="num" data-count="12842" data-suffix="명">0</b><span>지금 보고 있는 사람</span>
+      <b class="num" id="statViewers" data-suffix="명">0</b><span>지금 보고 있는 사람</span>
     </div>
     <div class="stat" style="--i:1">
-      <b class="num" data-count="1263" data-suffix="개">0</b><span>열려 있는 회차 방</span>
-    </div>
-    <div class="stat" style="--i:2">
-      <b class="num" data-count="328719" data-suffix="개">0</b><span>오늘 남겨진 반응</span>
-    </div>
-    <div class="stat" style="--i:3">
-      <b class="num" data-count="219" data-suffix="시간">0</b><span>오늘 함께 본 시간</span>
+      <b class="num" id="statRooms" data-suffix="개">0</b><span>열려 있는 회차 방</span>
     </div>
   </div>
 </div>
@@ -276,18 +274,19 @@
   <div class="wrap">
     <div class="chart-grid reveal">
       <div class="chart-copy">
-        <span class="chart-eyebrow">LIVE EPISODES</span>
-        <h2>지금 사람들이<br>보고 있는 회차</h2>
-        <p class="chart-note">
+        <span class="chart-eyebrow" id="chartEyebrow">LIVE EPISODES</span>
+        <h2 id="chartTitle">지금 사람들이<br>보고 있는 회차</h2>
+        <p class="chart-note" id="chartNote">
           회차마다 방이 하나씩 열려 있습니다. 사람이 많은 회차에는
           그만큼 많은 말이 쌓여 있습니다.
         </p>
-        <span class="chart-live"><span class="dot-live"></span><span>실시간 — 숫자가 지금도 움직입니다</span></span>
+        <span class="chart-live" id="chartLive"><span class="dot-live"></span><span>실시간 — 숫자가 지금도 움직입니다</span></span>
       </div>
       <!-- 카드들은 스크립트가 TITLES 로 그린다: 첫 번째가 큰 카드, 나머지 넷이 아랫줄.
            display:contents 라 상자가 없다 - 교차 관찰이 필요한 data-stagger 를 못 쓴다. -->
       <div id="chartList"></div>
     </div>
+    <p class="chart-source" id="chartSource" hidden></p>
   </div>
 </section>
 

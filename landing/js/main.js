@@ -5,4 +5,5 @@ import './scenes.js';
 import './chart.js';
 import './rooms.js';
 import './faq.js';
+import './stats.js';
 import './reveal.js';

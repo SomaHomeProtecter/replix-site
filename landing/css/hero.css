@@ -189,9 +189,10 @@
   background: var(--warm); border-top: 1px solid var(--line);
   padding-block: 26px 28px;
 }
-.strip-in { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(14px, 2vw, 30px); }
-@media (max-width: 860px) { .strip-in { grid-template-columns: repeat(2, 1fr); gap: 22px; } }
-.stat { display: grid; gap: 4px; }
+/* 2칸으로 줄였다(2026-08-05) — 실데이터로 채울 수 있는 지표가 이 둘뿐이라(하한선 미달 시
+   .strip 전체를 숨긴다, js/stats.js) grid 4열을 유지하면 빈 칸 2개가 남는다. */
+.strip-in { display: flex; justify-content: center; gap: clamp(40px, 8vw, 96px); }
+.stat { display: grid; gap: 4px; text-align: center; }
 .stat b { font-size: clamp(21px, 2.3vw, 30px); font-weight: 800; color: var(--ink);
   letter-spacing: -.04em; line-height: 1; }
 .stat span { font-size: 13px; color: var(--muted); }

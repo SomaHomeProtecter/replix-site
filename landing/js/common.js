@@ -2,6 +2,18 @@
    히트맵이 공유하는 것이 핵심이다 — 두 곳의 그래프가 어긋나지 않는다. */
 export var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/* 실데이터 BE 주소 — <meta name="api-base"> 한 곳에서만 정한다(index.html 참조). */
+var apiBaseTag = document.querySelector('meta[name="api-base"]');
+export var API_BASE = apiBaseTag ? apiBaseTag.content : "";
+
+/** 실데이터 fetch 공통 래퍼. 실패해도 던지지 않고 fallback 을 돌려준다 — BE 가 죽어도
+ *  랜딩은 정적 대체 화면(fallback 계층)으로 정상 렌더돼야 한다(2026-08-05 결정). */
+export function fetchJson(path, fallback) {
+  return fetch(API_BASE + path)
+    .then(function (r) { return r.ok ? r.json() : fallback; })
+    .catch(function () { return fallback; });
+}
+
 
 export var EP_LEN = 2892;
 export function mmss(s) {
