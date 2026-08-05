@@ -2,4 +2,4 @@
    같은 응답을 나눠 쓴다. 모듈은 import 시 한 번만 평가되므로 이 promise 자체가 캐시다. */
 import { fetchJson } from './common.js';
 
-export var publicStats = fetchJson('/api/v1/public-stats', { liveViewers: 0, liveRooms: 0, topEpisodes: [] });
+export var publicStats = fetchJson('/api/v1/public-stats', { liveViewers: 0, liveRooms: 0, mostWatched: [] });

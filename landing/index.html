@@ -274,19 +274,18 @@
   <div class="wrap">
     <div class="chart-grid reveal">
       <div class="chart-copy">
-        <span class="chart-eyebrow" id="chartEyebrow">LIVE EPISODES</span>
-        <h2 id="chartTitle">지금 사람들이<br>보고 있는 회차</h2>
-        <p class="chart-note" id="chartNote">
-          회차마다 방이 하나씩 열려 있습니다. 사람이 많은 회차에는
-          그만큼 많은 말이 쌓여 있습니다.
+        <span class="chart-eyebrow">MOST WATCHED</span>
+        <h2>리플릭스에서<br>많이 본 작품</h2>
+        <p class="chart-note">
+          누적 감상 시간이 많은 작품 순입니다. 채팅이 남아 있으면
+          그중 하나를 함께 보여드립니다.
         </p>
-        <span class="chart-live" id="chartLive"><span class="dot-live"></span><span>실시간 — 숫자가 지금도 움직입니다</span></span>
       </div>
-      <!-- 카드들은 스크립트가 TITLES 로 그린다: 첫 번째가 큰 카드, 나머지 넷이 아랫줄.
+      <!-- 카드들은 스크립트가 /api/v1/public-stats 의 mostWatched 로 그린다(js/chart.js):
+           첫 번째가 큰 카드, 나머지 넷이 아랫줄. 5개 미만이면 남는 칸은 "데이터 없음"이다.
            display:contents 라 상자가 없다 - 교차 관찰이 필요한 data-stagger 를 못 쓴다. -->
       <div id="chartList"></div>
     </div>
-    <p class="chart-source" id="chartSource" hidden></p>
   </div>
 </section>
 
