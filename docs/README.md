@@ -1,8 +1,12 @@
-# landing — HP-87 공개 랜딩 페이지
+# docs — HP-87 공개 랜딩 페이지
 
-`replix.tv` 루트에 들어갈 랜딩 페이지다. 지금은 **dev 표면
-`https://landing.replix-dev.site`** 에서 검토용으로 돌고 있고, 문구·디자인이
-확정되면 레포 루트로 승격해 GitHub Pages(`replix.tv`)가 서빙하게 한다.
+`replix.tv` 에 들어갈 랜딩 페이지 소스다. 폴더 이름이 `docs`인 이유는 이게 GitHub
+Pages가 지원하는 두 소스 위치 중 하나이기 때문이다(레포 루트 `/` 또는 `/docs`) —
+**여기가 곧 배포물**이라 별도 승격·복사 단계가 없다.
+
+문구·디자인이 확정될 때까지는 GitHub Pages 소스가 아직 이 폴더를 가리키지
+않는다(레포 루트 README '배포 구조' 참조) — 그 전까지 확인은 로컬 또는 임시
+미리보기(`https://landing.replix-dev.site`, `scripts/deploy-dev.sh`)로 한다.
 
 ## 열어 보기
 
@@ -56,9 +60,11 @@ python3 -m http.server 8000     # http://localhost:8000
   (`/api/v1/public-stats`, 2026-08-05). 데이터가 하한선에 못 미치면 통계 띠는
   숨고, '많이 본 작품'은 모자란 자리에 "데이터 없음"을 보여준다 — 둘 다 대체 콘텐츠로
   메우지 않는다. 상세는 아래 '실데이터 연동' 참조.
-- **`meta robots noindex` 를 dev 동안 빼지 말 것.** nginx 도 `X-Robots-Tag` 를
-  이중으로 건다(`../nginx.conf`) — 검토용 표면이 검색에 잡히면 안 된다. 운영
-  승격 때 둘 다 제거한다.
+- **`meta robots noindex` 를 지금 빼지 말 것.** 임시 미리보기 nginx도 `X-Robots-Tag`
+  를 이중으로 건다(`../nginx.conf`) — 검토용 표면이 검색에 잡히면 안 된다.
+  **실제 공개(레포 루트 README의 Pages 소스 전환) 직전에 이 메타 태그를 지우는
+  것 자체가 "이제 공개한다"는 결정의 마지막 단계**다 — 잊고 빼먹으면 검색에
+  안 잡히고, 문구 확정 전에 미리 빼면 초안이 그대로 색인된다.
 
 ### 시뮬레이션을 만지는 자리
 
@@ -92,13 +98,21 @@ API 주소는 `<meta name="api-base">`(`index.html`) 한 곳에서만 정한다.
 specificity라 뒤에 로드된 쪽이 이긴다. 이런 요소를 스크립트로 숨길 땐
 `el.hidden=true`가 아니라 `el.style.display="none"`으로 직접 끌 것.
 
-## 배포
+## 배포 — 실제 공개는 레포 루트 README를 볼 것
 
-이미지 빌드·푸시·롤아웃은 레포 루트의 `scripts/deploy-dev.sh` 한 줄이다.
-클러스터에 어떻게 뜨는지(Deployment·Service·Ingress)는 **Replix-be 레포
-`k8s/base/landing.yaml` · `k8s/overlays/dev/ingress.yaml`** 에 있다.
+이 폴더는 두 가지 방식으로 노출된다.
 
-```bash
-bash scripts/deploy-dev.sh          # 새 태그로 빌드·배포
-bash scripts/deploy-dev.sh <태그>    # ECR 의 기존 태그로 롤백
-```
+- **임시 미리보기(팀 리뷰용)** — `scripts/deploy-dev.sh`가 이 폴더를 이미지로
+  구워 `landing.replix-dev.site`에 올린다. 어떤 브랜치에도 자동 연결되지
+  않는다 — 지금 로컬에 체크아웃된 걸 그대로 올리는 수동 도구다. 클러스터에
+  어떻게 뜨는지(Deployment·Service·Ingress)는 **Replix-be 레포
+  `k8s/base/landing.yaml` · `k8s/overlays/dev/ingress.yaml`** 에 있다.
+
+  ```bash
+  bash scripts/deploy-dev.sh          # 새 태그로 빌드·배포
+  bash scripts/deploy-dev.sh <태그>    # ECR 의 기존 태그로 롤백
+  ```
+
+- **실제 공개(`replix.tv`)** — GitHub Pages가 이 폴더를 소스로 지정했을 때만
+  일어난다(아직 아님). 전환 절차·시점 판단은 레포 루트 README '배포 구조'
+  절 참조 — 자동화가 없어 그 절차를 그대로 따라야 한다.
