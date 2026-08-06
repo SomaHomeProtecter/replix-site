@@ -5,11 +5,17 @@
 #
 # 미리보기가 부르는 API는 여전히 dev(api.replix-dev.site)다 — prod 백엔드가 아직 없다(EC2
 # 정지·PROD_DEPLOY_ENABLED=false). prod 백엔드가 실제로 뜨면 이 워크플로가 아니라 docs/index.html
-# 의 api-base 를 손보는 게 맞다(백로그 HP-296 참조) — 여긴 "어디에 이미지를 배포하는가"만 바꾼다.
+# 의 api-base 를 손보는 게 맞다(백로그 HP-280 참조) — 여긴 "어디에 이미지를 배포하는가"만 바꾼다.
 #
 # 자격증명은 장기 액세스키가 아니라 GitHub OIDC → AWS IAM 역할(replix-site-gha-deploy) 상시
 # 위임이다. 그 역할은 ECR replix-landing 레포 push 권한 + EKS dev 네임스페이스 편집 권한만
 # 가진다(레포에 시크릿을 두지 않는다).
+#
+# ⚠️ IAM 신뢰 정책의 sub 조건은 "repo:<org>/<repo>:ref:refs/heads/main" 같은 옛 형식이 아니다
+# (2026-08-06 실증) — 이 조직은 GitHub의 ID 포함 sub 클레임을 쓴다:
+# "repo:SomaHomeProtecter@290633849/replix-site@1310695268:ref:refs/heads/main". 이름만으로
+# 맞추면 매번 "Not authorized to perform sts:AssumeRoleWithWebIdentity"로 조용히 실패한다 —
+# 실제 클레임은 워크플로에 curl로 OIDC 토큰을 받아 payload를 base64 디코드해서 확인했다.
 name: Deploy preview on main
 
 on:
@@ -39,17 +45,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # 임시 디버그 — OIDC assume-role 이 계속 실패해 실제 sub 클레임을 직접 확인한다.
-      # IAM 신뢰 정책과 눈으로 비교한 뒤 이 스텝은 지운다.
-      - name: Debug OIDC claims
-        run: |
-          TOKEN=$(curl -sH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" | jq -r .value)
-          PAYLOAD=$(echo "$TOKEN" | cut -d. -f2)
-          # base64url → base64 패딩 보정
-          MOD=$(( ${#PAYLOAD} % 4 )); [ "$MOD" -ne 0 ] && PAYLOAD="$PAYLOAD$(printf '=%.0s' $(seq $((4-MOD))))"
-          echo "$PAYLOAD" | tr '_-' '/+' | base64 -d | jq '{sub,aud,repository,ref,event_name}'
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
