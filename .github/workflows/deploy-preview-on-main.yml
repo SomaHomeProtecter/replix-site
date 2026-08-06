@@ -1,0 +1,78 @@
+# main 이 곧 실제 배포(replix.tv, GitHub Pages)라는 사실은 안 건드린다 — Pages 는 이 워크플로와
+# 무관하게 항상 자동으로 나간다. 이 워크플로는 그 옆에서, 같은 코드를 팀 리뷰용 미리보기
+# (landing.replix-dev.site)에도 동시에 올린다(2026-08-06 결정 — "배포하면 미리보기도 같이
+# 갱신되게" 요청으로 오전의 '미리보기는 브랜치와 무관' 결정을 대체했다).
+#
+# 미리보기가 부르는 API는 여전히 dev(api.replix-dev.site)다 — prod 백엔드가 아직 없다(EC2
+# 정지·PROD_DEPLOY_ENABLED=false). prod 백엔드가 실제로 뜨면 이 워크플로가 아니라 docs/index.html
+# 의 api-base 를 손보는 게 맞다(백로그 HP-296 참조) — 여긴 "어디에 이미지를 배포하는가"만 바꾼다.
+#
+# 자격증명은 장기 액세스키가 아니라 GitHub OIDC → AWS IAM 역할(replix-site-gha-deploy) 상시
+# 위임이다. 그 역할은 ECR replix-landing 레포 push 권한 + EKS dev 네임스페이스 편집 권한만
+# 가진다(레포에 시크릿을 두지 않는다).
+name: Deploy preview on main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "Dockerfile"
+      - "nginx.conf"
+      - ".dockerignore"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write   # OIDC 토큰 발급 — AWS 역할을 맡기 위해 필요
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REGISTRY: 526247032981.dkr.ecr.ap-northeast-2.amazonaws.com
+  ECR_REPO: replix-landing
+  EKS_CLUSTER: replix
+  NAMESPACE: dev
+  DEPLOYMENT: landing
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::526247032981:role/replix-site-gha-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      # 부동 태그(:latest 류)를 쓰지 않는다 — 태그로 무엇이 떠 있는지 특정 못 하면 롤백 대상을
+      # 못 짚는다(scripts/deploy-dev.sh 와 같은 원칙, Replix-be Jenkinsfile 태그 정책과 동일).
+      - name: Resolve tag
+        id: tag
+        run: echo "tag=main-${GITHUB_SHA::7}-$(date +%m%d%H%M)" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push (amd64 — EKS 노드 아키텍처)
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tag.outputs.tag }}" \
+            --push .
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER }}
+
+      - name: Roll out
+        run: |
+          kubectl -n ${{ env.NAMESPACE }} set image "deployment/${{ env.DEPLOYMENT }}" \
+            landing="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tag.outputs.tag }}"
+          kubectl -n ${{ env.NAMESPACE }} rollout status "deployment/${{ env.DEPLOYMENT }}" --timeout=180s
+
+      - name: Verify
+        run: |
+          ALB=$(kubectl -n ${{ env.NAMESPACE }} get ingress replix-dev -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          IP=$(dig +short "$ALB" | head -1)
+          code=$(curl -s -o /dev/null -w '%{http_code}' https://landing.replix-dev.site/ --resolve "landing.replix-dev.site:443:$IP")
+          echo "https://landing.replix-dev.site/ -> $code"
+          [ "$code" = "200" ] || { echo "::error::preview did not return 200"; exit 1; }

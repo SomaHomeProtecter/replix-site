@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="넷플릭스 재생 화면에 채팅창이 붙습니다. 이 장면을 먼저 본 사람들의 말이 그 지점에 닿을 때 도착합니다.">
-<!-- 실데이터를 읽어 오는 BE. 승격(replix.tv) 때는 정식 API 도메인으로 이 한 줄만 바꾸면 된다
-     (js/stats.js·js/chart.js가 여기서 읽는다) — 코드 여러 곳에 흩어 두지 않는다. -->
+<!-- 실데이터를 읽어 오는 BE. replix.tv 도 지금은 이 dev 주소를 그대로 쓴다(2026-08-06 결정) —
+     운영 백엔드가 아직 없다(EC2 정지·PROD_DEPLOY_ENABLED=false). 운영 백엔드가 실제로 뜨면
+     이 한 줄만 바꾸면 된다(js/stats.js·js/chart.js가 여기서 읽는다) — 백로그 HP-280. -->
 <meta name="api-base" content="https://api.replix-dev.site">
 <title>Replix - 혼자서도 같이 보는 즐거움, 넷플릭스에서</title>
   <link rel="stylesheet" href="css/tokens.css">
