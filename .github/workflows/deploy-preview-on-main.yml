@@ -79,6 +79,13 @@ jobs:
         run: |
           ALB=$(kubectl -n ${{ env.NAMESPACE }} get ingress replix-dev -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           IP=$(dig +short "$ALB" | head -1)
-          code=$(curl -s -o /dev/null -w '%{http_code}' https://landing.replix-dev.site/ --resolve "landing.replix-dev.site:443:$IP")
+          # 롤아웃 직후엔 ALB 타깃그룹 헬스체크가 아직 못 따라잡아 504가 뜬다(2026-08-05·06
+          # 두 번 실측 — 몇십 초 안에 저절로 200이 된다). 실패로 바로 끊지 않고 잠깐 재시도한다.
+          code=000
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://landing.replix-dev.site/ --resolve "landing.replix-dev.site:443:$IP")
+            [ "$code" = "200" ] && break
+            sleep 15
+          done
           echo "https://landing.replix-dev.site/ -> $code"
-          [ "$code" = "200" ] || { echo "::error::preview did not return 200"; exit 1; }
+          [ "$code" = "200" ] || { echo "::error::preview did not return 200 after retries"; exit 1; }
