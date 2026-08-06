@@ -1,0 +1,101 @@
+/* ═══ 리플릭스에서 많이 본 작품 ══════════════════════════════
+   왼쪽 카피 레일 + 대형 추천 카드, 아래로 작은 카드 네 장.
+   밝은 바닥 위에 어두운 포스터 카드를 얹는다(히어로 화면과 같은
+   대비 문법). 카드의 색은 작품 포스터가 아니라 그 작품의 고유색
+   (--pc)으로 물든 익명의 장면이다 - 실제 작품 화면은 쓰지 않는다.
+   내용은 /api/v1/public-stats 의 실데이터다(js/chart.js) — 수치는
+   순위에만 쓰이고 화면엔 안 나온다. */
+.band-soft { background: var(--soft); }
+#chart { position: relative; }
+.chart-grid { display: grid; grid-template-columns: minmax(0, .72fr) minmax(0, 1.6fr);
+  gap: clamp(18px, 2.4vw, 32px); align-items: stretch; }
+@media (max-width: 980px) { .chart-grid { grid-template-columns: 1fr; } }
+#chartList { display: contents; }
+
+.chart-copy { display: flex; flex-direction: column; align-items: flex-start;
+  gap: 16px; padding-block: 8px 4px; }
+.chart-eyebrow { font-family: var(--mono); font-size: clamp(10.5px, .86vw, 12.5px);
+  font-weight: 700; letter-spacing: .24em; color: var(--accent-d); }
+.chart-copy h2 { font-size: clamp(26px, 3.2vw, 42px); }
+.chart-note { color: var(--muted); font-size: 15.5px; max-width: 38ch; line-height: 1.72; }
+
+/* 카드 한 장 = 작품 하나 */
+.epi { position: relative; overflow: hidden; border-radius: var(--r-lg);
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 18px 20px 18px; min-height: 232px; color: #fff;
+  background:
+    radial-gradient(110% 86% at 82% -6%, var(--pc), transparent 62%),
+    radial-gradient(90% 62% at 10% 110%, color-mix(in srgb, var(--pc) 52%, #000), transparent 72%),
+    linear-gradient(165deg, #17171f, #0b0b0f 72%);
+  box-shadow: 0 2px 4px rgba(16,16,24,.08), 0 22px 48px -18px rgba(16,16,24,.4); }
+.epi::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 0 60px rgba(0,0,0,.35); border-radius: inherit; }
+.epi > * { position: relative; z-index: 1; }
+
+/* 큰 카드 = 스포트라이트: 작품 색이 짙게 물든 포스터 + 붉은 링 +
+   그 작품 색으로 번지는 발광. 아랫줄과 테마를 가르는 축이다. */
+.epi--big { grid-column: 2; grid-row: 1; padding: 24px 28px 24px;
+  min-height: clamp(300px, 26vw, 372px);
+  background:
+    radial-gradient(120% 95% at 82% -8%, var(--pc), transparent 64%),
+    radial-gradient(95% 70% at 8% 112%, color-mix(in srgb, var(--pc) 62%, #000), transparent 74%),
+    linear-gradient(160deg, #1a1824, #0b0b0f 70%);
+  border: 1px solid rgba(229,9,20,.3);
+  box-shadow: 0 2px 4px rgba(16,16,24,.08), 0 26px 56px -20px rgba(16,16,24,.45),
+    0 0 76px -16px color-mix(in srgb, var(--pc) 65%, #e50914); }
+@media (max-width: 980px) { .epi--big { grid-column: auto; grid-row: auto; } }
+/* 순위 칩 - 큰 카드 제목 줄에만. 재핑으로 작품이 바뀌면 순위도 바뀐다 */
+.epi-rank { flex: 0 0 auto; margin-left: 10px;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 700; letter-spacing: .14em;
+  padding: 3px 9px; border-radius: 7px; color: #ffb3b8;
+  border: 1px solid rgba(229,9,20,.45); background: rgba(229,9,20,.12); }
+
+/* 아랫줄 = 대기열 티켓: 색을 걷어낸 차분한 바탕에 작품 색은
+   위쪽 얇은 띠로만 남긴다. */
+.epi-track .epi { background: linear-gradient(178deg,
+    color-mix(in srgb, var(--pc) 13%, #12121a), #0b0b0f 62%);
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: 0 2px 4px rgba(16,16,24,.06), 0 16px 34px -16px rgba(16,16,24,.3); }
+.epi-track .epi::before { content: ""; position: absolute; inset: 0 auto auto 0;
+  width: 100%; height: 3px;
+  background: linear-gradient(90deg, var(--pc), transparent 72%); }
+/* 아랫줄은 3초마다 한 칸씩 왼쪽으로 도는 무한 캐러셀. 칸 폭·이동량은
+   스크립트가 계산한다(보이는 칸수: >1100px 4 · >560px 2 · 그 외 1).
+   끝에 앞쪽 카드의 복제를 이어 붙여 마지막 → 처음이 끊김 없이 잇닿는다. */
+.epi-row { grid-column: 1 / -1; overflow: hidden; }
+.epi-track { display: flex; gap: clamp(14px, 1.8vw, 22px); will-change: transform; }
+.epi-track .epi { flex: 0 0 auto; }
+
+.epi-title { display: flex; align-items: center; color: #fff;
+  font-size: 19px; font-weight: 800; letter-spacing: -.035em; }
+.epi--big .epi-title { font-size: clamp(24px, 2.4vw, 33px); }
+
+/* 실제 시청자가 남긴 채팅 인용 — 있을 때만 나온다(작품에 채팅이 하나도 없으면 생략). */
+.epi-quote { margin-top: 11px; max-width: 44ch; font-size: 13px; font-style: italic;
+  line-height: 1.6; color: rgba(255,255,255,.72); }
+.epi-quote::before { content: "\201C"; } .epi-quote::after { content: "\201D"; }
+.epi--big .epi-quote { margin-top: 14px; font-size: 14.5px; max-width: 48ch; }
+.epi-quote-by { font-style: normal; font-family: var(--mono); font-size: 11px;
+  color: rgba(255,255,255,.5); }
+
+/* 5칸 중 실데이터가 모자란 자리 — 다른 작품인 척하지 않는다(색·인용 없음, 중립 회색). */
+.epi--empty { background: linear-gradient(165deg, #1c1c24, #0e0e13 72%);
+  border: 1px dashed rgba(255,255,255,.12); box-shadow: none; }
+.epi-title--empty { color: rgba(255,255,255,.42); font-weight: 700; }
+.epi-quote--empty { font-style: normal; color: rgba(255,255,255,.34); }
+.epi-quote--empty::before, .epi-quote--empty::after { content: none; }
+
+/* 큰 카드 '채널 재핑' 전환 - 검은 스캔라인 막이 잠깐 덮이고(zapping),
+   걷히면 새 작품의 내용이 위에서부터 차례로 켜진다(zapped). */
+.epi--big .zap { position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  opacity: 0; transition: opacity .16s linear;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.055) 0 1px, transparent 1px 3px),
+    #04050a; }
+.epi--big.zapping .zap { opacity: 1; transition-duration: .12s; }
+@keyframes zap-jitter { 0% { transform: translateX(0); } 30% { transform: translateX(-3px); }
+  60% { transform: translateX(2px); } 100% { transform: translateX(0); } }
+.epi--big.zapping { animation: zap-jitter .18s linear; }
+@keyframes zap-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.epi--big.zapped .epi-title { animation: zap-in .38s var(--ease) backwards; }
+.epi--big.zapped .epi-quote { animation: zap-in .38s var(--ease) .1s backwards; }
