@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Replix 개인정보처리방침">
+<title>개인정보처리방침 - Replix</title>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<style>
+  /* terms.html과 같은 문서 레이아웃 — 히어로·시뮬레이션이 없는 순수 문서. */
+  .doc-wrap { max-width: 760px; margin: 0 auto; padding: 64px var(--gut) 96px; }
+  .doc-back { display: inline-flex; align-items: center; gap: 6px; font-size: 14px;
+    color: var(--muted); text-decoration: none; margin-bottom: 28px; }
+  .doc-back:hover { color: var(--ink); }
+  .doc-wrap h1 { font-size: clamp(26px, 3.4vw, 34px); margin-bottom: 6px; }
+  .doc-meta { font-size: 13px; color: var(--faint); margin-bottom: 40px; }
+  .doc-wrap h2 { font-size: 18px; margin-top: 40px; margin-bottom: 12px; }
+  .doc-wrap h3 { font-size: 15px; margin-top: 20px; margin-bottom: 8px; color: var(--ink); }
+  .doc-wrap p, .doc-wrap li, .doc-wrap td, .doc-wrap th { font-size: 15px; line-height: 1.75; color: var(--ink-2); }
+  .doc-wrap ol.articles { list-style: none; padding: 0; margin: 0; }
+  .doc-wrap ol.articles > li { margin-bottom: 4px; }
+  .doc-wrap ul { padding-left: 20px; margin: 8px 0; }
+  .doc-wrap ul li { margin-bottom: 4px; }
+  .doc-table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 14px; }
+  .doc-table th, .doc-table td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+  .doc-table th { background: var(--soft); font-weight: 700; color: var(--ink); }
+  .doc-foot { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--faint); }
+</style>
+</head>
+<body>
+
+<div class="doc-wrap">
+  <a class="doc-back" href="index.html">← Replix로 돌아가기</a>
+  <h1>개인정보처리방침</h1>
+  <p class="doc-meta">공고일 2026-08-06 · 시행일 2026-08-06</p>
+
+  <p>
+    Replix(이하 "서비스")는 이용자의 개인정보를 소중히 다루며, 「개인정보 보호법」 등
+    관계 법령을 준수합니다. 서비스는 아직 별도 법인이 설립되지 않은 팀 프로젝트로
+    운영되며, 이 방침은 그 규모에 맞는 최소한의 구색을 갖춘 초안입니다 — 지키지
+    않아도 되는 문서라는 뜻이 아니라, 팀 검토를 거쳐 조정될 수 있는 초안이라는
+    뜻입니다.
+  </p>
+
+  <ol class="articles">
+    <li>
+      <h2>1. 수집하는 개인정보 항목 및 수집 방법</h2>
+      <p>서비스는 구글(Google) 계정으로 로그인하는 시점에 아래 정보를 수집합니다.</p>
+      <ul>
+        <li>필수: 이메일 주소, 표시 이름(닉네임), 프로필 이미지(구글이 제공하거나
+          이용자가 직접 업로드)</li>
+      </ul>
+      <p>서비스 이용 과정에서는 아래 정보가 추가로 생성·수집됩니다.</p>
+      <ul>
+        <li>이용자가 작성한 채팅 메시지 및 작성 시각</li>
+        <li>신고, 정지 등 이용자 보호·제재 처리 과정에서 생성되는 기록</li>
+        <li>접속 시 IP 주소, 접속 시각 등 서비스 이용 기록</li>
+      </ul>
+      <p>
+        수집 방법은 구글 로그인을 통한 수집, 이용자가 서비스 내에서 직접 입력·업로드,
+        서비스 이용 과정에서 자동으로 생성되는 방식입니다.
+      </p>
+    </li>
+    <li>
+      <h2>2. 개인정보의 처리 목적</h2>
+      <ul>
+        <li>회원 식별 및 로그인 인증</li>
+        <li>실시간 채팅·반응 등 서비스 제공</li>
+        <li>부적절한 이용(스포일러 유포, 도배, 혐오 발언 등) 방지 및 신고 처리</li>
+        <li>이용제한 조치 및 이용제한 회피(재가입을 통한 제재 우회) 방지</li>
+        <li>서비스 부정 이용 방지 및 안전한 서비스 환경 제공</li>
+      </ul>
+    </li>
+    <li>
+      <h2>3. 개인정보의 처리 및 보유 기간</h2>
+      <table class="doc-table">
+        <tr><th>항목</th><th>보유 기간</th><th>근거</th></tr>
+        <tr><td>이메일, 표시 이름, 프로필 이미지</td><td>회원 탈퇴 시까지</td>
+          <td>탈퇴 시 지체 없이 파기(아래 8항)</td></tr>
+        <tr><td>이용제한(정지) 이력의 이메일 해시</td><td>정지 종료 후 일정 기간</td>
+          <td>탈퇴 후 재가입을 통한 제재 회피 방지(원문 이메일이 아닌 해시값만 보관)</td></tr>
+        <tr><td>접속 기록(IP, 접속 시각)</td><td>3개월</td>
+          <td>통신비밀보호법 제15조의2</td></tr>
+      </table>
+      <p>
+        위 기간이 지나거나 처리 목적이 달성되면 해당 개인정보는 지체 없이 파기합니다.
+        신고·이용제한 처리 기록은 분쟁 대응 및 반복 위반 확인을 위해 위 개인정보와
+        별도로 보관될 수 있으며, 구체적인 보유기간은 현재 정책 수립 중입니다.
+      </p>
+      <p>
+        <b>이용자가 서비스 내에 남긴 채팅 메시지 본문은 개인정보와는 별도로
+        다룹니다.</b> 이 서비스는 특정 장면에서 앞서 본 사람들의 반응이 재생되는
+        것을 핵심 기능으로 하므로, 채팅 내용 자체는 기간 제한 없이 보관됩니다.
+        다만 회원 탈퇴 시 그 메시지에 표시되던 작성자의 이름·프로필 이미지는
+        즉시 익명 표시로 대체되어, 탈퇴한 이용자를 그 메시지로부터 다시 식별할 수
+        없습니다.
+      </p>
+    </li>
+    <li>
+      <h2>4. 개인정보의 제3자 제공</h2>
+      <p>
+        서비스는 이용자의 개인정보를 제1항에서 명시한 목적 범위를 초과하여 이용하거나
+        원칙적으로 외부에 제공하지 않습니다. 다만 법령에 특별한 규정이 있거나 수사
+        목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우는
+        예외로 합니다.
+      </p>
+    </li>
+    <li>
+      <h2>5. 개인정보 처리의 위탁</h2>
+      <table class="doc-table">
+        <tr><th>수탁자</th><th>위탁 업무 내용</th></tr>
+        <tr><td>Amazon Web Services(AWS), 서울 리전</td>
+          <td>서버 및 데이터베이스 호스팅, 프로필 이미지 저장</td></tr>
+      </table>
+      <p>
+        서비스는 위탁계약 체결 시 개인정보 보호법 제26조에 따라 위탁업무 수행 목적
+        외 개인정보 처리 금지, 기술적·관리적 보호조치, 재위탁 제한, 수탁자에 대한
+        관리·감독 등을 명확히 규정합니다.
+      </p>
+    </li>
+    <li>
+      <h2>6. 개인정보의 국외 이전</h2>
+      <p>
+        서비스는 구글(Google LLC) 소셜 로그인을 통해서만 회원가입·로그인을 지원합니다.
+        이 과정에서 아래와 같이 개인정보가 국외로 이전됩니다.
+      </p>
+      <table class="doc-table">
+        <tr><th>이전받는 자</th><th>이전 항목</th><th>이전되는 국가</th>
+          <th>이전 일시 및 방법</th><th>이용 목적</th><th>보유·이용 기간</th></tr>
+        <tr><td>Google LLC</td><td>이메일, 이름, 프로필 이미지</td>
+          <td>미국</td><td>로그인 시마다, OAuth 인증 과정에서 전송</td>
+          <td>본인 확인 및 로그인 인증</td><td>Google의 자체 개인정보처리방침에 따름</td></tr>
+      </table>
+      <p>
+        구글 로그인은 서비스 이용을 위한 유일한 인증 수단으로, 이를 거부할 경우
+        서비스를 이용할 수 없습니다.
+      </p>
+    </li>
+    <li>
+      <h2>7. 정보주체의 권리·의무 및 행사 방법</h2>
+      <p>
+        이용자는 언제든지 자신의 개인정보를 조회하거나 수정할 수 있으며, 회원 탈퇴를
+        통해 수집된 개인정보의 삭제(파기)를 요청할 수 있습니다. 만 14세 미만
+        아동의 개인정보는 법정대리인의 동의 없이 수집하지 않으며, 법정대리인은
+        아동의 개인정보에 대한 열람, 정정, 삭제를 요청할 수 있습니다. 권리 행사는
+        아래 9항의 연락처를 통해 요청할 수 있으며, 서비스는 지체 없이 필요한 조치를
+        취합니다.
+      </p>
+    </li>
+    <li>
+      <h2>8. 개인정보의 파기 절차 및 방법</h2>
+      <p>
+        이용자가 회원 탈퇴를 요청하면 이메일, 표시 이름, 프로필 이미지 등 개인을
+        식별할 수 있는 정보를 지체 없이 파기하거나 복구할 수 없는 익명 값으로
+        대체합니다. 전자적 파일 형태의 정보는 기록을 재생할 수 없는 기술적 방법을
+        사용하여 삭제합니다.
+      </p>
+    </li>
+    <li>
+      <h2>9. 개인정보 보호책임자</h2>
+      <table class="doc-table">
+        <tr><th>성명</th><td>조현빈</td></tr>
+        <tr><th>연락처</th><td><a href="mailto:hello@replix.tv">hello@replix.tv</a></td></tr>
+      </table>
+      <p>
+        이용자는 서비스 이용 중 발생한 모든 개인정보 보호 관련 문의, 불만처리,
+        피해구제 등을 위 연락처로 문의할 수 있으며, 서비스는 이용자의 문의에
+        지체 없이 답변합니다.
+      </p>
+      <p>
+        그 밖에 개인정보 침해에 대한 신고나 상담이 필요한 경우 개인정보분쟁조정위원회,
+        개인정보침해신고센터 등 아래 기관에 문의할 수 있습니다.
+      </p>
+      <ul>
+        <li>개인정보분쟁조정위원회 (kopico.go.kr / 국번없이 1833-6972)</li>
+        <li>개인정보침해신고센터 (privacy.kisa.or.kr / 국번없이 118)</li>
+      </ul>
+    </li>
+    <li>
+      <h2>10. 개인정보의 안전성 확보조치</h2>
+      <p>
+        서비스는 비밀번호를 자체적으로 저장하지 않으며(구글 로그인만 지원), 이용자
+        인증에는 만료 시간이 있는 토큰을 사용합니다. 개인정보가 저장되는 데이터베이스는
+        접근이 제한된 내부망에서만 접근할 수 있고, 통신 구간은 암호화(HTTPS)를
+        적용합니다.
+      </p>
+    </li>
+    <li>
+      <h2>11. 개인정보 처리방침의 변경</h2>
+      <p>
+        이 방침은 법령·정책 또는 서비스의 변경에 따라 개정될 수 있습니다. 방침을
+        개정하는 경우 적용일자 및 개정 사유를 명시하여 시행일로부터 최소 7일 전(이용자
+        권리에 중대한 영향을 주는 변경은 30일 전)부터 서비스 내 공지사항 등을 통해
+        공지합니다.
+      </p>
+    </li>
+  </ol>
+
+  <p class="doc-foot">
+    문의 <a href="mailto:hello@replix.tv">hello@replix.tv</a><br>
+    서비스 이용에 관한 사항은 별도의 <a href="terms.html">이용약관</a>에서 정합니다.
+  </p>
+</div>
+
+</body>
+</html>
