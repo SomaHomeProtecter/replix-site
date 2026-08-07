@@ -41,12 +41,13 @@
   max-width: 34ch; line-height: 1.72; }
 .hero-cta { margin-top: 30px; }
 
-/* 설치 버튼. 크롬 마크는 흰 원 위에 올려 액센트 배경과 겹치지 않게 한다. */
+/* 설치 버튼. 크롬 마크 자체가 이미 원형이라 별도 흰 배지 없이 그대로 올린다. */
 .btn--chrome { padding: 15px 26px 15px 18px; font-size: 16px; }
 .chrome-ic {
-  width: 24px; height: 24px; border-radius: 50%; background: #fff;
+  width: 20px; height: 20px;
   display: grid; place-items: center; flex: 0 0 auto;
 }
+.chrome-ic img { width: 100%; height: 100%; }
 .hero-note { margin-top: 11px; font-size: 12.5px; color: var(--faint); }
 
 .hero-chips { margin: 22px 0 0; padding: 0; list-style: none;
