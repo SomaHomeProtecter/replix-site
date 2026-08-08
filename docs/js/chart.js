@@ -14,23 +14,49 @@ if (chart) {
   publicStats.then(function (stats) { render(stats.mostWatched || []); });
 }
 
+/* 응답 값은 전부 문자열로 그려 넣는다 — 작품명·인용 채팅은 사용자가 쓴 글이고, 줄거리·썸네일은
+   플랫폼에서 온 값이라 어느 쪽도 마크업으로 신뢰하지 않는다. */
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (ch) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+  });
+}
+
+/* 이미지 주소는 https만 통과시킨다 — src에 다른 스킴이 실리는 길을 아예 막는다.
+   (확장의 '실시간 인기 장면'도 같은 규칙을 쓴다.) */
+function safeHttps(u) {
+  return (typeof u === "string" && u.indexOf("https://") === 0) ? u : null;
+}
+
 function render(items) {
   function epiInner(x, i, big) {
-    var quote = (x.quoteText)
-      ? '<p class="epi-quote">' + x.quoteText + (x.quoteAuthor ? ' <span class="epi-quote-by">— ' + x.quoteAuthor + '</span>' : '') + '</p>'
+    var shot = safeHttps(x.thumbnailUrl);
+    /* 썸네일은 카드 바닥에 깔고 글은 그 위에 얹는다(CSS의 .epi-shot / .epi--shot).
+       alt는 빈 문자열이다 — 바로 옆에 작품명·회차 제목이 글로 있어 읽어 줄 내용이 겹친다. */
+    var img = shot
+      ? '<img class="epi-shot" src="' + esc(shot) + '" alt="" loading="lazy" decoding="async">'
       : '';
     var rank = big ? '<span class="epi-rank">TOP ' + (i + 1) + '</span>' : '';
-    return '<h3 class="epi-title">' + x.show + rank + '</h3>' + quote;
+    var ep = x.episodeTitle ? '<p class="epi-ep">' + esc(x.episodeTitle) + '</p>' : '';
+    var syn = x.synopsis ? '<p class="epi-syn">' + esc(x.synopsis) + '</p>' : '';
+    var quote = (x.quoteText)
+      ? '<p class="epi-quote">' + esc(x.quoteText) + (x.quoteAuthor ? ' <span class="epi-quote-by">— ' + esc(x.quoteAuthor) + '</span>' : '') + '</p>'
+      : '';
+    return img + '<h3 class="epi-title">' + esc(x.show) + rank + '</h3>' + ep + syn + quote;
   }
   function emptyInner() {
     return '<h3 class="epi-title epi-title--empty">데이터 없음</h3>' +
       '<p class="epi-quote epi-quote--empty">더 많은 사람이 감상하면 여기에 나타납니다.</p>';
   }
+  /* 썸네일이 있는 카드만 어둡게 덮는다 — 색면 카드에까지 씌우면 작품 색이 죽는다. */
+  function shotClass(x) {
+    return (x && safeHttps(x.thumbnailUrl)) ? " epi--shot" : "";
+  }
   function epiHtml(x, i, big) {
     if (!x) {
       return '<article class="epi epi--empty' + (big ? " epi--big" : "") + '">' + emptyInner() + '</article>';
     }
-    return '<article class="epi' + (big ? " epi--big" : "") + '" style="--pc:' + x.color + '">' +
+    return '<article class="epi' + (big ? " epi--big" : "") + shotClass(x) + '" style="--pc:' + esc(x.color) + '">' +
       (big ? '<span class="zap" aria-hidden="true"></span>' : '') +
       epiInner(x, i, big) +
     '</article>';
@@ -100,6 +126,8 @@ function render(items) {
       bigCard.classList.add("zapping");
       setTimeout(function () {
         bigCard.classList.remove("epi--empty");
+        // 썸네일 유무가 작품마다 달라, 재핑으로 바뀔 때마다 덮개 클래스도 다시 맞춘다.
+        bigCard.classList.toggle("epi--shot", !!safeHttps(x.thumbnailUrl));
         bigCard.style.setProperty("--pc", x.color);
         bigCard.innerHTML = '<span class="zap" aria-hidden="true"></span>' + epiInner(x, bigIdx, true);
         void bigCard.offsetWidth;
