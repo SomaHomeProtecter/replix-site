@@ -1,10 +1,15 @@
 /* ═══ 리플릭스에서 많이 본 작품 ══════════════════════════════
    왼쪽 카피 레일 + 대형 추천 카드, 아래로 작은 카드 네 장.
    밝은 바닥 위에 어두운 포스터 카드를 얹는다(히어로 화면과 같은
-   대비 문법). 카드의 색은 작품 포스터가 아니라 그 작품의 고유색
-   (--pc)으로 물든 익명의 장면이다 - 실제 작품 화면은 쓰지 않는다.
-   내용은 /api/v1/public-stats 의 실데이터다(js/chart.js) — 수치는
-   순위에만 쓰이고 화면엔 안 나온다. */
+   대비 문법). 내용은 /api/v1/public-stats 의 실데이터다(js/chart.js)
+   — 수치는 순위에만 쓰이고 화면엔 안 나온다.
+
+   카드 바닥 (HP-309에서 바뀜): 그 회차의 실제 썸네일을 깔고, 없으면
+   종전처럼 작품 고유색(--pc)으로 물든 색면으로 떨어진다. 썸네일은
+   서비스가 저장해 둔 것만 쓰므로(아무도 안 본 작품은 색면 그대로)
+   두 모습이 같은 화면에 섞인다 — 색면은 폴백이지 오류가 아니다.
+   ⚠️ 종전 주석은 "실제 작품 화면은 쓰지 않는다"였다. 그 방침이
+   이 티켓에서 뒤집혔다는 사실을 남겨 둔다(경위·근거는 HP-309). */
 .band-soft { background: var(--soft); }
 #chart { position: relative; }
 .chart-grid { display: grid; grid-template-columns: minmax(0, .72fr) minmax(0, 1.6fr);
@@ -66,6 +71,38 @@
 .epi-track { display: flex; gap: clamp(14px, 1.8vw, 22px); will-change: transform; }
 .epi-track .epi { flex: 0 0 auto; }
 
+/* ── 회차 썸네일 (HP-309) ─────────────────────────────────────
+   카드 바닥에 깔고 글은 그 위에 얹는다. .epi > * 가 모든 자식을
+   position:relative; z-index:1 로 올리므로 선택자를 한 단계 더
+   구체적으로 써서(.epi > .epi-shot) 이 규칙이 이긴다. */
+.epi > .epi-shot { position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%; object-fit: cover; }
+/* 사진 위 글을 읽히게 하는 막 — 아래로 갈수록 짙어져 제목·줄거리 자리를 덮는다.
+   ::after는 카드 기본 비네트를 이미 쓰고 있어, 사진 카드에서만 그 자리를 이 그라디언트로
+   바꿔 끼운다(inset 그림자만으론 흰 글씨가 밝은 장면에서 묻힌다). */
+.epi--shot::after { box-shadow: inset 0 0 90px rgba(0,0,0,.5);
+  background: linear-gradient(to top, rgba(6,6,10,.92) 0%, rgba(6,6,10,.66) 42%, rgba(6,6,10,.18) 100%); }
+/* 사진이 카드 색을 대신하므로, 사진이 있을 때는 바닥 그라디언트를 검게 낮춰
+   작품 색이 사진 위로 번지지 않게 한다(색이 이중으로 얹히면 탁해진다). */
+.epi--shot { background: linear-gradient(165deg, #17171f, #0b0b0f 72%); }
+/* 글은 카드 아래쪽에 모은다 — 사진의 인물·자막이 대개 가운데 위쪽에 있어 위에서부터 쌓으면
+   겹치고, 사진 카드만 아래로 내리면 한 줄에 섞였을 때 카드마다 글 높이가 어긋난다. 그래서
+   사진 유무와 무관하게 모든 카드를 아래 정렬로 맞춘다(빈 칸 포함). */
+.epi { justify-content: flex-end; }
+
+/* 회차 제목 — 작품명 바로 아래 한 줄. 길면 자른다(줄바꿈되면 카드 높이가 들쭉날쭉해진다). */
+.epi-ep { margin-top: 5px; font-family: var(--mono); font-size: 11.5px; letter-spacing: .02em;
+  color: rgba(255,255,255,.62); max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.epi--big .epi-ep { margin-top: 7px; font-size: 12.5px; }
+
+/* 회차 줄거리 — 카드 크기에 맞춰 줄 수를 고정한다. 넷플릭스 줄거리는 길이 편차가 커서
+   그대로 두면 카드마다 높이가 달라진다. */
+.epi-syn { margin-top: 9px; max-width: 46ch; font-size: 12.5px; line-height: 1.6;
+  color: rgba(255,255,255,.78);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.epi--big .epi-syn { margin-top: 12px; font-size: 14px; max-width: 52ch; -webkit-line-clamp: 3; }
+
 .epi-title { display: flex; align-items: center; color: #fff;
   font-size: 19px; font-weight: 800; letter-spacing: -.035em; }
 .epi--big .epi-title { font-size: clamp(24px, 2.4vw, 33px); }
@@ -98,4 +135,6 @@
 .epi--big.zapping { animation: zap-jitter .18s linear; }
 @keyframes zap-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .epi--big.zapped .epi-title { animation: zap-in .38s var(--ease) backwards; }
+.epi--big.zapped .epi-ep { animation: zap-in .38s var(--ease) .06s backwards; }
+.epi--big.zapped .epi-syn { animation: zap-in .38s var(--ease) .08s backwards; }
 .epi--big.zapped .epi-quote { animation: zap-in .38s var(--ease) .1s backwards; }
