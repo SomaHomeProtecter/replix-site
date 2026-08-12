@@ -32,3 +32,13 @@
   transition: max-height .34s var(--ease), opacity .24s var(--ease), padding-bottom .34s var(--ease); }
 .qa[open] .qa-a { max-height: 260px; opacity: 1; padding-bottom: 22px; }
 .qa-a p { font-size: 15.5px; color: var(--muted); max-width: 62ch; line-height: 1.7; }
+
+/* ── 모바일 대응 ── */
+@media (max-width: 480px) {
+  .steps-head h2 { font-size: clamp(20px, 6vw, 26px); }
+  .step h3 { font-size: 16px; }
+  .step p { font-size: 14px; }
+  .faq-head h2 { font-size: clamp(20px, 6vw, 26px); }
+  .qa-q { font-size: 14px; padding: 12px 14px; }
+  .qa-a p { font-size: 13.5px; }
+}

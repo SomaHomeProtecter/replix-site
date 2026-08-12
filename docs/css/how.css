@@ -189,3 +189,11 @@
   .how-floats, .how-panel--live::after { animation: none; }
   .how-floats i, .how-typing-dots i, .how-live-badge i { animation: none; }
 }
+
+/* ── 모바일 대응 ── */
+@media (max-width: 480px) {
+  .how-panel { width: 280px; }
+  .how-copy h2 { font-size: clamp(18px, 5vw, 22px); }
+  .how-copy p { font-size: 14px; }
+  .how-row + .how-row { margin-top: 48px; }
+}

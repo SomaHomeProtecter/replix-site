@@ -192,3 +192,12 @@
   display: flex; justify-content: space-between; margin-top: 8px;
   font-family: var(--mono); font-size: 10.5px; color: var(--faint);
 }
+
+/* ── 모바일 대응 ── */
+@media (max-width: 480px) {
+  .pulse-head h2 { font-size: clamp(20px, 6vw, 26px); }
+  .pulse-head p { font-size: 14px; }
+  .pulse-bars { height: 72px; }
+  .pulse-pins { height: 72px; }
+  .pulse-pin { transform: translateX(-50%) scale(.85); }
+}

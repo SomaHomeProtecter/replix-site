@@ -110,3 +110,11 @@ img { max-width: 100%; }
   transition: opacity .46s var(--ease), transform .46s var(--ease);
   transition-delay: calc(var(--i, 0) * 52ms); }
 [data-stagger].in > * { opacity: 1; transform: none; }
+
+/* ═══ 모바일 대응 (2026-08-13) ═══════════════════════════════════ */
+@media (max-width: 480px) {
+  .pad { padding-block: clamp(48px, 8vh, 72px); }
+  h1, h2 { letter-spacing: -.03em; }
+  .btn--chrome { padding: 13px 20px 13px 14px; font-size: 14px; }
+  .nav .btn { font-size: 12px; padding: 7px 12px; }
+}

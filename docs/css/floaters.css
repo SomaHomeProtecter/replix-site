@@ -71,3 +71,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) { .works-row { animation: none; } }
+
+/* ── 모바일 대응 ── */
+@media (max-width: 480px) {
+  .works-card { width: 260px; }
+  .works-head h2 { font-size: clamp(20px, 6vw, 26px); }
+}

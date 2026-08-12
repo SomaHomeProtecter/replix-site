@@ -25,3 +25,14 @@ footer { background: var(--screen); color: var(--s-muted); padding-block: 50px 4
   }
   .reveal, [data-stagger] > * { opacity: 1; transform: none; }
 }
+
+/* ── 모바일 대응 ── */
+@media (max-width: 480px) {
+  .close .wrap { padding-block: clamp(56px, 10vh, 80px); }
+  .close h2 { font-size: clamp(28px, 8vw, 48px); }
+  .close p { font-size: 14px; }
+  footer { font-size: 12.5px; }
+  .foot-grid { flex-direction: column; gap: 20px; }
+  .foot-links { margin-left: 0; gap: 14px; }
+  .foot-legal { font-size: 11.5px; }
+}
