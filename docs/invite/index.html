@@ -78,7 +78,7 @@
     var pk = p.get('p');
     if (!Object.prototype.hasOwnProperty.call(NAV, pk || '')) {
       pk = w && /^\d+$/.test(w) ? 'netflix'
-        : (w && /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(w) ? 'disney_plus' : null);
+        : (w && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(w) ? 'disney_plus' : null);
     }
     if (w && t && pk) {
       // 토큰은 해시(#)로 나른다 — fragment는 서버로 전송되지 않아 OTT 쪽이 토큰을 보지 못하고,
