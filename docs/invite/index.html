@@ -47,8 +47,8 @@
   <main id="go" hidden>
     <div class="wordmark">Replix</div>
     <div class="spinner" aria-hidden="true"></div>
-    <p class="msg">넷플릭스로 이동하고 있어요…</p>
-    <a id="open" class="btn">넷플릭스에서 열기</a>
+    <p class="msg" id="msg">이동하고 있어요…</p>
+    <a id="open" class="btn">열기</a>
     <p class="sub">자동으로 이동하지 않으면 눌러 주세요</p>
   </main>
   <main id="bad" hidden>
@@ -57,15 +57,37 @@
     <p class="sub">초대한 친구에게 새 링크를 받아 주세요</p>
   </main>
   <script>
+    // 플랫폼별 재생 URL (HP-318). 조립 규칙의 정본은 확장의 `replix-net.js` PLATFORM_NAV이고
+    // 여기는 그 사본이다 — 이 페이지는 확장 코드에 닿을 수 없는 정적 웹 표면이라 어쩔 수 없다.
+    // ⚠ 플랫폼을 추가하면 세 곳을 함께 고쳐야 한다: replix-net.js · 확장 background.js · 이 파일.
+    var NAV = {
+      netflix: {
+        name: '넷플릭스',
+        url: function (id) { return 'https://www.netflix.com/watch/' + encodeURIComponent(id); },
+      },
+      disney_plus: {
+        name: '디즈니+',
+        url: function (id) { return 'https://www.disneyplus.com/play/' + encodeURIComponent(id); },
+      },
+    };
     var p = new URLSearchParams(location.search);
     var w = p.get('w');
     var t = p.get('t');
-    if (w && t) {
-      // 토큰은 해시(#)로 나른다 — fragment는 서버로 전송되지 않아 넷플릭스가 토큰을 보지 못하고,
+    // platform은 링크가 실어 준 값이 정본. 없으면(HP-318 이전에 발급된 링크) 회차 id 모양으로
+    // 추론한다 — 그 시절 링크는 전부 넷플릭스였고 넷플릭스 id는 순수 숫자라 안전하다.
+    var pk = p.get('p');
+    if (!Object.prototype.hasOwnProperty.call(NAV, pk || '')) {
+      pk = w && /^\d+$/.test(w) ? 'netflix'
+        : (w && /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(w) ? 'disney_plus' : null);
+    }
+    if (w && t && pk) {
+      // 토큰은 해시(#)로 나른다 — fragment는 서버로 전송되지 않아 OTT 쪽이 토큰을 보지 못하고,
       // 설치된 확장(content script)만 읽는다. encodeURIComponent는 URL 조립 방어(값은 base64url).
-      var url = 'https://www.netflix.com/watch/' + encodeURIComponent(w)
-        + '#replix-invite=' + encodeURIComponent(t);
-      document.getElementById('open').href = url;
+      var url = NAV[pk].url(w) + '#replix-invite=' + encodeURIComponent(t);
+      document.getElementById('msg').textContent = NAV[pk].name + '(으)로 이동하고 있어요…';
+      var open = document.getElementById('open');
+      open.textContent = NAV[pk].name + '에서 열기';
+      open.href = url;
       document.getElementById('go').hidden = false;
       // 수동 버튼을 먼저 그린 뒤 자동 이동 — 일부 인앱 브라우저가 replace를 막아도 길이 남는다.
       location.replace(url);
