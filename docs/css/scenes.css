@@ -132,3 +132,63 @@
 .hm-list .av { width: 25px; height: 25px; font-size: 11px; }
 .hm-list .msg-name { font-size: 12.5px; }
 .hm-empty { color: var(--s-dim); font-size: 13px; margin: auto 0; }
+
+/* ═══ 반응이 몰린 구간 — 단순화 버전 (#scenes, 2026-08-12) ═══════
+   위의 인터랙티브 히트맵(#scenes-legacy, 감춤)을 대체한 정적 구성.
+   밝은 배경에 제목·설명, 시각물만 어두운 카드(파형이 다크에서만 사는 색이라).
+   파형 = 랜딩 기존 빨간 막대, 핀 = 확장 실물 "N명 시청 중" 크림 알약
+   (Replix-extension styles.css .rx-vm-pill 의 색·질감을 옮김). */
+
+.pulse-head { text-align: center; margin-bottom: 44px; }
+.pulse-head h2 { font-size: clamp(22px, 3.2vw, 32px); }
+.pulse-head p { color: var(--muted); font-size: 15px; margin-top: 10px; max-width: 520px; margin-inline: auto; }
+
+/* 스테이지 — B처럼 본문 폭(860px) 안에 담는다.
+   ⚠ 스테이지에 padding 을 주지 말 것 — 핀 레이어(inset:0)는 패딩까지 포함하고
+   막대는 콘텐츠 박스 안이라 핀 %좌표가 막대와 어긋난다. 좌우 여백은 바깥 .wrap 이 담당. */
+.pulse-stage { position: relative; max-width: 860px; margin: 0 auto; }
+.pulse-bars { display: flex; align-items: flex-end; gap: 2px; height: 110px; }
+.pulse-bars span {
+  flex: 1; border-radius: 2px 2px 0 0; min-height: 3px;
+  background: linear-gradient(180deg, #ff5b63, rgba(229,9,20,.18));
+}
+
+/* 핀 레이어는 파형(110px)에만 겹친다 — inset:0 이면 재생바·타임코드까지
+   덮어 핀 bottom 기준이 내려가 재생바와 겹친다 */
+.pulse-pins { position: absolute; left: 0; right: 0; top: 0; height: 110px; pointer-events: none; }
+.pulse-pin {
+  position: absolute; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center;
+}
+.pulse-pill {
+  padding: 4px 11px; border-radius: 999px;
+  background: var(--ink); color: #fff;
+  font-size: 11px; font-weight: 800; line-height: 1;
+  letter-spacing: -.2px; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 4px 14px rgba(16,16,24,.25);
+}
+.pulse-pill em { font-style: normal; font-weight: 600; font-size: 10px; opacity: .7; }
+.pulse-pin::after {
+  content: ''; margin-top: -.5px;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid rgba(16,16,24,.85);
+}
+
+.pulse-track {
+  position: relative; height: 4px; border-radius: 2px;
+  background: rgba(16,16,24,.1); margin-top: 6px;
+}
+.pulse-track i {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 33%;
+  background: var(--accent); border-radius: 2px;
+}
+.pulse-track em {
+  position: absolute; top: 50%; left: 33%; width: 13px; height: 13px;
+  border-radius: 50%; background: var(--accent);
+  transform: translate(-50%,-50%); box-shadow: 0 0 0 4px rgba(229,9,20,.16);
+}
+.pulse-times {
+  display: flex; justify-content: space-between; margin-top: 8px;
+  font-family: var(--mono); font-size: 10.5px; color: var(--faint);
+}

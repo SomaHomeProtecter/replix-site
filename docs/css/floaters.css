@@ -26,3 +26,48 @@
 #scenes .wrap { position: relative; }
 /* 히어로 카드는 플레이어(z2) 위·장식 말풍선(z4) 아래에 떠 있다 */
 .fcard--hero { z-index: 3; }
+
+/* ═══ 함께 보는 중인 작품 — 필름 스트립 (#works, 2026-08-12) ═══════
+   흩어져 있던 fcard 4장을 한 섹션의 무한 마키로 모은 것.
+   루프 원리: 카드 세트를 두 번 이어 붙이고 translateX(-50%)까지 이동 →
+   정확히 한 세트 폭만큼 밀리는 순간 처음과 같은 그림이 되어 이어진다.
+   카드 수를 바꾸면 두 세트가 동일한지 확인할 것(아니면 루프가 튄다). */
+
+.works-head { text-align: center; margin-bottom: 36px; }
+.works-head h2 { font-size: clamp(22px, 3.2vw, 32px); }
+
+/* 가로만 자른다(마키 루프) — overflow:hidden 은 세로까지 잘라 카드 그림자가
+   벨트 바닥에서 수평선으로 끊긴 '회색 띠'를 만든다(2026-08-12 실측). */
+.works-belt { overflow-x: clip; overflow-y: visible; padding: 12px 0 36px; }
+.works-row {
+  display: flex; gap: 22px; width: max-content;
+  animation: works-scroll 36s linear infinite;
+}
+@keyframes works-scroll { to { transform: translateX(-50%); } }
+
+.works-card {
+  position: relative; width: 340px; aspect-ratio: 16/9; flex-shrink: 0;
+  border-radius: 14px; overflow: hidden; background: #000;
+  box-shadow: 0 3px 8px rgba(16,16,24,.14), 0 22px 44px -14px rgba(16,16,24,.38);
+}
+.works-row .works-card:nth-child(odd) { transform: rotate(-1.4deg); }
+.works-row .works-card:nth-child(even) { transform: rotate(1.2deg) translateY(10px); }
+.works-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.works-card b {
+  position: absolute; left: 10px; bottom: 10px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(6px);
+  padding: 4px 10px; border-radius: 999px;
+}
+.works-card b::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: #10b981; flex-shrink: 0;
+}
+.works-card .works-title {
+  position: absolute; right: 10px; bottom: 10px;
+  font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,.85);
+  background: rgba(0,0,0,.4); padding: 3px 9px; border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) { .works-row { animation: none; } }

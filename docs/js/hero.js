@@ -141,11 +141,11 @@ seedFeed();
    천천히 지나가게 둔다. */
 var POS_FROM = 0.575, POS_SPAN = 0.095;
 
-var t = 0, idx = 0, timer = null, viewers = 42;
+var t = 0, idx = 0, timer = null, viewers = 42, firstType = true;
 function tick() {
   t += 0.2;
   if (t > DUR) {
-    t = 0; idx = 0; seedFeed();
+    t = 0; idx = 0; seedFeed(); firstType = true;
   }
   var p = POS_FROM + (t / DUR) * POS_SPAN;
   if (hFill) hFill.style.width = (p * 100) + "%";
@@ -158,6 +158,8 @@ function tick() {
     if (m.e) m.e.forEach(function (x, k) { setTimeout(function () { pop(x); }, k * 260); });
     idx++;
   }
+  /* 사용자 타이핑 — 루프 한 바퀴에 한 번 */
+  if (!typing && (firstType || Math.floor(t * 5) % 12 === 0)) { firstType = false; simulateType(); }
   /* 시청자 수가 미세하게 오간다 */
   if (heroViewers && Math.random() < 0.03) {
     viewers = Math.max(31, Math.min(58, viewers + (Math.random() < .5 ? -1 : 1)));
@@ -219,88 +221,56 @@ if (ottWord && OTT_ROLL && OTTS.length > 1 && !reduce) {
   }, 2500);
 }
 
-/* 탄막은 별도 토글 없이 Replix 가 켜져 있으면 늘 흐른다(2026-08-03
-   조현빈 결정 - 랜딩은 기능을 보여주는 자리라 항상 노출). 확장의
-   실제 기본값은 off 라는 사실은 FAQ 가 답한다. Replix 스위치를 끄면
-   .off 가 dm-layer 를 함께 걷는다. */
+/* 탄막은 Replix 가 켜져 있으면 늘 흐른다. */
 if (heroScreen) heroScreen.classList.add("dm-on");
 
-/* ── 원본↔Replix 위치 전환 ─────────────────────────────────
-   마우스의 '위치'가 상태를 정한다(2026-08-03 조현빈 결정): 플레이어
-   왼쪽 경계보다 왼쪽에 있으면 분할선이 왼쪽으로 쓸려 Replix 전체,
-   오른쪽 경계를 넘으면 오른쪽으로 쓸려 원본 전체(채팅 패널까지
-   접힘)가 된다. 플레이어 위에서는 상태를 유지한다(히스테리시스 -
-   경계에서 떨리지 않게). 상태는 위 캡슐(heroMode)의 썸이 비춘다. */
-var splitStage = document.getElementById("splitStage");
-var heroMode = document.getElementById("heroMode");
-if (splitStage && heroScreen) {
-  var sx = 0, sxTarget = 0, splitRaf = null, sweepTimer = null, wipeTimer = null;
-  var wipeState = "on";      // 'on' = Replix 전체 · 'orig' = 원본 전체
+/* ── 사용자 타이핑 시뮬레이션 ──────────────────────────────
+   채팅 루프 중간에 사용자가 메시지를 치는 것처럼 입력창에 글자가
+   한 자씩 나타나고, 완성되면 전송 버튼이 뜨고, 잠시 뒤 피드에
+   올라간다. 루프마다 한 번(t ≈ 7초). */
+var heroInputText = document.getElementById("heroInputText");
+var heroSend = document.getElementById("heroSend");
+var heroInput = document.getElementById("heroInput");
+var USER_MSGS = ["나도 소름이야", "여기 진짜 미쳤다", "이 장면 때문에 왔어",
+  "와 심장 떨린다", "다시 봐도 소름", "ㅋㅋㅋ 표정 미쳤다", "눈물 나올 뻔",
+  "이거 실화냐", "같이 보니까 더 좋다"];
+var userMsgIdx = 0, typing = false;
 
-  var prevW = -1;
-  function splitFrame() {
-    /* 원본 상태에선 패널이 접히며 스테이지 폭이 매 프레임 변한다 -
-       폭이 안정될 때까지 선을 오른쪽 끝에 따라 붙여 항상 보이게 한다 */
-    var pinned = wipeState === "orig", w = 0;
-    if (pinned) { w = splitStage.getBoundingClientRect().width; sxTarget = w - 1; }
-    sx += (sxTarget - sx) * 0.14;
-    if (Math.abs(sxTarget - sx) < 0.4) sx = sxTarget;
-    splitStage.style.setProperty("--sx", sx.toFixed(1) + "px");
-    splitStage.classList.toggle("split-on", sx > 3);
-    var keep = sx !== sxTarget || (pinned && Math.abs(w - prevW) > 0.3);
-    prevW = pinned ? w : -1;
-    splitRaf = keep ? requestAnimationFrame(splitFrame) : null;
-  }
-  function splitGo(x) {
-    sxTarget = x;
-    if (splitRaf == null) splitRaf = requestAnimationFrame(splitFrame);
-  }
-  /* 화면 상태와 상태 캡슐을 한 손으로 움직인다 */
-  function applyOff(off) {
-    heroScreen.classList.toggle("off", off);
-    if (heroMode) heroMode.classList.toggle("is-off", off);
-  }
-  function wipeTo(state) {
-    if (wipeState === state) return;
-    wipeState = state;
-    clearTimeout(wipeTimer);
-    if (state === "orig") {
-      /* 기다림 없이 즉시 - 선이 쓸리는 것과 동시에 패널도 접힌다 */
-      splitGo(splitStage.getBoundingClientRect().width);
-      applyOff(true);
+function simulateType() {
+  if (!heroInputText || !heroSend || !heroInput || typing || reduce) return;
+  typing = true;
+  var msg = USER_MSGS[userMsgIdx % USER_MSGS.length];
+  userMsgIdx++;
+  heroInputText.textContent = "";
+  heroInput.classList.add("input-active");
+  var i = 0;
+  var typeTimer = setInterval(function () {
+    if (i < msg.length) {
+      heroInputText.textContent = msg.slice(0, ++i);
     } else {
-      applyOff(false);   // 패널이 펴지고
-      splitGo(0);        // 선이 왼쪽으로 쓸려 Replix 가 돌아온다
+      clearInterval(typeTimer);
+      heroSend.style.display = "";
+      setTimeout(function () {
+        addLive({ n: "나", c: "#10b981", t: msg });
+        heroInputText.textContent = "지금 이 장면에 반응을 남겨보세요";
+        heroInput.classList.remove("input-active");
+        heroSend.style.display = "none";
+        typing = false;
+      }, 400);
     }
-  }
+  }, 90);
+}
 
-  /* 위치 판정은 페이지 전체에서 - 히어로 섹션이 화면에 보이는 동안
-     마우스가 어디에 있든 플레이어 좌/우 경계와 비교해 전환한다. */
-  var heroInView = true;
-  document.addEventListener("pointermove", function (e) {
-    if (!heroInView) return;
-    if (sweepTimer) { clearTimeout(sweepTimer); sweepTimer = null; }
-    var r = heroScreen.getBoundingClientRect();
-    if (e.clientX < r.left) wipeTo("on");
-    else if (e.clientX > r.right) wipeTo("orig");
-    /* 플레이어 위(경계 사이)에서는 현재 상태 유지 */
+/* ── 원본↔Replix 토글 ─────────────────────────────────────
+   화면 위 세그먼트 토글로 원본/Replix 를 전환한다. 기존의 마우스
+   위치 기반 분할선을 교체(2026-08-12). */
+var heroToggle = document.getElementById("heroToggle");
+if (heroToggle && heroScreen) {
+  var isReplix = true;
+  heroToggle.addEventListener("click", function () {
+    isReplix = !isReplix;
+    heroScreen.classList.toggle("off", !isReplix);
+    heroToggle.classList.toggle("is-orig", !isReplix);
+    heroToggle.setAttribute("aria-pressed", isReplix ? "true" : "false");
   });
-  /* 처음 보일 때 한 번 원본까지 갔다 돌아와 장치의 존재를 알린다.
-     섹션이 화면 밖으로 나가면 기본 상태(Replix)로 되돌려 둔다. */
-  var swept = false;
-  new IntersectionObserver(function (es) {
-    es.forEach(function (e) {
-      heroInView = e.isIntersecting;
-      if (e.isIntersecting) {
-        if (swept || reduce) return;
-        swept = true;
-        sweepTimer = setTimeout(function () {
-          wipeTo("orig");
-          sweepTimer = setTimeout(function () { sweepTimer = null; wipeTo("on"); }, 2000);
-        }, 1000);
-      } else {
-        wipeTo("on");
-      }
-    });
-  }, { threshold: 0.4 }).observe(splitStage);
 }

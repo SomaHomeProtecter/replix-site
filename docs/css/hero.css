@@ -203,3 +203,107 @@
   letter-spacing: -.04em; line-height: 1; }
 .stat span { font-size: 13px; color: var(--muted); }
 .stat--live b { color: var(--accent); }
+
+/* ═══ 히어로 v18-B: 큰 타이포 + 붉은 후광 (2026-08-12) ═══════════
+   기존 .hero(플레이어·비교·버블)를 대체. 카피만 중앙 정렬.
+   기존 .hero 스타일은 남겨 두고(감춰진 요소가 git 이력에 있어 되돌릴 수
+   있다), 새 .hero-slim 클래스로 분리. */
+
+.hero-slim {
+  position: relative; overflow: hidden;
+  padding: clamp(80px, 14vh, 160px) 0 clamp(56px, 8vh, 90px);
+  text-align: center;
+  background: linear-gradient(175deg, var(--warm) 0%, #fef2f2 40%, var(--warm) 100%);
+}
+.hero-slim h1 {
+  font-size: clamp(40px, 7vw, 84px); position: relative; z-index: 1;
+  line-height: .98;
+}
+.hero-slim h1 b { color: var(--accent); }
+.hero-slim-sub {
+  font-size: clamp(15px, 1.3vw, 19px); color: var(--muted);
+  margin-top: 22px; max-width: 480px; margin-inline: auto;
+  position: relative; z-index: 1;
+}
+.hero-slim-cta {
+  margin-top: 32px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  position: relative; z-index: 1;
+}
+.hero-slim .hero-chips { justify-content: center; position: relative; z-index: 1; }
+.hero-slim .hero-note { position: relative; z-index: 1; }
+
+.hero-slim-glow {
+  position: absolute; left: 50%; top: 20%;
+  width: 600px; height: 600px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(229,9,20,.06) 0%, transparent 70%);
+  transform: translateX(-50%); pointer-events: none;
+}
+
+/* ═══ 제품 소개 섹션 (#intro, 2026-08-12) ═══════════════════════
+   히어로에서 내려온 제품 화면 — 영상 + 채팅 패널. */
+
+.intro-head { text-align: center; margin-bottom: 36px; }
+.intro-head h2 { font-size: clamp(22px, 3.2vw, 32px); }
+.intro-head p { color: var(--muted); font-size: 15px; margin-top: 10px;
+  max-width: 520px; margin-inline: auto; }
+
+/* intro-screen 은 base.css 의 .screen + .hero-screen 을 재사용한다.
+   hero.js 가 #feed·#floaters·#heat·#splitStage 를 잡아 시뮬레이션을 돌린다. */
+.intro-screen { max-width: 960px; margin: 0 auto; }
+
+/* ═══ 원본↔Replix 토글 (2026-08-12) ═══════════════════════════
+   세그먼트 컨트롤: [넷플릭스 | Replix]. Replix 가 기본 활성.
+   hero.js 가 heroScreen 에 .off 를 토글해 패널·탄막·히트맵을 접는다. */
+
+.hero-toggle {
+  display: flex; align-items: center; position: relative;
+  width: 220px; height: 38px; margin: 0 auto 24px;
+  background: var(--soft); border: 1px solid var(--line);
+  border-radius: 10px; padding: 3px; cursor: pointer;
+  font-family: var(--sans); font-size: 13px; font-weight: 700;
+  -webkit-appearance: none; appearance: none;
+}
+.hero-toggle-seg {
+  flex: 1; text-align: center; position: relative; z-index: 1;
+  transition: color .25s var(--ease); line-height: 32px;
+}
+.hero-toggle-seg--og { color: var(--faint); }
+.hero-toggle-seg--rx { color: #fff; }
+.hero-toggle-thumb {
+  position: absolute; top: 3px; right: 3px;
+  width: calc(50% - 3px); height: calc(100% - 6px);
+  border-radius: 7px; background: var(--accent);
+  box-shadow: 0 2px 8px rgba(229,9,20,.3);
+  transition: transform .3s var(--ease);
+}
+/* 원본 활성 상태 */
+.hero-toggle.is-orig .hero-toggle-thumb { transform: translateX(calc(-100% - 3px)); }
+.hero-toggle.is-orig .hero-toggle-seg--og { color: #fff; }
+.hero-toggle.is-orig .hero-toggle-seg--rx { color: var(--faint); }
+.hero-toggle.is-orig .hero-toggle-thumb { background: var(--ink); }
+
+/* hero-screen .off — 패널·탄막·히트맵·이모지가 접힌다 */
+.hero-screen.off .panel { width: 0; min-width: 0; padding: 0; border: 0; overflow: hidden;
+  transition: width .4s var(--ease), min-width .4s var(--ease), padding .4s var(--ease); }
+.hero-screen.off .dm-layer,
+.hero-screen.off .floaters,
+.hero-screen.off .heat { opacity: 0; transition: opacity .3s var(--ease); }
+.hero-screen .panel { transition: width .4s var(--ease), min-width .4s var(--ease), padding .4s var(--ease); }
+.hero-screen .dm-layer,
+.hero-screen .floaters,
+.hero-screen .heat { transition: opacity .3s var(--ease); }
+
+/* 사용자 타이핑 시뮬레이션 — 입력창 활성 + 전송 버튼 */
+.panel-input.input-active {
+  border-top-color: rgba(229,9,20,.3);
+  background: rgba(229,9,20,.04);
+  color: var(--s-text);
+}
+.hero-send {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  margin-left: auto; flex-shrink: 0;
+  animation: send-pop .25s var(--ease);
+}
+@keyframes send-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }

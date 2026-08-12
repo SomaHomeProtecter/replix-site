@@ -6,7 +6,7 @@
   pointer-events: none; }
 .close .wrap { position: relative; display: grid; justify-items: center; gap: 20px;
   padding-block: clamp(80px, 12vh, 140px); }
-.close h2 { font-size: clamp(31px, 4.4vw, 58px); color: #fff; }
+.close h2 { font-size: clamp(40px, 7vw, 84px); line-height: .98; color: #fff; }
 .close p { color: rgba(255,255,255,.86); font-size: 16.5px; max-width: 40ch; }
 
 /* ═══ 푸터 (다크) ══════════════════════════════════════════════ */

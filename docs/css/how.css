@@ -1,0 +1,191 @@
+/* ═══ 동작 방식 섹션 (#how) ═══════════════════════════════════
+   "지금 아무도 안 보는데 채팅이 왜 있지?"를 채팅 패널 실물로 답한다.
+   1행 = 남겨진 채팅(정지·한랭 톤), 2행 = 남겨진 것과 LIVE가 한 흐름에
+   섞인 패널(붉은 숨결 + 도착 애니메이션). 두 패널의 온도·움직임 대비가
+   섹션의 본문이다 — 문구는 질문과 한 줄 답만 얹는다.
+   .msg/.av/.panel-head/.panel-input/.ep-chip/.dot-live/.caret 는
+   base.css 의 제품 채팅 스타일을 그대로 재사용한다. */
+
+.how-row {
+  display: flex; align-items: center; gap: clamp(28px, 5vw, 64px);
+  max-width: 840px; margin: 0 auto;
+}
+.how-row--reverse { flex-direction: row-reverse; }
+@media (max-width: 680px) {
+  .how-row, .how-row--reverse { flex-direction: column; align-items: center; }
+}
+.how-row + .how-row { margin-top: clamp(64px, 9vh, 110px); }
+
+.how-copy { flex: 1; min-width: 0; }
+.how-copy h2 { font-size: clamp(20px, 2.8vw, 28px); margin-bottom: 12px; line-height: 1.25; }
+.how-copy p { font-size: 15px; color: var(--muted); line-height: 1.65; max-width: 360px; }
+
+/* ── 패널 골격 ── */
+.how-panel {
+  border-radius: 14px; overflow: hidden;
+  width: 320px; flex-shrink: 0; position: relative;
+  display: block; border-left: 0;           /* base.css .panel 과 무관한 독립 카드 */
+}
+.how-panel .panel-head { padding: 12px 14px; }
+.how-panel .panel-feed {
+  padding: 12px 12px 10px; display: flex; flex-direction: column;
+  justify-content: flex-end;
+}
+.how-panel .msg { animation: none; }        /* base 의 등장 애니메이션은 여기선 개별 제어 */
+
+.how-sub {
+  padding: 9px 14px; border-bottom: 1px solid var(--s-line); font-size: 11.5px;
+  display: flex; align-items: center; gap: 7px; color: var(--s-muted);
+}
+
+/* ══ 1행 패널 — 남겨진 채팅. 차갑고 고요하고 움직이지 않는다. ══ */
+.how-panel--solo {
+  background: linear-gradient(175deg, #0c0e16 0%, #0a0b11 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,.06), 0 12px 28px -8px rgba(10,14,30,.35);
+}
+.how-panel--solo .solo-ic { width: 13px; height: 13px; color: #5a6275; flex: 0 0 auto; }
+.how-panel--solo .how-sub { color: #7d8598; }
+.how-panel--solo .panel-feed { gap: 12px; }
+.how-panel--solo .msg-name { color: #c9cede; }
+.how-panel--solo .msg-text { color: #a8aec2; }
+
+.how-day {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 0 8px;
+}
+.how-day:first-child { padding-top: 0; }
+.how-day::before, .how-day::after {
+  content: ''; flex: 1; height: 1px; background: rgba(160,175,210,.1);
+}
+.how-day b {
+  font-size: 11px; font-weight: 700; color: #8b93a8;
+  background: rgba(160,175,210,.08); padding: 3px 12px; border-radius: 20px;
+  white-space: nowrap;
+}
+.how-day--now b { color: #6ee7b7; background: rgba(16,185,129,.12); }
+
+/* ══ 2행 패널 — 남겨진 채팅 사이로 LIVE 가 도착한다. ══ */
+.how-panel--live {
+  background: linear-gradient(175deg, #16090b 0%, #0f0b0c 55%, #0b0b0f 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,.06), 0 12px 32px -8px rgba(229,9,20,.22);
+}
+.how-panel--live::after {                    /* 숨쉬는 붉은 테두리 */
+  content: ''; position: absolute; inset: 0; border-radius: 14px; pointer-events: none;
+  border: 1px solid rgba(229,9,20,.25);
+  animation: how-breathe 3s var(--ease) infinite;
+}
+@keyframes how-breathe {
+  0%, 100% { border-color: rgba(229,9,20,.18); }
+  50% { border-color: rgba(229,9,20,.45); }
+}
+.how-panel--live .panel-feed { gap: 8px; min-height: 230px; }
+
+/* LIVE 행 — 남겨진 채팅과 층이 갈리도록 행 자체를 감싼다:
+   붉은 틴트 배경 + 왼쪽 엣지 + 아바타 라이브 링(인스타 라이브 문법) */
+.how-panel--live .how-live-row {
+  background: rgba(229,9,20,.07);
+  border-left: 2px solid rgba(229,9,20,.55);
+  border-radius: 4px 10px 10px 4px;
+  padding: 7px 9px 7px 11px;
+  margin-left: -4px;
+}
+.how-panel--live .how-live-row.msg--reply { padding-left: 24px; }
+.how-panel--live .how-live-row.msg--reply::before { left: 10px; top: 8px; }
+.how-live-row .av { box-shadow: 0 0 0 1.5px #0f0b0c, 0 0 0 3px rgba(229,9,20,.75); }
+.how-live-row .msg-text { color: #f3f3f6; }
+
+/* 도착 플래시 — 도착 직후 배경이 붉게 밝았다가 가라앉는다 */
+.how-panel .how-live-row.how-arrive {
+  animation: how-msg-cycle 6s var(--spring) infinite,
+             how-flash 6s var(--ease) infinite;
+  animation-delay: var(--d, 0s);
+}
+@keyframes how-flash {
+  0%, 2% { background-color: rgba(229,9,20,.07); }
+  5% { background-color: rgba(229,9,20,.28); }
+  14%, 100% { background-color: rgba(229,9,20,.07); }
+}
+
+/* LIVE 뱃지 — 지금 보고 있는 사용자의 이름 옆. 조용한 강조. */
+.how-live-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 8px; font-weight: 700; letter-spacing: .07em;
+  color: #ff8f95; background: rgba(229,9,20,.12);
+  padding: 1px 6px; border-radius: 4px;
+  margin-right: 5px; vertical-align: middle; transform: translateY(-1px);
+}
+.how-live-badge i {
+  width: 4px; height: 4px; border-radius: 50%; background: #ff5b63;
+  animation: how-live-blink 1.6s steps(1) infinite;
+}
+@keyframes how-live-blink { 50% { opacity: .3; } }
+
+/* 시청자 아바타 무리 */
+.how-crowd { display: flex; margin-left: auto; }
+.how-crowd i {
+  width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 8px; font-weight: 700; color: #fff; font-style: normal;
+  border: 1.5px solid #140a0c; margin-left: -5px;
+}
+.how-crowd i:first-child { margin-left: 0; }
+.how-crowd .how-crowd-more { background: rgba(255,255,255,.12); color: var(--s-muted); font-size: 7.5px; }
+
+/* 도착 루프 — 9초 주기로 LIVE 메시지가 순서대로 도착하고 반복.
+   .how-panel .msg { animation:none } (0,2,0)보다 세야 하므로 같은 급으로 스코프 */
+.how-panel .how-arrive {
+  opacity: 0;
+  animation: how-msg-cycle 6s var(--spring) infinite;
+  animation-delay: var(--d, 0s);
+}
+@keyframes how-msg-cycle {
+  0% { opacity: 0; transform: translateY(10px) scale(.97); }
+  3% { opacity: 1; transform: translateY(0) scale(1); }
+  92% { opacity: 1; transform: none; }
+  97%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+
+/* 입장 시스템 줄 */
+.how-sys {
+  text-align: center; font-size: 10px; color: var(--s-dim); padding: 1px 0;
+  display: flex; align-items: center; gap: 6px; justify-content: center;
+}
+.how-sys::before, .how-sys::after { content: ''; width: 16px; height: 1px; background: rgba(255,255,255,.06); }
+
+/* 입력 중 */
+.how-typing { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--s-dim); padding: 2px 0; }
+.how-typing .av { width: 16px; height: 16px; font-size: 8px; }
+.how-typing-dots { display: flex; gap: 3px; }
+.how-typing-dots i {
+  width: 4px; height: 4px; border-radius: 50%; background: var(--s-dim);
+  animation: how-typing-bounce .9s var(--ease) infinite;
+}
+.how-typing-dots i:nth-child(2) { animation-delay: .15s; }
+.how-typing-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes how-typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+
+/* 떠오르는 반응 이모지 */
+.how-floats { position: absolute; right: 14px; bottom: 52px; top: 80px; width: 40px;
+  pointer-events: none; overflow: hidden; }
+.how-floats i {
+  position: absolute; bottom: -24px; left: 50%; font-size: 15px; font-style: normal;
+  opacity: 0;
+  animation: how-float 4.5s var(--ease) infinite;
+  animation-delay: var(--fd, 0s);
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.6));
+}
+@keyframes how-float {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(.6); }
+  12% { opacity: 1; transform: translate(-50%, -22px) scale(1.1); }
+  30% { transform: translate(-46%, -58px) scale(1); }
+  100% { opacity: 0; transform: translate(-54%, -150px) scale(.85); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .how-panel .how-arrive,
+  .how-panel .how-live-row.how-arrive { animation: none; opacity: 1; }
+  .how-floats, .how-panel--live::after { animation: none; }
+  .how-floats i, .how-typing-dots i, .how-live-badge i { animation: none; }
+}
