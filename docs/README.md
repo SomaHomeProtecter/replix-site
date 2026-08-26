@@ -82,7 +82,14 @@ python3 -m http.server 8000     # http://localhost:8000
 
 `js/publicStats.js`가 `GET /api/v1/public-stats`(BE `domain/live` 패키지)를 한 번만
 불러 히어로 통계 띠(`js/stats.js`)와 '많이 본 작품'(`js/chart.js`)이 나눠 쓴다.
+
+운영 문서의 `api-base`는 PROD API(`https://api.replix.tv`)를 가리킨다. '많이 본 작품' 섹션이
+숨김 상태이면 `main.js`는 `chart.js`를 import하지 않으며, API 응답의 `mostWatched` 최종 차단은
+BE의 `public.most_watched.enabled`가 담당한다(HP-358). 전역 ON은 숨긴 섹션을 자동 재노출하지 않는다.
 API 주소는 `<meta name="api-base">`(`index.html`) 한 곳에서만 정한다.
+
+정적 홍보 이미지처럼 이미 배포된 파일 URL은 런타임 응답으로 회수할 수 없다. 제거가 필요하면 원본 삭제,
+사이트 재배포, CDN 캐시 무효화와 직접 URL 404 확인을 별도 런북으로 수행한다.
 
 - **히어로 통계 띠**: 지금 보고 있는 사람 5명 미만이면 `#strip` 전체를 숨긴다
   (대체 문구를 넣지 않는다 — 페이지 다른 곳이 이미 그 말을 하고 있다는 판단).
