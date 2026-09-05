@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { api, type ContentSearchItem } from '../api'
+import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
 import { titleHref } from '../App'
 
 /* 공개 카탈로그의 실제 목적지만 둔다. 같은 곳으로 가는 메뉴 두 개나
@@ -19,47 +20,37 @@ const NAV = [
 
 /* 원 시안과 같은 60px 한 줄 바, 좌우 48px 거터. */
 export function Nav({ current: _current }: { current: 'home' | 'title' }) {
+  /* 랜딩 .nav 와 같은 치수: sticky 66px, 같은 배경·블러, .wrap 안에 gap 26px, 로고 34px, 메뉴 14px gap 24px,
+     오른쪽 끝 .btn--primary.btn--sm. 랜딩과 다른 것은 '홈으로' 버튼 하나뿐이다(큐레이션에서 랜딩으로 돌아가는 길). */
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-warm/92 backdrop-blur-md">
-      <div className="flex h-[60px] items-center gap-6 px-5 md:px-12">
-        <a
-          href="/"
-          className="flex shrink-0 items-center gap-1.5 text-[19px] font-extrabold tracking-[-0.03em] text-accent"
-        >
-          <span className="flex h-[17px] w-[23px] items-center justify-center rounded-[4px] border-2 border-accent">
-            <span className="ml-[1px] block size-0 border-y-[3px] border-l-[5px] border-y-transparent border-l-accent" />
-          </span>
-          Replix
+    <header
+      className="sticky top-0 z-40 flex h-[66px] items-center border-b border-line"
+      style={{ background: 'rgba(250,249,249,.86)', backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)' }}
+    >
+      <div className="wrap flex w-full items-center gap-[26px]">
+        <a href="/" className="inline-flex shrink-0 items-center" aria-label="Replix 홈">
+          <img src={logo} alt="Replix" height={34} style={{ height: 34, width: 'auto' }} />
         </a>
 
-        <p className="hidden text-[12px] text-muted lg:block">넷플릭스에서 반응이 몰린 순간을 찾아 그 시각부터 봅니다</p>
-
-        <nav className="hidden items-center gap-5 sm:flex">
-          {NAV.map((n) => {
-            const active = n.here
-            return (
-              <a
-                key={n.label}
-                href={n.href}
-                className={`whitespace-nowrap text-[13.5px] transition-colors ${
-                  active ? 'font-bold text-ink' : 'font-medium text-muted hover:text-ink'
-                }`}
-              >
-                {n.label}
-              </a>
-            )
-          })}
+        <nav className="ml-3 hidden items-center gap-6 min-[761px]:flex">
+          {NAV.map((n) => (
+            <a
+              key={n.label}
+              href={n.href}
+              className={`whitespace-nowrap text-[14px] transition-colors ${n.here ? 'font-bold text-ink' : 'text-muted hover:text-ink'}`}
+            >
+              {n.label}
+            </a>
+          ))}
         </nav>
 
         <Search />
 
-        <a
-          href={STORE}
-          target="_blank"
-          rel="noopener"
-          className="hidden shrink-0 items-center gap-1.5 rounded-btn bg-ink px-3 py-[7px] text-[12.5px] font-bold text-white transition-colors hover:bg-accent sm:inline-flex"
-        >
-          확장 설치
+        <a href="/" className="btn btn--ghost btn--sm hidden shrink-0 sm:inline-flex">
+          홈으로
+        </a>
+        <a href={STORE} target="_blank" rel="noopener" className="btn btn--primary btn--sm shrink-0">
+          크롬 확장프로그램 설치하기
         </a>
       </div>
     </header>
@@ -90,7 +81,7 @@ function Search() {
   }, [])
 
   return (
-    <div ref={box} className="relative ml-auto md:w-[268px]">
+    <div ref={box} className="relative ml-auto w-9 md:w-[268px]">
       <label className="flex items-center gap-2 rounded-sm border border-line bg-raise px-3 py-[7px]">
         <MagnifyingGlassIcon size={14} className="shrink-0 text-faint" />
         <input
@@ -98,7 +89,7 @@ function Search() {
           value={q}
           onChange={(e) => { setQ(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder="반응이 쌓인 작품 검색"
+          placeholder="작품 검색"
           aria-label="작품 검색"
           className="hidden w-full bg-transparent text-[12.5px] text-ink outline-none placeholder:text-faint md:block"
         />
@@ -140,30 +131,31 @@ export function DraftBanner() {
 
 export function Footer() {
   return (
-    <footer className="border-t border-line px-5 py-8 md:px-12">
-      <div className="flex flex-wrap items-start justify-between gap-x-12 gap-y-6">
-        <p className="max-w-[46ch] text-[12.5px] leading-relaxed text-muted">
-          넷플릭스를 보는 동안 같은 회차를 보는 사람들과 이야기하고, 반응이 몰린 구간을
-          찾아봅니다.
-        </p>
-        <div className="flex gap-10 text-[12.5px]">
-          <ul className="space-y-1.5 text-muted">
-            <li><a href="/#scenes" className="hover:text-ink">인기 장면</a></li>
-            <li><a href="#/" className="hover:text-ink">인기 작품</a></li>
-            <li><a href="/#faq" className="hover:text-ink">자주 묻는 질문</a></li>
-          </ul>
-          <ul className="space-y-1.5 text-muted">
-            <li><a href="/privacy" className="hover:text-ink">개인정보처리방침</a></li>
-            <li><a href="/terms" className="hover:text-ink">이용약관</a></li>
-            <li><a href={STORE} target="_blank" rel="noopener" className="hover:text-ink">크롬 확장 설치</a></li>
-          </ul>
+    <footer className="border-t border-line">
+      <div className="wrap py-8">
+        <div className="flex flex-wrap items-start justify-between gap-x-12 gap-y-6">
+          <a href="/" className="inline-flex items-center" aria-label="Replix 홈">
+            <img src={logo} alt="Replix" style={{ height: 28, width: 'auto', opacity: 0.9 }} />
+          </a>
+          <div className="flex gap-10 text-[12.5px]">
+            <ul className="space-y-1.5 text-muted">
+              <li><a href="/#scenes" className="hover:text-ink">인기 장면</a></li>
+              <li><a href="#/" className="hover:text-ink">인기 작품</a></li>
+              <li><a href="/#faq" className="hover:text-ink">자주 묻는 질문</a></li>
+            </ul>
+            <ul className="space-y-1.5 text-muted">
+              <li><a href="/privacy" className="hover:text-ink">개인정보처리방침</a></li>
+              <li><a href="/terms" className="hover:text-ink">이용약관</a></li>
+              <li><a href={STORE} target="_blank" rel="noopener" className="hover:text-ink">크롬 확장프로그램 설치</a></li>
+            </ul>
+          </div>
         </div>
+        {/* TMDB 약관 §3 이 요구하는 출처 표시. 문구는 약관에 지정된 원문이다. */}
+        <p className="mt-6 text-[11.5px] leading-relaxed text-faint">
+          포스터 이미지 출처: TMDB. This product uses TMDB and the TMDB APIs but is not
+          endorsed, certified, or otherwise approved by TMDB.
+        </p>
       </div>
-      {/* TMDB 약관 §3 이 요구하는 출처 표시. 문구는 약관에 지정된 원문이다. */}
-      <p className="mt-6 text-[11.5px] leading-relaxed text-faint">
-        포스터 이미지 출처: TMDB. This product uses TMDB and the TMDB APIs but is not
-        endorsed, certified, or otherwise approved by TMDB.
-      </p>
     </footer>
   )
 }

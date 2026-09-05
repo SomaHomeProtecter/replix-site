@@ -50,7 +50,37 @@
 
 :root {
   color-scheme: light;
+  /* 랜딩(docs/css/tokens.css)과 같은 값. 두 표면이 한 페이지처럼 보이려면 컨테이너 폭·거터·내비 치수가
+     같아야 한다 — 바꾸면 양쪽을 같이 바꾼다. */
+  --gut: clamp(18px, 4.4vw, 64px);
 }
+
+/* 랜딩의 .wrap 과 동일. 모든 섹션이 이 폭 안에 선다. */
+.wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding-inline: var(--gut);
+}
+/* 가로 레일이 거터까지 나가서 스크롤되게. */
+.bleed {
+  margin-inline: calc(var(--gut) * -1);
+  padding-inline: var(--gut);
+  scroll-padding-left: var(--gut);
+}
+/* 랜딩 .btn / .btn--primary / .btn--sm 과 동일 치수. */
+.btn {
+  display: inline-flex; align-items: center; gap: 9px; white-space: nowrap;
+  border: 0; border-radius: var(--radius-btn);
+  font-size: 15px; font-weight: 700; padding: 13px 22px;
+  text-decoration: none; cursor: pointer;
+  transition: transform .12s var(--ease-out-soft), box-shadow .2s var(--ease-out-soft), filter .18s var(--ease-out-soft);
+}
+.btn--primary { background: var(--color-accent); color: #fff; box-shadow: 0 6px 20px -5px rgba(229,9,20,.45); }
+.btn--primary:hover { filter: brightness(1.07); box-shadow: 0 11px 28px -5px rgba(229,9,20,.52); }
+.btn--primary:active { transform: translateY(1px); }
+.btn--ghost { background: transparent; color: var(--color-ink); border: 1px solid var(--color-line2); }
+.btn--ghost:hover { background: var(--color-soft); }
+.btn--sm { padding: 9px 17px; font-size: 14px; }
 
 html {
   scroll-behavior: smooth;
