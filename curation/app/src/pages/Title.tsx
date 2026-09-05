@@ -20,7 +20,7 @@ import { titleHref } from '../App'
 import { Avatar, Chip, MomentDots, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { CardGridSkeleton, EmptyNote, RailSkeleton, RowsSkeleton } from '../components/skeleton'
 
-const SEC = 'px-5 py-9 md:px-12'
+const SEC = 'wrap py-9'
 const SPOILER_CUT = 3
 
 const SUBNAV = [
@@ -62,8 +62,7 @@ function Hero({ c, ep, live, peak }: { c: ContentDetail; ep: EpisodeSummary | nu
             <div>
               <p className="text-[12px] font-semibold text-muted">지금 보는 사람</p>
               <p className="num mt-1 font-mono text-[38px] font-extrabold leading-none tracking-tight text-accent">{viewers}</p>
-              <p className="mt-1.5 text-[11px] leading-snug text-faint">확장에서 이 회차를 재생 중인 인원</p>
-            </div>
+                          </div>
             <div>
               <p className="text-[12px] font-semibold text-muted">가장 뜨거운 순간의 채팅</p>
               {peak?.quote ? (
@@ -78,10 +77,9 @@ function Hero({ c, ep, live, peak }: { c: ContentDetail; ep: EpisodeSummary | nu
             <div>
               <div className="flex items-baseline justify-between gap-4">
                 <p className="text-[12px] font-semibold text-muted">회차별 채팅 반응</p>
-                <p className="text-[11.5px] text-faint">리플릭스에서 재생된 회차만</p>
-              </div>
+                              </div>
               {c.episodes.length === 0 ? (
-                <p className="mt-3 text-[12.5px] text-faint">아직 재생된 회차가 없습니다</p>
+                <p className="mt-3 text-[12.5px] text-faint">아직 회차가 없습니다.</p>
               ) : (
                 <>
                   <div className="mt-2.5 flex h-[76px] items-end gap-[5px]">
@@ -115,7 +113,7 @@ function Hero({ c, ep, live, peak }: { c: ContentDetail; ep: EpisodeSummary | nu
             )}
             <a href="#/" className="inline-flex items-center gap-2 whitespace-nowrap rounded-btn border border-line2 bg-raise px-4 py-2.5 text-[14px] font-bold text-ink transition-colors hover:bg-soft">
               <PuzzlePieceIcon size={16} />
-              확장 설치하고 이 회차 채팅 참여
+              크롬 확장프로그램 설치하기
             </a>
           </div>
         </div>
@@ -143,8 +141,8 @@ function SubNav() {
     return () => { window.removeEventListener('scroll', on); if (raf) cancelAnimationFrame(raf) }
   }, [])
   return (
-    <div className="sticky top-[60px] z-30 border-b border-line bg-warm/92 backdrop-blur-md">
-      <nav className="flex gap-6 overflow-x-auto px-5 md:px-12">
+    <div className="sticky top-[66px] z-30 border-b border-line bg-warm/92 backdrop-blur-md">
+      <nav className="wrap flex gap-6 overflow-x-auto">
         {SUBNAV.map((s) => (
           <a key={s.id} href={`#${s.id}`}
             className={`whitespace-nowrap border-b-2 py-3 text-[13.5px] font-bold transition-colors ${s.id === active ? 'border-accent text-ink' : 'border-transparent text-muted hover:border-line2 hover:text-ink'}`}>
@@ -184,7 +182,7 @@ function EpisodeCard({ c, e, selected, i }: { c: ContentDetail; e: EpisodeSummar
               <span className="truncate text-ink2">{decodeEntities(x.quote)}</span>
             </li>
           ))}
-          {!m.loading && list.length === 0 && <li className="text-[12px] text-faint">아직 채팅이 몰린 곳이 없습니다</li>}
+          {!m.loading && list.length === 0 && <li className="text-[12px] text-faint">아직 순간이 없습니다.</li>}
         </ul>
         <div className="mt-auto pt-3">
           <MomentDots moments={list.map((x) => ({ id: String(x.at), sec: x.at }))} duration={duration} activeSec={top?.at} />
@@ -200,7 +198,7 @@ function Episodes({ c, selected }: { c: ContentDetail; selected: EpisodeSummary 
     sort === 'ep' ? a.seasonNumber - b.seasonNumber || a.episodeNumber - b.episodeNumber : b.heatShare - a.heatShare)
   return (
     <section id="episodes" className={`scroll-mt-28 ${SEC}`}>
-      <SectionHead title="회차" note={`리플릭스에서 재생된 회차 ${c.episodes.length}개`}
+      <SectionHead title="회차"
         action={
           <div className="flex gap-1 rounded-sm bg-sink p-0.5 text-[12px] font-bold" role="group" aria-label="정렬">
             {(['ep', 'heat'] as const).map((k) => (
@@ -214,7 +212,7 @@ function Episodes({ c, selected }: { c: ContentDetail; selected: EpisodeSummary 
       {list.length === 0 ? (
         <>
           <CardGridSkeleton count={4} loading={false} />
-          <EmptyNote>아직 리플릭스에서 재생된 회차가 없습니다</EmptyNote>
+          <EmptyNote>아직 회차가 없습니다.</EmptyNote>
         </>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -253,12 +251,12 @@ function Moments({ c, ep, moments, momentsLoading, onPeak }: { c: ContentDetail;
   return (
     <section id="moments" className={`scroll-mt-28 border-y border-line bg-soft ${SEC}`}>
       <SectionHead title="순간" chip={ep ? <Chip>{episodeLabel(ep, c.contentType) || ep.title || '회차'}</Chip> : undefined}
-        note="채팅이 몰린 시각. 고르면 그때의 채팅이 보입니다" />
+      />
 
       {moments.length === 0 ? (
         <>
           <RowsSkeleton rows={5} loading={momentsLoading} />
-          {!momentsLoading && <EmptyNote>{ep ? '이 회차에는 아직 채팅이 몰린 곳이 없습니다' : '회차를 고르면 순간이 보입니다'}</EmptyNote>}
+          {!momentsLoading && <EmptyNote>아직 순간이 없습니다.</EmptyNote>}
         </>
       ) : (
         <>
@@ -304,7 +302,6 @@ function Moments({ c, ep, moments, momentsLoading, onPeak }: { c: ContentDetail;
                   <p className="num font-mono text-[22px] font-extrabold leading-none tracking-tight text-accent">{fmtTime(m.at)}</p>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-bold text-ink">순간 {sel + 1}</p>
-                    <p className="text-[11.5px] text-muted">앞 15초부터 뒤 45초까지의 채팅, 가림·스포일러 판정은 제외</p>
                   </div>
                   {play && (
                     <a href={play} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-btn bg-accent px-3.5 py-2 text-[13px] font-bold text-white transition-all hover:brightness-110">
@@ -323,11 +320,10 @@ function Moments({ c, ep, moments, momentsLoading, onPeak }: { c: ContentDetail;
                       </span>
                     </li>
                   ))}
-                  {!chats.loading && log.length === 0 && <li className="px-5 py-6 text-center text-[12.5px] text-muted">이 구간에 보여 줄 채팅이 없습니다</li>}
+                  {!chats.loading && log.length === 0 && <li className="px-5 py-6 text-center text-[12.5px] text-muted">채팅이 없습니다.</li>}
                 </ol>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-soft px-5 py-3">
-                  <p className="text-[12.5px] text-muted">확장을 설치하면 넷플릭스 화면 위에서 이 채팅이 실시간으로 흐릅니다.</p>
-                  <a href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-ink hover:text-accent"><PuzzlePieceIcon size={14} />확장 설치</a>
+                <div className="flex items-center justify-end border-t border-line bg-soft px-5 py-3">
+                  <a href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-ink hover:text-accent"><PuzzlePieceIcon size={14} />크롬 확장프로그램 설치하기</a>
                 </div>
               </motion.div>
             )}
@@ -343,14 +339,14 @@ function Related({ contentId }: { contentId: number }) {
   const items = r.data?.items ?? []
   return (
     <section id="related" className={`scroll-mt-28 border-t border-line ${SEC}`}>
-      <SectionHead title="이 작품에 반응을 남긴 사람들이 함께 본 작품" note="개인화 추천 아님, 시청자 겹침" />
+      <SectionHead title="함께 본 작품" />
       {items.length === 0 ? (
         <>
           <RailSkeleton count={6} loading={r.loading} />
-          {!r.loading && <EmptyNote>아직 겹치는 시청이 충분히 쌓이지 않았습니다</EmptyNote>}
+          {!r.loading && <EmptyNote>아직 함께 본 작품이 없습니다.</EmptyNote>}
         </>
       ) : (
-        <ul className="-mx-5 flex snap-x scroll-pl-5 gap-4 overflow-x-auto px-5 pb-2 md:-mx-12 md:scroll-pl-12 md:px-12">
+        <ul className="bleed flex snap-x gap-4 overflow-x-auto pb-2">
           {items.map((t) => (
             <li key={t.contentId} className="w-[126px] shrink-0 snap-start lg:w-[148px]">
               <a href={titleHref(t.contentId)} className="group block">
@@ -402,8 +398,8 @@ export default function Title({ contentId, episodeId }: { contentId: number; epi
       <section className={SEC}>
         <Empty>
           {notDeployed
-            ? '작품을 찾지 못했습니다. 작품 상세 API(HP-391)가 아직 이 서버에 배포되지 않았거나, 리플릭스에서 재생된 적 없는 작품입니다.'
-            : `작품 상세를 불러오지 못했습니다: ${detail.error?.message}`}
+            ? '작품을 찾을 수 없습니다.'
+            : `작품을 불러오지 못했습니다: ${detail.error?.message}`}
         </Empty>
       </section>
     )

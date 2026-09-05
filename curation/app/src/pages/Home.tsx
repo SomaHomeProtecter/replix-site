@@ -16,7 +16,7 @@ import { titleHref } from '../App'
 import { Chip, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { EmptyNote, PosterGridSkeleton, RailSkeleton, RowsSkeleton, Shimmer } from '../components/skeleton'
 
-const SEC = 'px-5 py-9 md:px-12'
+const SEC = 'wrap py-9'
 
 /** 지금 보고 있는 사람 수. 이 화면에서 상태를 나타내는 유일한 점이다. */
 function LiveCount({ n, className = '' }: { n: number; className?: string }) {
@@ -59,7 +59,7 @@ function Billboard({ top, live, loading }: { top: MostWatched | null; live: Live
             <div className={`${tone} mt-8 h-[104px] w-full rounded-sm`} />
             <div className={`${tone} mt-6 h-10 w-44 rounded-btn`} />
             {!loading && (
-              <p className="mt-5 text-[13px] text-muted">아직 반응이 쌓인 작품이 없습니다. 확장을 설치하고 넷플릭스를 보면 여기에 오늘의 1위가 나타납니다.</p>
+              <p className="mt-5 text-[13px] text-muted">아직 반응이 쌓인 작품이 없습니다.</p>
             )}
           </div>
         </div>
@@ -77,7 +77,6 @@ function Billboard({ top, live, loading }: { top: MostWatched | null; live: Live
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <Chip tone="accent">오늘 1위 작품</Chip>
-            <span className="text-[11px] text-muted">리플릭스에서 가장 많이 본 순</span>
             {viewers > 0 && (<><Rule /><LiveCount n={viewers} /></>)}
           </div>
 
@@ -147,11 +146,11 @@ function Billboard({ top, live, loading }: { top: MostWatched | null; live: Live
 function Ranking({ items, loading }: { items: MostWatched[]; loading: boolean }) {
   return (
     <section className={SEC} aria-busy={loading}>
-      <SectionHead title="오늘의 작품 순위" note="리플릭스에서 가장 많이 본 순, 5분마다 갱신" />
+      <SectionHead title="오늘의 작품 순위" />
       {items.length === 0 ? (
         <>
           <PosterGridSkeleton count={6} loading={loading} />
-          {!loading && <EmptyNote>아직 순위를 매길 만큼 시청이 쌓이지 않았습니다</EmptyNote>}
+          {!loading && <EmptyNote>아직 순위가 없습니다.</EmptyNote>}
         </>
       ) : (
         <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
@@ -187,12 +186,12 @@ function HotMoments({ top, live, loading }: { top: MostWatched | null; live: Liv
   if (!top || !episodeId) {
     return (
       <section className={`border-t border-line ${SEC}`} aria-busy={loading}>
-        <SectionHead title="이 회차의 뜨거운 순간" note="줄을 누르면 그 시각부터 넷플릭스에서 재생" />
+        <SectionHead title="이 회차의 뜨거운 순간" />
         <div className="grid gap-6 md:grid-cols-[168px_1fr] md:gap-8 lg:grid-cols-[200px_1fr] lg:gap-10">
           <div className={`${loading ? 'skeleton' : 'bg-sink/60'} w-[96px] rounded-md md:w-full`} style={{ aspectRatio: '2 / 3' }} aria-hidden />
           <div>
             <RowsSkeleton rows={5} loading={loading} />
-            {!loading && <EmptyNote>1위 작품이 정해지면 그 회차의 순간이 여기에 나옵니다</EmptyNote>}
+            {!loading && <EmptyNote>아직 순간이 없습니다.</EmptyNote>}
           </div>
         </div>
       </section>
@@ -201,7 +200,7 @@ function HotMoments({ top, live, loading }: { top: MostWatched | null; live: Liv
 
   return (
     <section className={`border-t border-line ${SEC}`}>
-      <SectionHead title="이 회차의 뜨거운 순간" note="줄을 누르면 그 시각부터 넷플릭스에서 재생" />
+      <SectionHead title="이 회차의 뜨거운 순간" />
       <div className="grid gap-6 md:grid-cols-[168px_1fr] md:gap-8 lg:grid-cols-[200px_1fr] lg:gap-10">
         <div className="flex gap-4 md:block">
           <a href={top.contentId ? titleHref(top.contentId, episodeId) : undefined} className="block w-[96px] shrink-0 md:w-full">
@@ -220,7 +219,7 @@ function HotMoments({ top, live, loading }: { top: MostWatched | null; live: Liv
         {list.length === 0 ? (
           <div>
             <RowsSkeleton rows={5} loading={moments.loading} />
-            {!moments.loading && <EmptyNote>이 회차에는 아직 반응이 몰린 곳이 없습니다</EmptyNote>}
+            {!moments.loading && <EmptyNote>아직 순간이 없습니다.</EmptyNote>}
           </div>
         ) : (
           <ol className="min-w-0 divide-y divide-line border-y border-line">
@@ -263,17 +262,17 @@ function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
   if (shows.length === 0) {
     return (
       <section className={`border-t border-line ${SEC}`} aria-busy={loading}>
-        <SectionHead title="지금 보는 중" note="같은 회차를 보는 사람이 있는 곳" />
+        <SectionHead title="지금 보는 중" />
         <RailSkeleton count={6} loading={loading} />
-        {!loading && <EmptyNote>지금은 확장으로 보고 있는 사람이 없습니다</EmptyNote>}
+        {!loading && <EmptyNote>지금 보는 사람이 없습니다.</EmptyNote>}
       </section>
     )
   }
   const sorted = [...shows].sort((a, b) => sum(b) - sum(a))
   return (
     <section className={`border-t border-line ${SEC}`}>
-      <SectionHead title="지금 보는 중" note="같은 회차를 보는 사람이 있는 곳" />
-      <ul className="-mx-5 flex snap-x scroll-pl-5 gap-4 overflow-x-auto px-5 pb-2 md:-mx-12 md:scroll-pl-12 md:px-12">
+      <SectionHead title="지금 보는 중" />
+      <ul className="bleed flex snap-x gap-4 overflow-x-auto pb-2">
         {sorted.map((s) => {
           const hot = [...s.segments].sort((a, b) => b.viewers - a.viewers)[0]
           const href = watchUrl(s.platform, s.watchId, hot?.at)
@@ -313,8 +312,8 @@ function WeeklyMoments({ items, loading }: { items: MostWatched[]; loading: bool
   if (rows.length === 0) {
     return (
       <section className={`border-t border-line ${SEC}`} aria-busy={busy}>
-        <SectionHead title="이번 주 인기 순간" note="작품을 가로질러" />
-        <ol className="-mx-5 flex overflow-hidden px-5 pb-2 md:-mx-12 md:px-12" aria-hidden>
+        <SectionHead title="이번 주 인기 순간" />
+        <ol className="bleed flex overflow-hidden pb-2" aria-hidden>
           {Array.from({ length: 4 }, (_, i) => (
             <li key={i} className={`flex w-[300px] shrink-0 gap-4 ${i > 0 ? 'ml-5 border-l border-line pl-5' : ''}`}>
               <div className={`${busy ? 'skeleton' : 'bg-sink/60'} w-[76px] shrink-0 rounded-md`} style={{ aspectRatio: '2 / 3' }} />
@@ -326,15 +325,15 @@ function WeeklyMoments({ items, loading }: { items: MostWatched[]; loading: bool
             </li>
           ))}
         </ol>
-        {!busy && <EmptyNote>순위에 오른 작품에 채팅이 몰린 순간이 생기면 여기에 모입니다</EmptyNote>}
+        {!busy && <EmptyNote>아직 순간이 없습니다.</EmptyNote>}
       </section>
     )
   }
   return (
     <section className={`border-t border-line ${SEC}`}>
-      <SectionHead title="이번 주 인기 순간" note="작품을 가로질러" />
+      <SectionHead title="이번 주 인기 순간" />
       <div className="relative">
-        <ol className="-mx-5 flex snap-x scroll-pl-5 overflow-x-auto px-5 pb-2 md:-mx-12 md:scroll-pl-12 md:px-12">
+        <ol className="bleed flex snap-x overflow-x-auto pb-2">
           {rows.map((c, i) => (
             <li key={c.key} className={`w-[300px] shrink-0 snap-start ${i > 0 ? 'ml-5 border-l border-line pl-5' : ''}`}>
               <a href={c.contentId ? titleHref(c.contentId) : undefined} className="group flex gap-4">
@@ -351,7 +350,7 @@ function WeeklyMoments({ items, loading }: { items: MostWatched[]; loading: bool
             </li>
           ))}
         </ol>
-        <div className="pointer-events-none absolute inset-y-0 -right-5 w-10 bg-gradient-to-r from-transparent to-warm md:-right-12 md:w-16" aria-hidden />
+        <div className="pointer-events-none absolute inset-y-0 w-16 bg-gradient-to-r from-transparent to-warm" style={{ right: 'calc(var(--gut) * -1)' }} aria-hidden />
       </div>
     </section>
   )
@@ -372,7 +371,7 @@ export default function Home() {
       <WeeklyMoments items={items} loading={stats.loading} />
       <LiveRail shows={shows} loading={live.loading} />
       {stats.error && (
-        <p className={`text-[12.5px] text-muted ${SEC}`}>개발 서버 응답 오류: {stats.error.message}</p>
+        <p className={`text-[12.5px] text-muted ${SEC}`}>서버 응답 오류: {stats.error.message}</p>
       )}
     </>
   )

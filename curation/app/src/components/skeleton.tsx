@@ -29,7 +29,7 @@ export function PosterGridSkeleton({ count = 6, loading = true, cols = 'grid-col
 
 export function RailSkeleton({ count = 6, loading = true }: { count?: number; loading?: boolean }) {
   return (
-    <ul className="-mx-5 flex gap-4 overflow-hidden px-5 pb-2 md:-mx-12 md:px-12">
+    <ul className="bleed flex gap-4 overflow-hidden pb-2">
       {Array.from({ length: count }, (_, i) => (
         <li key={i} className="w-[126px] shrink-0 lg:w-[148px]"><PosterCardSkeleton loading={loading} /></li>
       ))}
