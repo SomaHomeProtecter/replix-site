@@ -145,7 +145,7 @@ function Billboard({ top, live, loading }: { top: MostWatched | null; live: Live
    mostWatched 순서가 곧 순위다. 지수가 없으므로 숫자·선은 두지 않는다. */
 function Ranking({ items, loading }: { items: MostWatched[]; loading: boolean }) {
   return (
-    <section className={SEC} aria-busy={loading}>
+    <section id="ranking" className={`scroll-mt-[74px] ${SEC}`} aria-busy={loading}>
       <SectionHead title="오늘의 작품 순위" />
       {items.length === 0 ? (
         <>
@@ -185,7 +185,7 @@ function HotMoments({ top, live, loading }: { top: MostWatched | null; live: Liv
   const peak = list.reduce<Moment | null>((a, m) => (!a || m.strength > a.strength ? m : a), null)
   if (!top || !episodeId) {
     return (
-      <section className={`border-t border-line ${SEC}`} aria-busy={loading}>
+      <section id="hot" className={`scroll-mt-[74px] border-t border-line ${SEC}`} aria-busy={loading}>
         <SectionHead title="이 회차의 뜨거운 순간" />
         <div className="grid gap-6 md:grid-cols-[168px_1fr] md:gap-8 lg:grid-cols-[200px_1fr] lg:gap-10">
           <div className={`${loading ? 'skeleton' : 'bg-sink/60'} w-[96px] rounded-md md:w-full`} style={{ aspectRatio: '2 / 3' }} aria-hidden />
@@ -199,7 +199,7 @@ function HotMoments({ top, live, loading }: { top: MostWatched | null; live: Liv
   }
 
   return (
-    <section className={`border-t border-line ${SEC}`}>
+    <section id="hot" className={`scroll-mt-[74px] border-t border-line ${SEC}`}>
       <SectionHead title="이 회차의 뜨거운 순간" />
       <div className="grid gap-6 md:grid-cols-[168px_1fr] md:gap-8 lg:grid-cols-[200px_1fr] lg:gap-10">
         <div className="flex gap-4 md:block">
@@ -261,7 +261,7 @@ function HotMoments({ top, live, loading }: { top: MostWatched | null; live: Liv
 function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
   if (shows.length === 0) {
     return (
-      <section className={`border-t border-line ${SEC}`} aria-busy={loading}>
+      <section id="live" className={`scroll-mt-[74px] border-t border-line ${SEC}`} aria-busy={loading}>
         <SectionHead title="지금 보는 중" />
         <RailSkeleton count={6} loading={loading} />
         {!loading && <EmptyNote>지금 보는 사람이 없습니다.</EmptyNote>}
@@ -270,7 +270,7 @@ function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
   }
   const sorted = [...shows].sort((a, b) => sum(b) - sum(a))
   return (
-    <section className={`border-t border-line ${SEC}`}>
+    <section id="live" className={`scroll-mt-[74px] border-t border-line ${SEC}`}>
       <SectionHead title="지금 보는 중" />
       <ul className="bleed flex snap-x gap-4 overflow-x-auto pb-2">
         {sorted.map((s) => {

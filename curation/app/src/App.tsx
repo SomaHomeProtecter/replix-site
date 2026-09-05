@@ -7,13 +7,15 @@ import Title from './pages/Title'
    #/                 홈
    #/title/{contentId}[/ep/{episodeId}]   작품 상세(회차 선택 포함) */
 export type Route =
-  | { page: 'home' }
+  | { page: 'home'; anchor: string | null }
   | { page: 'title'; contentId: number; episodeId: number | null }
 
+/* '#/ranking' 처럼 홈 섹션 앵커도 라우트로 받는다 — 해시 라우터라 일반 '#ranking' 을 쓸 수 없어서다. */
 export function parseRoute(hash: string): Route {
   const m = hash.match(/^#\/title\/(\d+)(?:\/ep\/(\d+))?/)
   if (m) return { page: 'title', contentId: Number(m[1]), episodeId: m[2] ? Number(m[2]) : null }
-  return { page: 'home' }
+  const a = hash.match(/^#\/([a-z]+)$/)
+  return { page: 'home', anchor: a ? a[1] : null }
 }
 
 export function titleHref(contentId: number, episodeId?: number | null) {
@@ -33,9 +35,14 @@ function useHashRoute() {
 export default function App() {
   const route = useHashRoute()
   const key = route.page === 'title' ? `title-${route.contentId}` : 'home'
+  const anchor = route.page === 'home' ? route.anchor : null
   useEffect(() => {
+    if (anchor) {
+      const el = document.getElementById(anchor)
+      if (el) { el.scrollIntoView({ block: 'start' }); return }
+    }
     window.scrollTo(0, 0)
-  }, [key])
+  }, [key, anchor])
 
   return (
     <>

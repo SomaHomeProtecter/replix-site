@@ -9,13 +9,12 @@ import { titleHref } from '../App'
    않기로 한 결정(2026-07-14)과 어긋나는 빈 약속이 된다. */
 const STORE = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp'
 
-/* 메뉴 한 벌을 랜딩(/)과 큐레이션(/curation/)이 같은 순서·이름으로 나눠 쓴다(2026-09-05).
-   이 페이지가 '인기 작품'이고 나머지는 랜딩의 섹션이다. 바꾸면 docs/index.html 의 nav 도 같이. */
+/* 메뉴바는 랜딩과 같은 치수지만 항목은 섞지 않는다(2026-09-05): 로고 옆 '인기 작품' 라벨이 지금
+   어느 표면인지 말하고, 링크는 이 표면의 섹션뿐이다. 랜딩으로는 오른쪽 '홈으로'. */
 const NAV = [
-  { href: '/#scenes', label: '인기 장면', here: false },
-  { href: '#/', label: '인기 작품', here: true },
-  { href: '/#rooms', label: '함께 보기', here: false },
-  { href: '/#faq', label: '자주 묻는 질문', here: false },
+  { href: '#/ranking', label: '오늘의 순위' },
+  { href: '#/hot', label: '뜨거운 순간' },
+  { href: '#/live', label: '지금 보는 중' },
 ]
 
 /* 원 시안과 같은 60px 한 줄 바, 좌우 48px 거터. */
@@ -31,14 +30,15 @@ export function Nav({ current: _current }: { current: 'home' | 'title' }) {
         <a href="/" className="inline-flex shrink-0 items-center" aria-label="Replix 홈">
           <img src={logo} alt="Replix" height={34} style={{ height: 34, width: 'auto' }} />
         </a>
+        {/* 표면 이름. 랜딩에는 없는 요소 — 이것이 두 바를 구분한다. */}
+        <a href="#/" className="-ml-3 inline-flex shrink-0 items-center gap-3 text-[15px] font-bold text-ink">
+          <span className="h-4 w-px bg-line2" aria-hidden />
+          인기 작품
+        </a>
 
         <nav className="ml-3 hidden items-center gap-6 min-[761px]:flex">
           {NAV.map((n) => (
-            <a
-              key={n.label}
-              href={n.href}
-              className={`whitespace-nowrap text-[14px] transition-colors ${n.here ? 'font-bold text-ink' : 'text-muted hover:text-ink'}`}
-            >
+            <a key={n.label} href={n.href} className="whitespace-nowrap text-[14px] text-muted transition-colors hover:text-ink">
               {n.label}
             </a>
           ))}
@@ -46,7 +46,7 @@ export function Nav({ current: _current }: { current: 'home' | 'title' }) {
 
         <Search />
 
-        <a href="/" className="btn btn--ghost btn--sm hidden shrink-0 sm:inline-flex">
+        <a href="/" className="btn btn--ghost btn--sm hidden shrink-0 min-[761px]:inline-flex">
           홈으로
         </a>
         <a href={STORE} target="_blank" rel="noopener" className="btn btn--primary btn--sm shrink-0">
@@ -139,9 +139,9 @@ export function Footer() {
           </a>
           <div className="flex gap-10 text-[12.5px]">
             <ul className="space-y-1.5 text-muted">
-              <li><a href="/#scenes" className="hover:text-ink">인기 장면</a></li>
-              <li><a href="#/" className="hover:text-ink">인기 작품</a></li>
-              <li><a href="/#faq" className="hover:text-ink">자주 묻는 질문</a></li>
+              <li><a href="#/ranking" className="hover:text-ink">오늘의 순위</a></li>
+              <li><a href="#/hot" className="hover:text-ink">뜨거운 순간</a></li>
+              <li><a href="/" className="hover:text-ink">Replix 홈</a></li>
             </ul>
             <ul className="space-y-1.5 text-muted">
               <li><a href="/privacy" className="hover:text-ink">개인정보처리방침</a></li>
