@@ -8,20 +8,22 @@ import { titleHref } from '../App'
    않기로 한 결정(2026-07-14)과 어긋나는 빈 약속이 된다. */
 const STORE = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp'
 
-/* 랜딩(/)과 큐레이션(/curation/)은 같은 도메인의 두 표면이다. 워드마크는 큐레이션 홈,
-   '소개'는 랜딩으로 간다. */
+/* 메뉴 한 벌을 랜딩(/)과 큐레이션(/curation/)이 같은 순서·이름으로 나눠 쓴다(2026-09-05).
+   이 페이지가 '인기 작품'이고 나머지는 랜딩의 섹션이다. 바꾸면 docs/index.html 의 nav 도 같이. */
 const NAV = [
-  { href: '#/', label: '오늘의 순위', match: 'home' as const },
-  { href: '/', label: '소개', match: null },
+  { href: '/#scenes', label: '인기 장면', here: false },
+  { href: '#/', label: '인기 작품', here: true },
+  { href: '/#rooms', label: '함께 보기', here: false },
+  { href: '/#faq', label: '자주 묻는 질문', here: false },
 ]
 
 /* 원 시안과 같은 60px 한 줄 바, 좌우 48px 거터. */
-export function Nav({ current }: { current: 'home' | 'title' }) {
+export function Nav({ current: _current }: { current: 'home' | 'title' }) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-warm/92 backdrop-blur-md">
       <div className="flex h-[60px] items-center gap-6 px-5 md:px-12">
         <a
-          href="#/"
+          href="/"
           className="flex shrink-0 items-center gap-1.5 text-[19px] font-extrabold tracking-[-0.03em] text-accent"
         >
           <span className="flex h-[17px] w-[23px] items-center justify-center rounded-[4px] border-2 border-accent">
@@ -34,7 +36,7 @@ export function Nav({ current }: { current: 'home' | 'title' }) {
 
         <nav className="hidden items-center gap-5 sm:flex">
           {NAV.map((n) => {
-            const active = n.match !== null && n.match === current
+            const active = n.here
             return (
               <a
                 key={n.label}
@@ -146,33 +148,14 @@ export function Footer() {
         </p>
         <div className="flex gap-10 text-[12.5px]">
           <ul className="space-y-1.5 text-muted">
-            <li>
-              <a href="#/" className="hover:text-ink">
-                오늘의 순위
-              </a>
-            </li>
-            <li>
-              <a href="/" className="hover:text-ink">
-                Replix 소개
-              </a>
-            </li>
-            <li>
-              <a href={STORE} target="_blank" rel="noopener" className="hover:text-ink">
-                크롬 확장 설치
-              </a>
-            </li>
+            <li><a href="/#scenes" className="hover:text-ink">인기 장면</a></li>
+            <li><a href="#/" className="hover:text-ink">인기 작품</a></li>
+            <li><a href="/#faq" className="hover:text-ink">자주 묻는 질문</a></li>
           </ul>
           <ul className="space-y-1.5 text-muted">
-            <li>
-              <a href="/terms" className="hover:text-ink">
-                이용약관
-              </a>
-            </li>
-            <li>
-              <a href="/privacy" className="hover:text-ink">
-                개인정보 처리방침
-              </a>
-            </li>
+            <li><a href="/privacy" className="hover:text-ink">개인정보처리방침</a></li>
+            <li><a href="/terms" className="hover:text-ink">이용약관</a></li>
+            <li><a href={STORE} target="_blank" rel="noopener" className="hover:text-ink">크롬 확장 설치</a></li>
           </ul>
         </div>
       </div>
