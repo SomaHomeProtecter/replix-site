@@ -4,6 +4,7 @@ Replix의 정적 웹 표면. GitHub Pages로 `https://replix.tv`에 서빙된다
 
 | 경로 | 현재 | 계획 |
 | --- | --- | --- |
+| `/curation/` | **큐레이션 페이지(HP-124)** — 채팅이 몰린 작품·회차·순간. 소스 = `curation/app`(Vite+React), 산출물 = `docs/curation/index.html` 한 장(빌드해서 커밋). 대상 API 는 랜딩과 같은 `<meta name="api-base">` |
 | `/` | 자리 지킴(워드마크) | **HP-87 랜딩 페이지**(소개·설치 CTA — 문구는 담당자 직접 작성 규칙). 작업본은 `docs/`에 있다 — 확정되면 아래 '배포 구조'대로 전환만 하면 된다 |
 | `/invite` | **HP-186 초대 스텁**(C안) — `?w=<넷플릭스 watch id>&t=<초대 토큰>`을 받아 `netflix.com/watch/<w>#replix-invite=<t>`로 이동 | 랜딩형 초대 페이지로 교체(설치 CTA + "넷플릭스에서 열기") — **URL·파라미터 계약 불변** |
 
@@ -31,3 +32,10 @@ Replix의 정적 웹 표면. GitHub Pages로 `https://replix.tv`에 서빙된다
 미리보기 자동 배포는 GitHub Actions가 AWS IAM 역할(`replix-site-gha-deploy`, OIDC — 레포에 장기 자격증명을 두지 않는다)을 맡아 ECR push + EKS `dev` 네임스페이스 롤아웃까지 한다. 그 역할은 `replix-landing` ECR 레포 push와 `dev` 네임스페이스 편집 권한만 가진다.
 
 이후로는 별도 승격·복사 단계가 없다 — `docs/`가 계속 유일한 작업 위치이자 배포 소스다.
+
+**예외 = 큐레이션(`/curation/`).** 이 표면만 React 앱이라 소스는 `curation/app`, 배포물은
+`docs/curation/index.html` 한 장이다(`vite-plugin-singlefile`). 고치면 `cd curation/app && npm install && npm run preview:file`
+로 다시 빌드해 산출물까지 함께 커밋한다 — GitHub Pages·미리보기 둘 다 빌드 단계가 없으므로
+커밋된 산출물이 곧 배포물이다. 큐레이션이 부르는 API(`/contents`, `/episodes/{id}/moments`, `/also-watched`)는
+Replix-be HP-390·391로 develop 에는 있고 **main(운영 `api.replix.tv`)에는 다음 릴리스 때 실린다** —
+그 전까지 `replix.tv/curation/` 은 빈 카드와 안내 문구만 보인다.

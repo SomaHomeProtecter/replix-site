@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════
+   Replix 큐레이션 (HP-124) 라이트 테마
+
+   토큰은 docs/css/tokens.css 와 짝이다. 랜딩(HP-87)·확장과 같은 값을
+   써야 설치 전후가 같은 제품으로 보인다. 다음 값은 그대로 가져왔다:
+     --accent #e50914 / --warm #faf9f9 / --ink #101016 / 둥근 모서리 4단
+   반응 3색만 새로 계산했다. 기존 값(#c98500 #3987e5 #d55181)은 다크
+   표면 기준으로 검증된 값이라 라이트 배경에서 2.75~3.94 로 미달했다.
+   아래 값은 세 라이트 배경(#faf9f9 #ffffff #f2f2f5)에서 4.01~6.20.
+   ═══════════════════════════════════════════════════════════════ */
+
+@theme {
+  --color-warm: #faf9f9;
+  --color-soft: #f2f2f5;
+  --color-raise: #ffffff;
+  --color-sink: #ecebef;
+
+  --color-ink: #101016;
+  --color-ink2: #40404c;
+  --color-muted: #6b6b78;
+  --color-faint: #9d9daa;
+
+  --color-line: rgba(16, 16, 24, 0.09);
+  --color-line2: rgba(16, 16, 24, 0.16);
+
+  --color-accent: #e50914;
+  --color-accentd: #a3060f;
+  --color-accentw: #fdf1f1;
+
+  /* 반응 유형 3색 (라이트 재계산본) */
+  --color-joy: #a66a00;
+  --color-surprise: #1f5fb8;
+  --color-moved: #b23a66;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard",
+    "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, "Cascadia Mono",
+    "Roboto Mono", monospace;
+
+  /* 모서리 4단 고정 (tokens.css 와 동일). 이 밖의 값은 쓰지 않는다. */
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-btn: 10px;
+  --radius-sm: 8px;
+
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* 가로 레일이 뷰포트 밖으로 새는 것을 막는다. hidden 이 아니라 clip 을 쓰는
+     이유: hidden 은 스크롤 컨테이너를 만들어 sticky 헤더를 망가뜨린다. */
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  background: var(--color-warm);
+  color: var(--color-ink2);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+  /* 한국어 기본 줄바꿈은 글자 단위라 "같이"가 "같 / 이"로 쪼개진다.
+     어절 단위로 고정하고 긴 영문·URL 만 예외로 끊는다. (tokens.css 와 동일) */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--color-ink);
+  text-wrap: balance;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgba(229, 9, 20, 0.16);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 포스터 자리표시. 확보 전까지 실제 이미지를 넣지 않는다 (HP-107 대기).
+   색을 넣지 않는 이유: 작품마다 다른 색을 칠하면 '가짜 아트'로 읽혀
+   자리표시라는 사실이 가려진다. 종이 질감의 무채색으로 통일한다. */
+/* 포스터 자리를 '빈 판'이 아니라 활자 판으로 만든다.
+   이미지가 없다고 회색 사각형만 두면 서른여섯 칸이 전부 같은 빈 칸이 되어
+   화면이 완성된 것이 아니라 로딩 중인 것처럼 읽힌다. 작품명을 판 위에
+   직접 앉히면 칸마다 글자 수와 줄바꿈이 달라 각각이 구분된다.
+   글자 크기는 타일 너비에 비례시킨다(cqw) — 고정 px 로 두면 큰 격자에서는
+   점처럼 작고 작은 레일에서는 넘친다. */
+.poster-slot {
+  container-type: inline-size;
+  background-image:
+    linear-gradient(170deg, rgba(16, 16, 24, 0.055), rgba(16, 16, 24, 0) 62%),
+    repeating-linear-gradient(135deg, rgba(16, 16, 24, 0.035) 0 1px, transparent 1px 10px);
+}
+.poster-slot__title {
+  font-size: 15cqw;
+  line-height: 1.06;
+  letter-spacing: -0.055em;
+  /* 본문 전역은 어절 단위 줄바꿈(keep-all)이지만, 여기서는 글자 단위로
+     끊는다. "흑백요리사"처럼 공백 없는 한 어절이 타일보다 길면 keep-all
+     로는 줄이 바뀌지 않아 그대로 잘려 나간다. */
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+/* 아주 작은 타일에서는 글자를 상대적으로 더 키워야 읽힌다. */
+@container (max-width: 62px) {
+  .poster-slot__title {
+    font-size: 26cqw;
+  }
+}
+
+/* 로딩 스켈레톤 — 실제 카드와 같은 크기의 회색 판이 은은하게 흐른다(유튜브 목록 로딩과 같은 문법).
+   예시 데이터로 자리를 메우지 않기로 한 결정(2026-09-05)의 시각적 대체물이다. */
+.skeleton {
+  background: linear-gradient(90deg, var(--color-sink) 0%, #f6f6f8 40%, var(--color-sink) 80%);
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-sweep {
+  0% { background-position: 120% 0; }
+  100% { background-position: -80% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
