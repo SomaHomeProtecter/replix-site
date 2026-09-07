@@ -61,6 +61,15 @@
   margin: 0 auto;
   padding-inline: var(--gut);
 }
+/* 화면 폭을 가득 채우는 격자(2026-09-07 조현빈): 열 수는 auto-fill 로 폭에 따라 바뀌고,
+   보일 항목 수(열 × 줄)는 useFillCount 가 같은 식으로 계산해 그만큼만 렌더한다. */
+.fill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--min, 150px), 1fr));
+  column-gap: var(--gx, 16px);
+  row-gap: var(--gy, 24px);
+}
+
 /* 가로 레일이 거터까지 나가서 스크롤되게. */
 .bleed {
   margin-inline: calc(var(--gut) * -1);

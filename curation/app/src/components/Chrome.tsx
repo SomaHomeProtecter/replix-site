@@ -12,7 +12,7 @@ const STORE = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebce
 /* 메뉴바는 랜딩과 같은 치수지만 항목은 섞지 않는다(2026-09-05): 로고 옆 '인기 작품' 라벨이 지금
    어느 표면인지 말하고, 링크는 이 표면의 섹션뿐이다. 랜딩으로는 오른쪽 '홈으로'. */
 const NAV = [
-  { href: '#/ranking', label: '오늘의 순위' },
+  { href: '#/ranking', label: '많이 본 작품' },
   { href: '#/hot', label: '뜨거운 순간' },
   { href: '#/live', label: '지금 보는 중' },
 ]
@@ -139,7 +139,7 @@ export function Footer() {
           </a>
           <div className="flex gap-10 text-[12.5px]">
             <ul className="space-y-1.5 text-muted">
-              <li><a href="#/ranking" className="hover:text-ink">오늘의 순위</a></li>
+              <li><a href="#/ranking" className="hover:text-ink">많이 본 작품</a></li>
               <li><a href="#/hot" className="hover:text-ink">뜨거운 순간</a></li>
               <li><a href="/" className="hover:text-ink">Replix 홈</a></li>
             </ul>

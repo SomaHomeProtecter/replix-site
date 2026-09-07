@@ -11,7 +11,7 @@ import {
   type Moment,
   type MostWatched,
 } from '../api'
-import { useAsync } from '../hooks'
+import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../App'
 import { Chip, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { EmptyNote, PosterGridSkeleton, RailSkeleton, RowsSkeleton, Shimmer } from '../components/skeleton'
@@ -76,7 +76,7 @@ function Billboard({ top, live, loading }: { top: MostWatched | null; live: Live
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <Chip tone="accent">오늘 1위 작품</Chip>
+            <Chip tone="accent">가장 많이 본 작품</Chip>
             {viewers > 0 && (<><Rule /><LiveCount n={viewers} /></>)}
           </div>
 
@@ -105,12 +105,16 @@ function Billboard({ top, live, loading }: { top: MostWatched | null; live: Live
                   ))}
                 </div>
                 <div className="relative mt-2 hidden h-9 sm:block">
-                  {(moments.data?.moments ?? []).map((m, i) => (
+                  {/* 가까운 순간끼리 라벨이 겹치므로 직전 라벨과 4.5% 안이면 라벨을 건너뛴다(점은 남는다). */}
+                  {(moments.data?.moments ?? []).filter((m, i, arr) => i === 0 || (m.at - arr[i - 1].at) / bars.duration > 0.045 || m === peak).map((m) => {
+                    const i = (moments.data?.moments ?? []).indexOf(m)
+                    return (
                     <div key={m.at} className="absolute -translate-x-1/2 text-center" style={{ left: `${(m.at / bars.duration) * 100}%` }}>
                       <p className={`num font-mono text-[11.5px] font-bold ${m === peak ? 'text-accent' : 'text-ink2'}`}>{fmtTime(m.at)}</p>
                       <p className="whitespace-nowrap text-[11px] text-muted">순간 {i + 1}</p>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </>
             ) : (
@@ -144,18 +148,20 @@ function Billboard({ top, live, loading }: { top: MostWatched | null; live: Live
 /* ═══ 오늘의 작품 순위 ════════════════════════════════════════
    mostWatched 순서가 곧 순위다. 지수가 없으므로 숫자·선은 두지 않는다. */
 function Ranking({ items, loading }: { items: MostWatched[]; loading: boolean }) {
+  /* 열 수는 폭이 정하고 줄은 두 줄 — 작품 선택의 폭을 위해 순위만 두 줄을 허용한다. */
+  const fill = useFillCount(150, 16, 2)
   return (
     <section id="ranking" className={`scroll-mt-[74px] ${SEC}`} aria-busy={loading}>
-      <SectionHead title="오늘의 작품 순위" />
+      <SectionHead title="많이 본 작품" />
       {items.length === 0 ? (
-        <>
-          <PosterGridSkeleton count={6} loading={loading} />
+        <div ref={fill.ref}>
+          <PosterGridSkeleton count={fill.count} loading={loading} />
           {!loading && <EmptyNote>아직 순위가 없습니다.</EmptyNote>}
-        </>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-          {items.slice(0, 12).map((w, i) => (
-            <Reveal key={`${w.show}-${i}`} delay={Math.min(i, 6) * 0.03}>
+        <div ref={fill.ref} className="fill-grid" style={{ '--min': '150px', '--gx': '16px', '--gy': '24px' } as React.CSSProperties}>
+          {items.map((w, i) => (
+            <Reveal key={`${w.show}-${i}`} delay={Math.min(i, 6) * 0.03} hidden={i >= fill.count}>
               <a href={w.contentId ? titleHref(w.contentId, w.episodeId) : undefined} className="group block"
                 aria-label={`${i + 1}위 ${w.show}`}>
                 <div className="relative">
@@ -259,11 +265,12 @@ function HotMoments({ top, live, loading }: { top: MostWatched | null; live: Liv
    장르 데이터가 없어 장르 레일은 두지 않는다. 대신 live-scenes 의 "지금 보는 중" 회차를 레일로 — 실시간 인원은
    실제로 있는 사람 수라 절대 수치 예외에 든다. */
 function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
+  const fill = useFillCount(140, 16, 1)
   if (shows.length === 0) {
     return (
       <section id="live" className={`scroll-mt-[74px] border-t border-line ${SEC}`} aria-busy={loading}>
         <SectionHead title="지금 보는 중" />
-        <RailSkeleton count={6} loading={loading} />
+        <div ref={fill.ref}><RailSkeleton count={fill.count} loading={loading} /></div>
         {!loading && <EmptyNote>지금 보는 사람이 없습니다.</EmptyNote>}
       </section>
     )
@@ -272,12 +279,12 @@ function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
   return (
     <section id="live" className={`scroll-mt-[74px] border-t border-line ${SEC}`}>
       <SectionHead title="지금 보는 중" />
-      <ul className="bleed flex snap-x gap-4 overflow-x-auto pb-2">
-        {sorted.map((s) => {
+      <ul ref={fill.ref} className="fill-grid" style={{ '--min': '140px', '--gx': '16px', '--gy': '0px' } as React.CSSProperties}>
+        {sorted.map((s, i) => {
           const hot = [...s.segments].sort((a, b) => b.viewers - a.viewers)[0]
           const href = watchUrl(s.platform, s.watchId, hot?.at)
           return (
-            <li key={s.showId} className="w-[126px] shrink-0 snap-start lg:w-[148px]">
+            <li key={s.showId} hidden={i >= fill.count}>
               <a href={href ?? undefined} target={href ? '_blank' : undefined} rel="noopener" className="group block">
                 <div className="relative">
                   <PosterSlot title={s.show} poster={s.posterUrl} />
@@ -299,7 +306,8 @@ const sum = (s: LiveShow) => s.segments.reduce((a, x) => a + x.viewers, 0)
 
 /* ═══ 이번 주 인기 순간 — 순위 작품들의 1위 순간 ═══════════ */
 function WeeklyMoments({ items, loading }: { items: MostWatched[]; loading: boolean }) {
-  const heads = items.filter((w) => w.episodeId).slice(0, 6)
+  const fill = useFillCount(300, 20, 1)
+  const heads = items.filter((w) => w.episodeId).slice(0, Math.max(fill.count, 1))
   const fetched = useAsync(
     () => (heads.length ? Promise.all(heads.map((w) => api.moments(w.episodeId!, 1).catch(() => null))) : null),
     [heads.map((w) => w.episodeId).join(',')],
@@ -313,9 +321,9 @@ function WeeklyMoments({ items, loading }: { items: MostWatched[]; loading: bool
     return (
       <section className={`border-t border-line ${SEC}`} aria-busy={busy}>
         <SectionHead title="이번 주 인기 순간" />
-        <ol className="bleed flex overflow-hidden pb-2" aria-hidden>
-          {Array.from({ length: 4 }, (_, i) => (
-            <li key={i} className={`flex w-[300px] shrink-0 gap-4 ${i > 0 ? 'ml-5 border-l border-line pl-5' : ''}`}>
+        <ol ref={fill.ref} className="fill-grid" style={{ '--min': '300px', '--gx': '20px', '--gy': '0px' } as React.CSSProperties} aria-hidden>
+          {Array.from({ length: fill.count }, (_, i) => (
+            <li key={i} className={`flex gap-4 ${i > 0 ? 'border-l border-line pl-5' : ''}`}>
               <div className={`${busy ? 'skeleton' : 'bg-sink/60'} w-[76px] shrink-0 rounded-md`} style={{ aspectRatio: '2 / 3' }} />
               <div className="flex-1 py-0.5">
                 <Shimmer className={`h-3 w-2/3 ${busy ? '' : '!bg-sink/60 !animate-none'}`} />
@@ -333,9 +341,9 @@ function WeeklyMoments({ items, loading }: { items: MostWatched[]; loading: bool
     <section className={`border-t border-line ${SEC}`}>
       <SectionHead title="이번 주 인기 순간" />
       <div className="relative">
-        <ol className="bleed flex snap-x overflow-x-auto pb-2">
+        <ol ref={fill.ref} className="fill-grid" style={{ '--min': '300px', '--gx': '20px', '--gy': '0px' } as React.CSSProperties}>
           {rows.map((c, i) => (
-            <li key={c.key} className={`w-[300px] shrink-0 snap-start ${i > 0 ? 'ml-5 border-l border-line pl-5' : ''}`}>
+            <li key={c.key} hidden={i >= fill.count} className={i > 0 ? 'border-l border-line pl-5' : ''}>
               <a href={c.contentId ? titleHref(c.contentId) : undefined} className="group flex gap-4">
                 <div className="relative w-[76px] shrink-0">
                   <PosterSlot title={c.work} poster={c.poster} className="transition-transform duration-300 ease-out-soft group-hover:-translate-y-0.5" />
@@ -350,7 +358,6 @@ function WeeklyMoments({ items, loading }: { items: MostWatched[]; loading: bool
             </li>
           ))}
         </ol>
-        <div className="pointer-events-none absolute inset-y-0 w-16 bg-gradient-to-r from-transparent to-warm" style={{ right: 'calc(var(--gut) * -1)' }} aria-hidden />
       </div>
     </section>
   )

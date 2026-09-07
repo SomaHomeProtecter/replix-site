@@ -19,19 +19,19 @@ export function PosterCardSkeleton({ loading = true, wide = false }: { loading?:
   )
 }
 
-export function PosterGridSkeleton({ count = 6, loading = true, cols = 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6' }: { count?: number; loading?: boolean; cols?: string }) {
+export function PosterGridSkeleton({ count = 12, loading = true }: { count?: number; loading?: boolean }) {
   return (
-    <div className={`grid gap-x-4 gap-y-6 ${cols}`}>
+    <div className="fill-grid" style={{ '--min': '150px', '--gx': '16px', '--gy': '24px' } as React.CSSProperties}>
       {Array.from({ length: count }, (_, i) => <PosterCardSkeleton key={i} loading={loading} />)}
     </div>
   )
 }
 
-export function RailSkeleton({ count = 6, loading = true }: { count?: number; loading?: boolean }) {
+export function RailSkeleton({ count = 10, loading = true }: { count?: number; loading?: boolean }) {
   return (
-    <ul className="bleed flex gap-4 overflow-hidden pb-2">
+    <ul className="fill-grid" style={{ '--min': '140px', '--gx': '16px', '--gy': '0px' } as React.CSSProperties}>
       {Array.from({ length: count }, (_, i) => (
-        <li key={i} className="w-[126px] shrink-0 lg:w-[148px]"><PosterCardSkeleton loading={loading} /></li>
+        <li key={i}><PosterCardSkeleton loading={loading} /></li>
       ))}
     </ul>
   )
