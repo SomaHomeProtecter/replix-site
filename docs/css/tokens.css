@@ -81,7 +81,7 @@ img { max-width: 100%; }
 .btn--outline:hover { background: rgba(229,9,20,.2); border-color: rgba(229,9,20,.85); color: #ff9096; }
 .btn--outline:active { transform: translateY(1px); }
 .btn--sm { padding: 9px 17px; font-size: 14px; }
-/* 다른 표면으로 건너가는 보조 버튼(랜딩 ↔ 큐레이션). 설치 CTA 와 겨루지 않게 테두리만. */
+/* 다른 표면으로 건너가는 보조 버튼(랜딩 ↔ 작품 탐색). 설치 CTA 와 겨루지 않게 테두리만. */
 .btn--ghost { background: transparent; color: var(--ink); border: 1px solid var(--line-2, rgba(16,16,24,.16)); }
 .btn--ghost:hover { background: var(--soft, #f2f2f5); }
 .btn--lg { padding: 17px 32px; font-size: 17px; border-radius: 12px; }

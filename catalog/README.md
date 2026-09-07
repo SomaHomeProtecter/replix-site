@@ -1,55 +1,24 @@
-# draft-curation — HP-124 큐레이션 페이지 작업본
+# catalog — HP-124 작품 탐색 페이지 (`replix.tv/catalog/`)
 
-큐레이션 페이지(HP-124)의 화면 시안이다. **아직 커밋하지 않는다** — 스펙과
-디자인이 확정되기 전까지 로컬 초안으로 두고 검토를 받는다(팀 원칙: 확정 전
-결과물은 공유 표면에 올리지 않는다). `draft/`(HP-87 랜딩)와 같은 규칙이다.
+> 이름: 화면은 **작품 탐색**(메뉴 라벨 '작품'), 내부 명칭은 **catalog**. 2026-09-07 조현빈 결정으로 '큐레이션'에서
+> 바꿨다 — 큐레이션은 누군가 골라 편성한다는 뜻인데 이 페이지는 편성·개인화·지수 없이 실제 시청·채팅 기록을
+> 작품 → 회차 → 순간으로 펼치는 참조 카탈로그(왓챠피디아와 같은 성격)라서다. 옛 경로 `/curation/`은 폐기했다.
 
-`docs/` 에 넣지 않은 이유: `docs/` 는 GitHub Pages 배포 소스라 `main` 에
-머지되는 순간 `replix.tv` 로 나간다(레포 README '배포 구조'). 시안이 실공개
-표면에 섞이면 안 된다.
+작품 탐색 페이지의 **소스**다. 배포물은 `docs/catalog/index.html` 한 장이며, 이 앱을 빌드해 그 파일을
+갱신하고 함께 커밋한다(레포 README '배포 구조' 예외 항목). 2026-09-05 초안(`draft-curation`, 미커밋)에서
+실제 표면으로 승격했고, 랜딩(`/`)과 같은 도메인에 두고 서로 오갈 수 있게 내비를 이었다.
 
-## 2026-09-05 저녁 — 개발 서버 API 연결
-
-시안이 더는 예시 데이터만 그리지 않는다. `app/src/api.ts` 가 Replix 공개 API(비로그인 읽기)를
-부르고, 화면은 그 응답으로 그린다. 기본 대상은 **개발 서버 `https://api.replix-dev.site`**
-이며 빌드 시 `VITE_API_BASE` 로 바꾼다(운영 = `https://api.replix.tv`).
-
-| 화면 | 쓰는 API | 상태 |
-| --- | --- | --- |
-| 홈 순위·빌보드 | `GET /public-stats` (`mostWatched`, 누적 시청시간 순) | 배포됨. 지금 dev 는 빈 배열 → **빈 카드(스켈레톤) + 안내 문구** |
-| 빌보드 파형·순간 | `GET /episodes/{id}/heatmap` · `GET /episodes/{id}/moments` | heatmap 배포됨 · moments 는 HP-391(PR #211) 머지 후 |
-| 지금 보는 중 레일 | `GET /live-scenes` | 배포됨 |
-| 검색 | `GET /contents?q=` | HP-391 |
-| 작품 상세 머리·회차 | `GET /contents/{id}` | HP-391. 미배포면 "아직 배포되지 않았다" 안내 |
-| 순간 + 채팅 로그 | `GET /episodes/{id}/moments` · `GET /episodes/{id}/messages?from&to` | messages 배포됨 |
-| 함께 본 작품 | `GET /contents/{id}/also-watched` | HP-390(PR #210) |
-
-라우트: `#/` 홈, `#/title/{contentId}[/ep/{episodeId}]` 상세. 넷플릭스 딥링크는
-`watchUrl()` 이 `platformEpisodeId` 로만 조립한다(작품 id 로 만들면 "다음 볼 회차"로 간다 —
-`memory/실행-함정.md` 넷플릭스 딥링크 항목). 회차 길이는 API 에 없어 마지막 채팅 버킷 끝을
-길이로 본다(`heatToBars`). 지수 산식은 구현하지 않기로 했으므로(조현빈) 화면에 지수 숫자·선이
-없고, 순위는 `mostWatched` 순서 그 자체다. 장르 데이터가 없어 장르 레일은 "지금 보는 중"
-레일로 바꿨다. **예시 데이터로 자리를 메우지 않는다**(조현빈, 2026-09-05 저녁): 로딩 중에는
-실제 카드와 같은 크기의 스켈레톤이 은은하게 흐르고(`components/skeleton.tsx`, 유튜브 목록
-로딩과 같은 문법), 응답이 비어 있으면 같은 자리를 흐린 빈 카드로 두고 문구 한 줄을 붙인다.
-`data.ts` 의 예시 데이터는 더 이상 화면에 쓰지 않으며 `POSTERS` 매핑 기록용으로만 남아 있다.
-
-## 열어 보기
-
-```bash
-open preview.html          # 자기완결 HTML 한 장. 설치 없이 file:// 로 열린다
-```
-
-`preview.html` 은 `app/` 을 빌드한 결과물이다. 화면을 고치려면 `app/` 을 고치고
-다시 빌드한다.
+## 고치고 배포하기
 
 ```bash
 cd app
 npm install
-npm run dev            # 개발 서버
-npm run preview:file   # 빌드 후 ../preview.html 갱신
-npm run shot           # 빌드 후 데스크톱·모바일 스크린샷을 상위 폴더에 저장
+npm run dev            # 개발 서버(대상 API 는 index.html 의 <meta name="api-base">)
+npm run preview:file   # 빌드 → ../../docs/catalog/index.html 갱신 (이걸 커밋한다)
+npm run shot           # 빌드 후 데스크톱·모바일 스크린샷을 ../shots 에 저장
 ```
+
+`docs/catalog/index.html` 은 file:// 로도 열린다(자기완결). 라우트는 `#/`(홈), `#/title/{contentId}[/ep/{episodeId}]`(상세).
 
 ## 구조
 

@@ -20,7 +20,7 @@ const NAV = [
 /* 원 시안과 같은 60px 한 줄 바, 좌우 48px 거터. */
 export function Nav({ current: _current }: { current: 'home' | 'title' }) {
   /* 랜딩 .nav 와 같은 치수: sticky 66px, 같은 배경·블러, .wrap 안에 gap 26px, 로고 34px, 메뉴 14px gap 24px,
-     오른쪽 끝 .btn--primary.btn--sm. 랜딩과 다른 것은 '홈으로' 버튼 하나뿐이다(큐레이션에서 랜딩으로 돌아가는 길). */
+     오른쪽 끝 .btn--primary.btn--sm. 랜딩과 다른 것은 '홈으로' 버튼 하나뿐이다(작품 탐색에서 랜딩으로 돌아가는 길). */
   return (
     <header
       className="sticky top-0 z-40 flex h-[66px] items-center border-b border-line"
@@ -33,7 +33,7 @@ export function Nav({ current: _current }: { current: 'home' | 'title' }) {
         {/* 표면 이름. 랜딩에는 없는 요소 — 이것이 두 바를 구분한다. */}
         <a href="#/" className="-ml-3 inline-flex shrink-0 items-center gap-3 text-[15px] font-bold text-ink">
           <span className="h-4 w-px bg-line2" aria-hidden />
-          인기 작품
+          작품
         </a>
 
         <nav className="ml-3 hidden items-center gap-6 min-[761px]:flex">
