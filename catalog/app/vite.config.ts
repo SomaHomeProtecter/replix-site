@@ -11,9 +11,9 @@ export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss(), viteSingleFile()],
   build: {
-    // 산출물 = docs/curation/index.html 한 장. docs/ 는 번들러 없이 그대로 서빙되는 GitHub Pages
+    // 산출물 = docs/catalog/index.html 한 장. docs/ 는 번들러 없이 그대로 서빙되는 GitHub Pages
     // 소스라(레포 README '배포 구조'), 파일 하나면 커밋·배포가 단순하다.
-    outDir: '../../docs/curation',
+    outDir: '../../docs/catalog',
     emptyOutDir: true,
     cssCodeSplit: false,
     assetsInlineLimit: 100_000_000,

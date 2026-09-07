@@ -43,6 +43,10 @@ function Hero({ c, ep, live, peak }: { c: ContentDetail; ep: EpisodeSummary | nu
   const viewers = liveViewers(live, ep?.episodeId ?? null)
   const play = ep ? watchUrl(c.platform, ep.platformEpisodeId) : null
   const maxShare = Math.max(1, ...c.episodes.map((e) => e.heatShare))
+  // 시즌별 묶음(시즌 오름차순, 안에서 회차 오름차순). 영화나 시즌 정보가 없는 회차는 season 0.
+  const seasons = Array.from(
+    c.episodes.reduce((m, e) => { const k = e.seasonNumber ?? 0; (m.get(k) ?? m.set(k, []).get(k)!).push(e); return m }, new Map<number, EpisodeSummary[]>()),
+  ).sort((a, b) => a[0] - b[0]).map(([season, eps]) => ({ season, eps: [...eps].sort((a, b) => a.episodeNumber - b.episodeNumber) }))
 
   return (
     <section className={`border-b border-line bg-raise ${SEC}`}>
@@ -81,23 +85,40 @@ function Hero({ c, ep, live, peak }: { c: ContentDetail; ep: EpisodeSummary | nu
               {c.episodes.length === 0 ? (
                 <p className="mt-3 text-[12.5px] text-faint">아직 회차가 없습니다.</p>
               ) : (
-                <>
-                  <div className="mt-2.5 flex h-[76px] items-end gap-[5px]">
-                    {c.episodes.map((e) => (
-                      <div key={e.episodeId} className="flex h-full min-w-0 flex-1 flex-col justify-end">
-                        <div className="rounded-t-[2px]" style={{ height: `${Math.max(3, (e.heatShare / maxShare) * 100)}%`, background: e.episodeId === ep?.episodeId ? 'var(--color-accent)' : 'rgba(16,16,24,0.16)' }} />
+                /* 시즌별로 묶는다(2026-09-07 조현빈): 시즌 없이 회차 번호만 늘어놓으면 108, 162, 1, 2… 처럼
+                   뒤섞여 읽히지 않는다. 시즌이 하나면 라벨 없이 그대로. 회차가 많으면 가로로 흐른다. */
+                <div className="mt-2.5 overflow-x-auto pb-1">
+                  <div className="flex items-end gap-5">
+                    {seasons.map((g) => {
+                      const w = g.eps.some((e) => e.episodeNumber >= 100) ? 'w-[26px]' : 'w-[18px]' // 세 자리 회차 번호가 줄바꿈되지 않게
+                      return (
+                      <div key={g.season} className="shrink-0">
+                        <div className="flex h-[76px] items-end gap-[4px]">
+                          {g.eps.map((e) => (
+                            <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)} title={episodeLabel(e, c.contentType) || e.title || ''}
+                              className={`flex h-full ${w} flex-col justify-end`}>
+                              <div className="rounded-t-[2px]" style={{ height: `${Math.max(3, (e.heatShare / maxShare) * 100)}%`, background: e.episodeId === ep?.episodeId ? 'var(--color-accent)' : 'rgba(16,16,24,0.16)' }} />
+                            </a>
+                          ))}
+                        </div>
+                        <div className="mt-1.5 flex gap-[4px]">
+                          {g.eps.map((e) => (
+                            <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)}
+                              className={`num ${w} whitespace-nowrap text-center font-mono text-[10px] leading-none hover:text-ink ${e.episodeId === ep?.episodeId ? 'font-bold text-accent' : 'text-muted'}`}>
+                              {e.episodeNumber || '·'}
+                            </a>
+                          ))}
+                        </div>
+                        {seasons.length > 1 && (
+                          <p className="mt-1.5 border-t border-line pt-1 text-[10.5px] font-semibold text-muted">
+                            {g.season > 0 ? `시즌 ${g.season}` : '시즌 없음'}
+                          </p>
+                        )}
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
-                  <div className="mt-1.5 flex gap-[5px]">
-                    {c.episodes.map((e) => (
-                      <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)}
-                        className={`num min-w-0 flex-1 text-center font-mono text-[10.5px] hover:text-ink ${e.episodeId === ep?.episodeId ? 'font-bold text-accent' : 'text-muted'}`}>
-                        {e.episodeNumber || '·'}
-                      </a>
-                    ))}
-                  </div>
-                </>
+                </div>
               )}
             </div>
           </div>

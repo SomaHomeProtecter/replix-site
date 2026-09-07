@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 
 const OUT = process.argv[2] ?? '.'
 const WIDTH = Number(process.argv[3] ?? 1440)
-const FILE = `file://${resolve('../../docs/curation/index.html')}`
+const FILE = `file://${resolve('../../docs/catalog/index.html')}`
 
 const browser = await puppeteer.launch({
   executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
