@@ -61,25 +61,23 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
         const on = i === idx
         const poster = w.thumbnailUrl ?? undefined
         return (
-          <li key={`${w.show}-${i}`} className="min-h-0" style={{ flex: on ? '3 1 0' : '1 1 0', transition: reduce ? undefined : 'flex .7s cubic-bezier(.16,1,.3,1)' }}>
+          <li key={`${w.show}-${i}`} className="min-h-0" style={{ flex: on ? '2 1 0' : '1 1 0', transition: reduce ? undefined : 'flex .7s cubic-bezier(.16,1,.3,1)' }}>
             <button
               type="button"
               role="tab"
               aria-selected={on}
               onClick={() => setIdx(i)}
-              className={`relative block h-full w-full overflow-hidden rounded-md text-left transition-shadow ${on ? 'ring-2 ring-accent' : 'ring-1 ring-line hover:ring-line2'}`}
-              style={{ background: poster ? undefined : 'var(--color-sink)' }}
+              className="relative block h-full w-full overflow-hidden rounded-md text-left ring-1 ring-line"
+              style={{ background: 'var(--color-sink)' }}
             >
               {poster && (
-                <img src={poster} alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: '50% 18%', filter: on ? 'none' : 'saturate(.6)', transition: 'filter .7s' }} />
+                <img src={poster} alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: '50% 18%', filter: on ? 'saturate(.85)' : 'saturate(.4) brightness(.8)', opacity: on ? 1 : 0.7, transition: 'filter .7s, opacity .7s' }} />
               )}
-              <span className={`absolute inset-0 ${on ? 'bg-gradient-to-r from-[rgba(16,16,24,.72)] via-[rgba(16,16,24,.35)] to-transparent' : 'bg-[rgba(16,16,24,.55)]'}`} style={{ transition: 'background .7s' }} />
-              <span className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-3">
-                <span className={`num inline-flex items-center rounded-sm px-1.5 py-[3px] font-mono text-[11px] font-bold leading-none ${on ? 'bg-accent text-white' : 'bg-white/85 text-ink'}`}>{i + 1}</span>
-                <span className="min-w-0">
-                  <span className={`block truncate font-bold text-white ${on ? 'text-[16px]' : 'text-[13px]'}`} style={{ transition: 'font-size .5s' }}>{w.show}</span>
-                  {on && w.episodeTitle && <span className="block truncate text-[11.5px] text-white/80">{w.episodeTitle}</span>}
-                </span>
+              <span className="absolute inset-0 bg-gradient-to-r from-[rgba(16,16,24,.78)] via-[rgba(16,16,24,.5)] to-[rgba(16,16,24,.25)]" />
+              <span className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-white" style={{ opacity: on ? 1 : 0, transition: 'opacity .5s' }} />
+              <span className="absolute inset-x-0 bottom-0 flex items-center gap-2.5 px-3.5 py-3">
+                <span className={`num font-mono text-[11px] font-bold leading-none ${on ? 'text-white' : 'text-white/55'}`} style={{ transition: 'color .5s' }}>{i + 1}</span>
+                <span className={`block min-w-0 truncate font-bold ${on ? 'text-[14px] text-white' : 'text-[13px] text-white/75'}`} style={{ transition: 'font-size .5s, color .5s' }}>{w.show}</span>
               </span>
             </button>
           </li>
@@ -99,7 +97,7 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
 
   return (
     <div className="border-b border-line bg-raise" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
-      <div className="wrap grid gap-8 py-9 md:grid-cols-[minmax(0,1fr)_260px] lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+      <div className="wrap grid gap-8 py-9 md:grid-cols-[minmax(0,1fr)_224px] lg:grid-cols-[minmax(0,1fr)_248px] lg:gap-10">
         {/* 슬라이드 다섯 장을 모두 마운트해 같은 자리에 겹쳐 두고 투명도만 교차시킨다. 지웠다 다시 만들면
             그때마다 파형·순간을 새로 받아 빈 화면이 깜빡인다. 높이는 가장 큰 슬라이드에 맞춰 고정된다. */}
         <div className="grid min-w-0">
