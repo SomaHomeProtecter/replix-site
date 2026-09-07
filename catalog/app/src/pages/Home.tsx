@@ -53,39 +53,70 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
     const t = setInterval(() => setIdx((i) => (i + 1) % slides.length), BILLBOARD_INTERVAL_MS)
     return () => clearInterval(t)
   }, [reduce, paused, slides.length])
+  /* 오른쪽 세로 레일(2026-09-07 조현빈): 다섯 작품이 포스터를 배경으로 세로로 쌓이고, 현재 작품 칸은 크게,
+     나머지는 작게. flex 값이 바뀌면서 칸 크기가 자연스럽게 흐른다. 누르면 그 작품으로 전환. */
+  const rail = slides.length > 1 ? (
+    <ol className="hidden h-full min-h-[420px] flex-col gap-2 md:flex" role="tablist" aria-label="빌보드 작품">
+      {slides.map((w, i) => {
+        const on = i === idx
+        const poster = w.thumbnailUrl ?? undefined
+        return (
+          <li key={`${w.show}-${i}`} className="min-h-0" style={{ flex: on ? '3 1 0' : '1 1 0', transition: reduce ? undefined : 'flex .7s cubic-bezier(.16,1,.3,1)' }}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() => setIdx(i)}
+              className={`relative block h-full w-full overflow-hidden rounded-md text-left transition-shadow ${on ? 'ring-2 ring-accent' : 'ring-1 ring-line hover:ring-line2'}`}
+              style={{ background: poster ? undefined : 'var(--color-sink)' }}
+            >
+              {poster && (
+                <img src={poster} alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: '50% 18%', filter: on ? 'none' : 'saturate(.6)', transition: 'filter .7s' }} />
+              )}
+              <span className={`absolute inset-0 ${on ? 'bg-gradient-to-r from-[rgba(16,16,24,.72)] via-[rgba(16,16,24,.35)] to-transparent' : 'bg-[rgba(16,16,24,.55)]'}`} style={{ transition: 'background .7s' }} />
+              <span className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-3">
+                <span className={`num inline-flex items-center rounded-sm px-1.5 py-[3px] font-mono text-[11px] font-bold leading-none ${on ? 'bg-accent text-white' : 'bg-white/85 text-ink'}`}>{i + 1}</span>
+                <span className="min-w-0">
+                  <span className={`block truncate font-bold text-white ${on ? 'text-[16px]' : 'text-[13px]'}`} style={{ transition: 'font-size .5s' }}>{w.show}</span>
+                  {on && w.episodeTitle && <span className="block truncate text-[11.5px] text-white/80">{w.episodeTitle}</span>}
+                </span>
+              </span>
+            </button>
+          </li>
+        )
+      })}
+    </ol>
+  ) : null
+
   const dots = slides.length > 1 ? (
-    <div className="mt-6 flex items-center gap-2" role="tablist" aria-label="빌보드 작품">
+    <div className="mt-6 flex items-center gap-2 md:hidden" role="tablist" aria-label="빌보드 작품">
       {slides.map((w, i) => (
-        <button
-          key={`${w.show}-${i}`}
-          type="button"
-          role="tab"
-          aria-selected={i === idx}
-          aria-label={`${i + 1}위 ${w.show}`}
-          onClick={() => setIdx(i)}
-          className={`h-[6px] rounded-full transition-all ${i === idx ? 'w-7 bg-accent' : 'w-[6px] bg-ink/25 hover:bg-ink/50'}`}
-        />
+        <button key={`${w.show}-${i}`} type="button" role="tab" aria-selected={i === idx} aria-label={`${i + 1}위 ${w.show}`} onClick={() => setIdx(i)}
+          className={`h-[6px] rounded-full transition-all ${i === idx ? 'w-7 bg-accent' : 'w-[6px] bg-ink/25 hover:bg-ink/50'}`} />
       ))}
     </div>
   ) : null
 
   return (
-    <div onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
-      {/* 슬라이드 다섯 장을 모두 마운트해 같은 자리에 겹쳐 두고 투명도만 교차시킨다. 지웠다 다시 만들면
-          그때마다 파형·순간을 새로 받아 빈 화면이 깜빡인다. 높이는 가장 큰 슬라이드에 맞춰 고정된다. */}
-      <div className="grid border-b border-line bg-raise">
-        {(slides.length ? slides : [null]).map((w, i) => {
-          const on = i === idx
-          return (
-            <div
-              key={w ? `${w.contentId}-${w.episodeId}` : 'empty'}
-              style={{ gridArea: '1 / 1', opacity: on ? 1 : 0, transition: reduce ? undefined : 'opacity .7s cubic-bezier(.16,1,.3,1)', pointerEvents: on ? 'auto' : 'none' }}
-              aria-hidden={!on}
-            >
-              <BillboardSlide top={w} live={live} loading={loading} rank={i + 1} footer={dots} />
-            </div>
-          )
-        })}
+    <div className="border-b border-line bg-raise" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
+      <div className="wrap grid gap-8 py-9 md:grid-cols-[minmax(0,1fr)_260px] lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+        {/* 슬라이드 다섯 장을 모두 마운트해 같은 자리에 겹쳐 두고 투명도만 교차시킨다. 지웠다 다시 만들면
+            그때마다 파형·순간을 새로 받아 빈 화면이 깜빡인다. 높이는 가장 큰 슬라이드에 맞춰 고정된다. */}
+        <div className="grid min-w-0">
+          {(slides.length ? slides : [null]).map((w, i) => {
+            const on = i === idx
+            return (
+              <div
+                key={w ? `${w.contentId}-${w.episodeId}` : 'empty'}
+                style={{ gridArea: '1 / 1', opacity: on ? 1 : 0, transition: reduce ? undefined : 'opacity .7s cubic-bezier(.16,1,.3,1)', pointerEvents: on ? 'auto' : 'none' }}
+                aria-hidden={!on}
+              >
+                <BillboardSlide top={w} live={live} loading={loading} rank={i + 1} footer={dots} />
+              </div>
+            )
+          })}
+        </div>
+        {rail}
       </div>
     </div>
   )
@@ -112,7 +143,7 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched
   if (!top) {
     const tone = loading ? 'skeleton' : 'bg-sink/60'
     return (
-      <section className={`h-full ${SEC}`} aria-busy={loading}>
+      <section className="h-full" aria-busy={loading}>
         <div className="flex flex-col gap-7 md:flex-row md:items-center md:gap-10">
           <div className={`${tone} w-[168px] shrink-0 rounded-md lg:w-[212px]`} style={{ aspectRatio: '2 / 3' }} aria-hidden />
           <div className="min-w-0 flex-1" aria-hidden={loading}>
@@ -131,7 +162,7 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched
   }
 
   return (
-    <section className={`flex h-full flex-col justify-center ${SEC}`}>
+    <section className="flex h-full flex-col justify-center">
       <div className="flex flex-col gap-7 md:flex-row md:items-center md:gap-10">
         <a href={top.contentId ? titleHref(top.contentId, episodeId) : undefined} className="w-[168px] shrink-0 lg:w-[212px]">
           <PosterSlot title={top.show} poster={top.thumbnailUrl} />
