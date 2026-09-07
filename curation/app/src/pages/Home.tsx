@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useReducedMotion } from 'motion/react'
 import { PlayIcon, ListPlusIcon, ArrowUpRightIcon } from '@phosphor-icons/react'
 import {
   api,
@@ -53,8 +53,6 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
     const t = setInterval(() => setIdx((i) => (i + 1) % slides.length), BILLBOARD_INTERVAL_MS)
     return () => clearInterval(t)
   }, [reduce, paused, slides.length])
-  const top = slides[idx] ?? null
-
   const dots = slides.length > 1 ? (
     <div className="mt-6 flex items-center gap-2" role="tablist" aria-label="빌보드 작품">
       {slides.map((w, i) => (
@@ -73,18 +71,22 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
 
   return (
     <div onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={top ? `${top.contentId}-${top.episodeId}` : 'empty'}
-          initial={reduce ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={reduce ? undefined : { opacity: 0 }}
-          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        >
-          {/* 점은 슬라이드 본문 열(CTA 아래)에 둔다 — 바깥에서 포스터 폭을 셈해 맞추면 화면 폭마다 어긋난다. */}
-          <BillboardSlide top={top} live={live} loading={loading} rank={idx + 1} footer={dots} />
-        </motion.div>
-      </AnimatePresence>
+      {/* 슬라이드 다섯 장을 모두 마운트해 같은 자리에 겹쳐 두고 투명도만 교차시킨다. 지웠다 다시 만들면
+          그때마다 파형·순간을 새로 받아 빈 화면이 깜빡인다. 높이는 가장 큰 슬라이드에 맞춰 고정된다. */}
+      <div className="grid border-b border-line bg-raise">
+        {(slides.length ? slides : [null]).map((w, i) => {
+          const on = i === idx
+          return (
+            <div
+              key={w ? `${w.contentId}-${w.episodeId}` : 'empty'}
+              style={{ gridArea: '1 / 1', opacity: on ? 1 : 0, transition: reduce ? undefined : 'opacity .7s cubic-bezier(.16,1,.3,1)', pointerEvents: on ? 'auto' : 'none' }}
+              aria-hidden={!on}
+            >
+              <BillboardSlide top={w} live={live} loading={loading} rank={i + 1} footer={dots} />
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -110,7 +112,7 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched
   if (!top) {
     const tone = loading ? 'skeleton' : 'bg-sink/60'
     return (
-      <section className={`border-b border-line bg-raise ${SEC}`} aria-busy={loading}>
+      <section className={`h-full ${SEC}`} aria-busy={loading}>
         <div className="flex flex-col gap-7 md:flex-row md:items-center md:gap-10">
           <div className={`${tone} w-[168px] shrink-0 rounded-md lg:w-[212px]`} style={{ aspectRatio: '2 / 3' }} aria-hidden />
           <div className="min-w-0 flex-1" aria-hidden={loading}>
@@ -129,7 +131,7 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched
   }
 
   return (
-    <section className={`border-b border-line bg-raise ${SEC}`}>
+    <section className={`flex h-full flex-col justify-center ${SEC}`}>
       <div className="flex flex-col gap-7 md:flex-row md:items-center md:gap-10">
         <a href={top.contentId ? titleHref(top.contentId, episodeId) : undefined} className="w-[168px] shrink-0 lg:w-[212px]">
           <PosterSlot title={top.show} poster={top.thumbnailUrl} />
