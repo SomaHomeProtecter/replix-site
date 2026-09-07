@@ -15,7 +15,7 @@ import {
   type LiveShow,
   type Moment,
 } from '../api'
-import { useAsync } from '../hooks'
+import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../App'
 import { Avatar, Chip, MomentDots, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { CardGridSkeleton, EmptyNote, RailSkeleton, RowsSkeleton } from '../components/skeleton'
@@ -336,19 +336,20 @@ function Moments({ c, ep, moments, momentsLoading, onPeak }: { c: ContentDetail;
 
 function Related({ contentId }: { contentId: number }) {
   const r = useAsync(() => api.alsoWatched(contentId).catch(() => null), [contentId])
+  const fill = useFillCount(140, 16, 1)
   const items = r.data?.items ?? []
   return (
     <section id="related" className={`scroll-mt-28 border-t border-line ${SEC}`}>
       <SectionHead title="함께 본 작품" />
       {items.length === 0 ? (
-        <>
-          <RailSkeleton count={6} loading={r.loading} />
+        <div ref={fill.ref}>
+          <RailSkeleton count={fill.count} loading={r.loading} />
           {!r.loading && <EmptyNote>아직 함께 본 작품이 없습니다.</EmptyNote>}
-        </>
+        </div>
       ) : (
-        <ul className="bleed flex snap-x gap-4 overflow-x-auto pb-2">
-          {items.map((t) => (
-            <li key={t.contentId} className="w-[126px] shrink-0 snap-start lg:w-[148px]">
+        <ul ref={fill.ref} className="fill-grid" style={{ '--min': '140px', '--gx': '16px', '--gy': '0px' } as React.CSSProperties}>
+          {items.map((t, i) => (
+            <li key={t.contentId} hidden={i >= fill.count}>
               <a href={titleHref(t.contentId)} className="group block">
                 <PosterSlot title={t.title} poster={t.posterUrl} />
                 <p className="mt-2 truncate text-[12.5px] font-bold text-ink">{t.title}</p>
