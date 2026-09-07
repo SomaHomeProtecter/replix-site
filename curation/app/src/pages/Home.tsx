@@ -55,6 +55,22 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
   }, [reduce, paused, slides.length])
   const top = slides[idx] ?? null
 
+  const dots = slides.length > 1 ? (
+    <div className="mt-6 flex items-center gap-2" role="tablist" aria-label="빌보드 작품">
+      {slides.map((w, i) => (
+        <button
+          key={`${w.show}-${i}`}
+          type="button"
+          role="tab"
+          aria-selected={i === idx}
+          aria-label={`${i + 1}위 ${w.show}`}
+          onClick={() => setIdx(i)}
+          className={`h-[6px] rounded-full transition-all ${i === idx ? 'w-7 bg-accent' : 'w-[6px] bg-ink/25 hover:bg-ink/50'}`}
+        />
+      ))}
+    </div>
+  ) : null
+
   return (
     <div onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
       <AnimatePresence mode="wait" initial={false}>
@@ -65,31 +81,15 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
           exit={reduce ? undefined : { opacity: 0 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         >
-          <BillboardSlide top={top} live={live} loading={loading} rank={idx + 1} />
+          {/* 점은 슬라이드 본문 열(CTA 아래)에 둔다 — 바깥에서 포스터 폭을 셈해 맞추면 화면 폭마다 어긋난다. */}
+          <BillboardSlide top={top} live={live} loading={loading} rank={idx + 1} footer={dots} />
         </motion.div>
       </AnimatePresence>
-      {slides.length > 1 && (
-        <div className="wrap -mt-4 pb-6">
-          <div className="flex items-center gap-2 md:pl-[calc(212px+40px)]" role="tablist" aria-label="빌보드 작품">
-            {slides.map((w, i) => (
-              <button
-                key={`${w.show}-${i}`}
-                type="button"
-                role="tab"
-                aria-selected={i === idx}
-                aria-label={`${i + 1}위 ${w.show}`}
-                onClick={() => setIdx(i)}
-                className={`h-[6px] rounded-full transition-all ${i === idx ? 'w-7 bg-accent' : 'w-[6px] bg-ink/25 hover:bg-ink/50'}`}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
 
-function BillboardSlide({ top, live, loading, rank }: { top: MostWatched | null; live: LiveShow[]; loading: boolean; rank: number }) {
+function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched | null; live: LiveShow[]; loading: boolean; rank: number; footer?: React.ReactNode }) {
   const episodeId = top?.episodeId ?? null
   const heat = useAsync(() => (episodeId ? api.heatmap(episodeId) : null), [episodeId])
   const moments = useAsync(() => (episodeId ? api.moments(episodeId, 5) : null), [episodeId])
@@ -200,6 +200,7 @@ function BillboardSlide({ top, live, loading, rank }: { top: MostWatched | null;
               </a>
             )}
           </div>
+          {footer}
         </div>
       </div>
     </section>
