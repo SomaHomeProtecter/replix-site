@@ -52,7 +52,7 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
     if (reduce || paused || slides.length < 2) return
     const t = setInterval(() => setIdx((i) => (i + 1) % slides.length), BILLBOARD_INTERVAL_MS)
     return () => clearInterval(t)
-  }, [reduce, paused, slides.length])
+  }, [reduce, paused, slides.length, idx])
   /* 오른쪽 세로 레일(2026-09-07 조현빈): 다섯 작품이 포스터를 배경으로 세로로 쌓이고, 현재 작품 칸은 크게,
      나머지는 작게. flex 값이 바뀌면서 칸 크기가 자연스럽게 흐른다. 누르면 그 작품으로 전환. */
   const rail = slides.length > 1 ? (
@@ -71,10 +71,12 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
               style={{ background: 'var(--color-sink)' }}
             >
               {poster && (
-                <img src={poster} alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: '50% 18%', filter: on ? 'saturate(.85)' : 'saturate(.4) brightness(.8)', opacity: on ? 1 : 0.7, transition: 'filter .7s, opacity .7s' }} />
+                <img src={poster} alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: '50% 18%', filter: on ? 'none' : 'grayscale(1) brightness(.55)', transition: reduce ? undefined : 'filter .7s' }} />
               )}
-              <span className="absolute inset-0 bg-gradient-to-r from-[rgba(16,16,24,.78)] via-[rgba(16,16,24,.5)] to-[rgba(16,16,24,.25)]" />
-              <span className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-white" style={{ opacity: on ? 1 : 0, transition: 'opacity .5s' }} />
+              <span className="absolute inset-0" style={{ background: on ? 'linear-gradient(90deg, rgba(16,16,24,.72), rgba(16,16,24,.3) 55%, rgba(16,16,24,.05))' : 'linear-gradient(90deg, rgba(16,16,24,.7), rgba(16,16,24,.45))', transition: reduce ? undefined : 'background .7s' }} />
+              {on && !reduce && (
+                <span key={idx} className="absolute inset-x-0 bottom-0 h-[3px] origin-left bg-accent" style={{ animation: `rail-progress ${BILLBOARD_INTERVAL_MS}ms linear forwards`, animationPlayState: paused ? 'paused' : 'running' }} />
+              )}
               <span className="absolute inset-x-0 bottom-0 flex items-center gap-2.5 px-3.5 py-3">
                 <span className={`num font-mono text-[11px] font-bold leading-none ${on ? 'text-white' : 'text-white/55'}`} style={{ transition: 'color .5s' }}>{i + 1}</span>
                 <span className={`block min-w-0 truncate font-bold ${on ? 'text-[14px] text-white' : 'text-[13px] text-white/75'}`} style={{ transition: 'font-size .5s, color .5s' }}>{w.show}</span>

@@ -195,3 +195,5 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+@keyframes rail-progress { from { transform: scaleX(0) } to { transform: scaleX(1) } }
