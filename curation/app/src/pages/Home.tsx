@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { PlayIcon, ListPlusIcon, ArrowUpRightIcon } from '@phosphor-icons/react'
 import {
   api,
@@ -35,7 +36,60 @@ function Empty({ children }: { children: React.ReactNode }) {
 /* ═══ 빌보드 ══════════════════════════════════════════════════
    오늘 1위 = public-stats.mostWatched[0](누적 시청시간). 지수 산식은 만들지 않기로 했으므로(2026-09-05)
    "지수 100" 대신 "오늘 1위"만 적는다. 파형은 그 회차의 히트맵, 순간은 /moments. */
-function Billboard({ top, live, loading }: { top: MostWatched | null; live: LiveShow[]; loading: boolean }) {
+/* ═══ 빌보드 자동 전환 ═════════════════════════════════════════
+   상위 작품 몇 개를 일정 간격으로 돌린다(조현빈 2026-09-07). 마우스를 올리거나 포커스가 들어오면
+   멈추고, 점을 누르면 그 작품으로 간다. 움직임 줄이기 설정이면 자동 전환은 하지 않는다. */
+const BILLBOARD_COUNT = 5
+const BILLBOARD_INTERVAL_MS = 7000
+
+function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveShow[]; loading: boolean }) {
+  const slides = items.slice(0, BILLBOARD_COUNT)
+  const [idx, setIdx] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const reduce = useReducedMotion()
+  useEffect(() => { setIdx(0) }, [slides.length])
+  useEffect(() => {
+    if (reduce || paused || slides.length < 2) return
+    const t = setInterval(() => setIdx((i) => (i + 1) % slides.length), BILLBOARD_INTERVAL_MS)
+    return () => clearInterval(t)
+  }, [reduce, paused, slides.length])
+  const top = slides[idx] ?? null
+
+  return (
+    <div onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={top ? `${top.contentId}-${top.episodeId}` : 'empty'}
+          initial={reduce ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={reduce ? undefined : { opacity: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <BillboardSlide top={top} live={live} loading={loading} rank={idx + 1} />
+        </motion.div>
+      </AnimatePresence>
+      {slides.length > 1 && (
+        <div className="wrap -mt-4 pb-6">
+          <div className="flex items-center gap-2 md:pl-[calc(212px+40px)]" role="tablist" aria-label="빌보드 작품">
+            {slides.map((w, i) => (
+              <button
+                key={`${w.show}-${i}`}
+                type="button"
+                role="tab"
+                aria-selected={i === idx}
+                aria-label={`${i + 1}위 ${w.show}`}
+                onClick={() => setIdx(i)}
+                className={`h-[6px] rounded-full transition-all ${i === idx ? 'w-7 bg-accent' : 'w-[6px] bg-ink/25 hover:bg-ink/50'}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BillboardSlide({ top, live, loading, rank }: { top: MostWatched | null; live: LiveShow[]; loading: boolean; rank: number }) {
   const episodeId = top?.episodeId ?? null
   const heat = useAsync(() => (episodeId ? api.heatmap(episodeId) : null), [episodeId])
   const moments = useAsync(() => (episodeId ? api.moments(episodeId, 5) : null), [episodeId])
@@ -44,7 +98,14 @@ function Billboard({ top, live, loading }: { top: MostWatched | null; live: Live
   const show = live.find((s) => s.showId === String(episodeId)) ?? null
   const viewers = show ? show.segments.reduce((a, s) => a + s.viewers, 0) : 0
   const peak = (moments.data?.moments ?? []).reduce<Moment | null>((a, m) => (!a || m.strength > a.strength ? m : a), null)
-  const play = show ? watchUrl(show.platform, show.watchId, peak?.at) : null
+  // 재생 딥링크 재료(플랫폼·회차 id)는 '지금 보는 중'에 있으면 거기서, 아니면 작품 상세에서 가져온다 —
+  // 빌보드의 주 CTA 가 시청자 유무에 따라 사라지면 안 된다.
+  const contentId = top?.contentId ?? null
+  const detail = useAsync(() => (contentId && !show ? api.content(contentId).catch(() => null) : null), [contentId, !!show])
+  const ep = detail.data?.episodes.find((e) => e.episodeId === episodeId) ?? null
+  const play = show
+    ? watchUrl(show.platform, show.watchId, peak?.at)
+    : detail.data && ep ? watchUrl(detail.data.platform, ep.platformEpisodeId, peak?.at) : null
 
   if (!top) {
     const tone = loading ? 'skeleton' : 'bg-sink/60'
@@ -76,7 +137,7 @@ function Billboard({ top, live, loading }: { top: MostWatched | null; live: Live
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <Chip tone="accent">가장 많이 본 작품</Chip>
+            <Chip tone="accent">{rank === 1 ? '가장 많이 본 작품' : `많이 본 작품 ${rank}위`}</Chip>
             {viewers > 0 && (<><Rule /><LiveCount n={viewers} /></>)}
           </div>
 
@@ -372,7 +433,7 @@ export default function Home() {
 
   return (
     <>
-      <Billboard top={items[0] ?? null} live={shows} loading={stats.loading} />
+      <Billboard items={items} live={shows} loading={stats.loading} />
       <Ranking items={items} loading={stats.loading} />
       <HotMoments top={items[0] ?? null} live={shows} loading={stats.loading} />
       <WeeklyMoments items={items} loading={stats.loading} />
