@@ -78,7 +78,7 @@ function Hero({ c, ep, live, peak }: { c: ContentDetail; ep: EpisodeSummary | nu
                 <p className="mt-1.5 text-[12.5px] text-faint">아직 인용할 채팅이 없습니다</p>
               )}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-baseline justify-between gap-4">
                 <p className="text-[12px] font-semibold text-muted">회차별 채팅 반응</p>
                               </div>
@@ -87,37 +87,34 @@ function Hero({ c, ep, live, peak }: { c: ContentDetail; ep: EpisodeSummary | nu
               ) : (
                 /* 시즌별로 묶는다(2026-09-07 조현빈): 시즌 없이 회차 번호만 늘어놓으면 108, 162, 1, 2… 처럼
                    뒤섞여 읽히지 않는다. 시즌이 하나면 라벨 없이 그대로. 회차가 많으면 가로로 흐른다. */
-                <div className="mt-2.5 overflow-x-auto pb-1">
-                  <div className="flex items-end gap-5">
-                    {seasons.map((g) => {
-                      const w = g.eps.some((e) => e.episodeNumber >= 100) ? 'w-[26px]' : 'w-[18px]' // 세 자리 회차 번호가 줄바꿈되지 않게
-                      return (
-                      <div key={g.season} className="shrink-0">
-                        <div className="flex h-[76px] items-end gap-[4px]">
-                          {g.eps.map((e) => (
-                            <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)} title={episodeLabel(e, c.contentType) || e.title || ''}
-                              className={`flex h-full ${w} flex-col justify-end`}>
-                              <div className="rounded-t-[2px]" style={{ height: `${Math.max(3, (e.heatShare / maxShare) * 100)}%`, background: e.episodeId === ep?.episodeId ? 'var(--color-accent)' : 'rgba(16,16,24,0.16)' }} />
-                            </a>
-                          ))}
-                        </div>
-                        <div className="mt-1.5 flex gap-[4px]">
-                          {g.eps.map((e) => (
-                            <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)}
-                              className={`num ${w} whitespace-nowrap text-center font-mono text-[10px] leading-none hover:text-ink ${e.episodeId === ep?.episodeId ? 'font-bold text-accent' : 'text-muted'}`}>
-                              {e.episodeNumber || '·'}
-                            </a>
-                          ))}
-                        </div>
-                        {seasons.length > 1 && (
-                          <p className="mt-1.5 border-t border-line pt-1 text-[10.5px] font-semibold text-muted">
-                            {g.season > 0 ? `시즌 ${g.season}` : '시즌 없음'}
-                          </p>
-                        )}
+                /* 격자 셀 폭 안에서 시즌 묶음이 회차 수에 비례해 폭을 나눠 갖고, 막대는 그 안에서 균등하다.
+                   고정 폭을 쓰면 회차가 많을 때 셀을 밀어내 히어로 밖으로 넘친다(2026-09-07 실측). */
+                <div className="mt-2.5 flex min-w-0 items-end gap-4">
+                  {seasons.map((g) => (
+                    <div key={g.season} className="min-w-0" style={{ flex: `${g.eps.length} 1 0`, minWidth: Math.min(g.eps.length, 3) * 16 + 16 /* '108'·'시즌 4'가 잘리지 않는 최소 폭 */ }}>
+                      <div className="flex h-[76px] items-end gap-[3px]">
+                        {g.eps.map((e) => (
+                          <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)} title={episodeLabel(e, c.contentType) || e.title || ''}
+                            className="flex h-full min-w-0 flex-1 flex-col justify-end">
+                            <div className="rounded-t-[2px]" style={{ height: `${Math.max(3, (e.heatShare / maxShare) * 100)}%`, background: e.episodeId === ep?.episodeId ? 'var(--color-accent)' : 'rgba(16,16,24,0.16)' }} />
+                          </a>
+                        ))}
                       </div>
-                      )
-                    })}
-                  </div>
+                      <div className="mt-1.5 flex gap-[3px]">
+                        {g.eps.map((e) => (
+                          <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)}
+                            className={`num min-w-0 flex-1 whitespace-nowrap text-center font-mono leading-none hover:text-ink ${e.episodeNumber >= 100 ? 'text-[9px]' : 'text-[10px]'} ${e.episodeId === ep?.episodeId ? 'font-bold text-accent' : 'text-muted'}`}>
+                            {e.episodeNumber || '·'}
+                          </a>
+                        ))}
+                      </div>
+                      {seasons.length > 1 && (
+                        <p className="mt-1.5 truncate border-t border-line pt-1 text-[10.5px] font-semibold text-muted">
+                          {g.season > 0 ? `시즌 ${g.season}` : '시즌 없음'}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
