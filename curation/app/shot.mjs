@@ -34,17 +34,14 @@ for (const [name, hash] of routes) {
       await new Promise((r) => setTimeout(r, 120))
     }
     window.scrollTo(0, 0)
-    await new Promise((r) => setTimeout(r, 700))
+    await new Promise((r) => setTimeout(r, 1800)) // 진입 연출 안전망(1.2초)보다 길게
   })
 
   /* overflow:clip 상태에서 scrollWidth 는 잘려 보이지 않는 부분까지 보고한다.
      fullPage 는 그 값을 따라가므로 뷰포트 폭으로 직접 잘라 찍는다. */
-  const height = await page.evaluate(() => document.documentElement.scrollHeight)
-  await page.screenshot({
-    path: `${OUT}/new-${name}-${WIDTH}.png`,
-    captureBeyondViewport: true,
-    clip: { x: 0, y: 0, width: WIDTH, height },
-  })
+  /* captureBeyondViewport+clip 은 뷰포트를 순간 늘리면서 진입 연출을 되돌려 항목이 투명하게 찍혔다(2026-09-07).
+     fullPage 로 찍고, 가로 넘침은 overflow:clip 이 막으므로 폭은 WIDTH 그대로다. */
+  await page.screenshot({ path: `${OUT}/new-${name}-${WIDTH}.png`, fullPage: true })
   console.log(`${name} @${WIDTH}`)
   await page.close()
 }

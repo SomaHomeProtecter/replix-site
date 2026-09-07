@@ -11,7 +11,7 @@ var SLOTS = 5;
 var chart = document.getElementById("chartList");
 
 if (chart) {
-  publicStats.then(function (stats) { render(stats.mostWatched || []); });
+  publicStats.then(function (stats) { render((stats.mostWatched || []).slice(0, SLOTS)); }); // 서버 상한이 24로 늘어도(HP-124) 랜딩은 5개
 }
 
 /* 응답 값은 전부 문자열로 그려 넣는다 — 작품명·인용 채팅은 사용자가 쓴 글이고, 줄거리·썸네일은

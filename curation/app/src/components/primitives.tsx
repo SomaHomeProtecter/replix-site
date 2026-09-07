@@ -232,11 +232,14 @@ export function Reveal({
   delay = 0,
   className = '',
   as = 'div',
+  hidden = false,
 }: {
   children: React.ReactNode
   delay?: number
   className?: string
   as?: 'div' | 'li' | 'section'
+  /** 격자 줄 상한 밖의 항목. 언마운트하지 않고 숨긴다 — 다시 나타날 때 진입 연출이 되돌지 않게. */
+  hidden?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const shown = useRevealed(ref)
@@ -245,6 +248,7 @@ export function Reveal({
   return (
     <M
       ref={ref}
+      hidden={hidden}
       className={className}
       initial={reduce ? false : { opacity: 0, y: 18 }}
       animate={shown || reduce ? { opacity: 1, y: 0 } : {}}
