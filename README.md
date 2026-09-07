@@ -38,4 +38,5 @@ Replix의 정적 웹 표면. GitHub Pages로 `https://replix.tv`에 서빙된다
 로 다시 빌드해 산출물까지 함께 커밋한다 — GitHub Pages·미리보기 둘 다 빌드 단계가 없으므로
 커밋된 산출물이 곧 배포물이다. 큐레이션이 부르는 API(`/contents`, `/episodes/{id}/moments`, `/also-watched`)는
 Replix-be HP-390·391로 develop 에는 있고 **main(운영 `api.replix.tv`)에는 다음 릴리스 때 실린다** —
-그 전까지 `replix.tv/curation/` 은 빈 카드와 안내 문구만 보인다.
+**그래서 2026-09-07부터 큐레이션만 임시로 개발 서버(`api.replix-dev.site`)를 본다**(`curation/app/index.html`
+의 `api-base`, 조현빈 결정). 릴리스가 나가면 `api.replix.tv` 로 되돌린다.
