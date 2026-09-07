@@ -54,32 +54,34 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
     return () => clearInterval(t)
   }, [reduce, paused, slides.length, idx])
   /* 오른쪽 세로 레일(2026-09-07 조현빈): 다섯 작품이 포스터를 배경으로 세로로 쌓이고, 현재 작품 칸은 크게,
-     나머지는 작게. flex 값이 바뀌면서 칸 크기가 자연스럽게 흐른다. 누르면 그 작품으로 전환. */
+     나머지는 작게. flex 값이 바뀌면서 칸 크기가 자연스럽게 흐른다. 누르면 그 작품으로 전환.
+     간격·모서리 없이 붙인 한 기둥으로 두고 왼쪽 포스터보다 작게 — 레일은 보여주기가 아니라 꾸밈이라
+     왼쪽 카드와 같은 형태로 나란히 서면 시선이 갈라지고 중복으로 읽힌다(시안 B). */
   const rail = slides.length > 1 ? (
-    <ol className="hidden h-full min-h-[420px] flex-col gap-2 md:flex" role="tablist" aria-label="빌보드 작품">
+    <ol className="hidden h-[272px] flex-col self-center overflow-hidden rounded-[4px] md:flex" role="tablist" aria-label="빌보드 작품">
       {slides.map((w, i) => {
         const on = i === idx
         const poster = w.thumbnailUrl ?? undefined
         return (
-          <li key={`${w.show}-${i}`} className="min-h-0" style={{ flex: on ? '2 1 0' : '1 1 0', transition: reduce ? undefined : 'flex .7s cubic-bezier(.16,1,.3,1)' }}>
+          <li key={`${w.show}-${i}`} className="min-h-0" style={{ flex: on ? '1.8 1 0' : '1 1 0', transition: reduce ? undefined : 'flex .7s cubic-bezier(.16,1,.3,1)' }}>
             <button
               type="button"
               role="tab"
               aria-selected={on}
               onClick={() => setIdx(i)}
-              className="relative block h-full w-full overflow-hidden rounded-md text-left ring-1 ring-line"
-              style={{ background: 'var(--color-sink)' }}
+              className="relative block h-full w-full overflow-hidden text-left"
+              style={{ background: 'var(--color-sink)', boxShadow: i ? 'inset 0 1px 0 rgba(255,255,255,.14)' : undefined }}
             >
               {poster && (
-                <img src={poster} alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: '50% 18%', filter: on ? 'none' : 'grayscale(1) brightness(.55)', transition: reduce ? undefined : 'filter .7s' }} />
+                <img src={poster} alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: '50% 18%', filter: on ? 'saturate(.9) brightness(.85)' : 'grayscale(1) brightness(.45)', transition: reduce ? undefined : 'filter .7s' }} />
               )}
-              <span className="absolute inset-0" style={{ background: on ? 'linear-gradient(90deg, rgba(16,16,24,.72), rgba(16,16,24,.3) 55%, rgba(16,16,24,.05))' : 'linear-gradient(90deg, rgba(16,16,24,.7), rgba(16,16,24,.45))', transition: reduce ? undefined : 'background .7s' }} />
+              <span className="absolute inset-0" style={{ background: on ? 'linear-gradient(90deg, rgba(16,16,24,.7), rgba(16,16,24,.35))' : 'linear-gradient(90deg, rgba(16,16,24,.75), rgba(16,16,24,.55))', transition: reduce ? undefined : 'background .7s' }} />
               {on && !reduce && (
                 <span key={idx} className="absolute inset-x-0 bottom-0 h-[3px] origin-left bg-accent" style={{ animation: `rail-progress ${BILLBOARD_INTERVAL_MS}ms linear forwards`, animationPlayState: paused ? 'paused' : 'running' }} />
               )}
-              <span className="absolute inset-x-0 bottom-0 flex items-center gap-2.5 px-3.5 py-3">
+              <span className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-3 py-2">
                 <span className={`num font-mono text-[11px] font-bold leading-none ${on ? 'text-white' : 'text-white/55'}`} style={{ transition: 'color .5s' }}>{i + 1}</span>
-                <span className={`block min-w-0 truncate font-bold ${on ? 'text-[14px] text-white' : 'text-[13px] text-white/75'}`} style={{ transition: 'font-size .5s, color .5s' }}>{w.show}</span>
+                <span className={`block min-w-0 truncate font-bold ${on ? 'text-[12.5px] text-white' : 'text-[12px] text-white/75'}`} style={{ transition: 'font-size .5s, color .5s' }}>{w.show}</span>
               </span>
             </button>
           </li>
@@ -99,7 +101,7 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
 
   return (
     <div className="border-b border-line bg-raise" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
-      <div className="wrap grid gap-8 py-9 md:grid-cols-[minmax(0,1fr)_224px] lg:grid-cols-[minmax(0,1fr)_248px] lg:gap-10">
+      <div className="wrap grid gap-8 py-9 md:grid-cols-[minmax(0,1fr)_168px] lg:grid-cols-[minmax(0,1fr)_184px] lg:gap-10">
         {/* 슬라이드 다섯 장을 모두 마운트해 같은 자리에 겹쳐 두고 투명도만 교차시킨다. 지웠다 다시 만들면
             그때마다 파형·순간을 새로 받아 빈 화면이 깜빡인다. 높이는 가장 큰 슬라이드에 맞춰 고정된다. */}
         <div className="grid min-w-0">
