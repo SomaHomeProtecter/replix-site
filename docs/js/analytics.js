@@ -118,8 +118,20 @@ function revoke() {
 export function setConsent(decision) {
   if (decision !== 'granted' && decision !== 'denied') return;
   _consent = decision; writeConsent(decision); hideBanner();
-  if (decision === 'granted') { loadSdk(); if (_lastPage) track('page_viewed', _lastPage); }
-  else revoke();
+  if (decision === 'granted') {
+    var a = amp();
+    if (_sdk === 'ready' && a) {
+      /* 같은 페이지에서 거부 → 허용: revoke 가 걸어 둔 optOut 을 풀고, 지운 식별자 대신 **새** device_id 를 받는다 —
+         옛 값을 다시 쓰면 철회 전후가 한 기기로 이어져 "철회하면 식별값을 지운다"는 약속이 빈말이 된다.
+         (2026-09-13 검증에서 잡힌 버그: 재허용 뒤 optOut 이 남아 이벤트가 조용히 버려졌다.) */
+      try { a.setOptOut(false); a.reset(); } catch (_) { /* SDK 내부 오류 — 아래 loadSdk 경로와 같이 fail-open */ }
+    } else {
+      loadSdk();
+    }
+    if (_lastPage) track('page_viewed', _lastPage);
+  } else {
+    revoke();
+  }
 }
 
 /* ═══ 동의 배너 ══════════════════════════════════════════════════

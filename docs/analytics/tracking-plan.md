@@ -51,6 +51,7 @@
 | 거부 | 배너 숨김. SDK·쿠키·요청 0건 |
 | 허용 | SDK 스크립트 주입 → `init` → 큐 flush → 현재 페이지 `page_viewed` 1회 |
 | 철회 | 푸터 '분석 설정'(`[data-analytics-settings]`) → 배너 재표시 → 거부 시 `setOptOut(true)` + `AMP_*` 쿠키·`AMP_*` localStorage 삭제 |
+| 재허용 | 같은 페이지에서 거부 뒤 다시 허용하면 `setOptOut(false)` + `reset()` — **새 device_id**. 철회 전 식별값과 이어지지 않는다 |
 | 버전 | `version` 이 바뀌면 다시 묻는다(문안·범위가 바뀌었을 때 올린다) |
 
 처리방침 §6 문안이 이 동작을 약속한다: "확장 프로그램 **또는 웹사이트(replix.tv)** 에서 명시적으로 동의한 경우에만 … 웹사이트 하단의 '분석 설정'에서 변경".

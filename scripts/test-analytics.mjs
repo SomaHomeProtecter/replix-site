@@ -61,6 +61,8 @@ assert.doesNotMatch(index, /cdn\.amplitude\.com/, 'SDK 는 동의 뒤 스크립�
 assert.doesNotMatch(read('docs/invite/index.html'), /analytics\.js|amplitude/i, '/invite 는 계측하지 않는다(쿼리에 토큰)');
 assert.match(src, /_banner\.style\.display = 'none'/, '[hidden] 은 display:flex 에 진다(docs/README) — style 로 끈다');
 assert.doesNotMatch(src, /\.hidden = true/, '배너를 [hidden] 으로 숨기면 display:flex 가 이긴다');
+assert.match(src, /a\.setOptOut\(false\); a\.reset\(\);/, '같은 페이지에서 거부→허용이면 optOut 해제 + 새 device_id (검증에서 잡힌 버그)');
+assert.match(src, /a\.setOptOut\(true\)/, '거부·철회 시 SDK optOut');
 assert.match(src, /typeof window !== 'undefined' && typeof document !== 'undefined'\) boot\(\)/, 'node import 가 부트하면 안 된다');
 assert.match(read('docs/js/main.js'), /import \{ page \} from '\.\/analytics\.js'/);
 assert.match(read('docs/js/main.js'), /^page\(\);/m, '랜딩 page_viewed 는 main.js 가 1회 부른다');
