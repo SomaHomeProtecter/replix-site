@@ -50,6 +50,10 @@ python3 -m http.server 8000     # http://localhost:8000
   하나를 고치면 나머지도 함께 본다.
 - **설치 CTA 는 세 곳(내비·히어로·마지막)이 모두 `#install` 앵커**다. 웹 스토어
   URL 이 정해지면 그 세 곳의 `href` 만 바꾸면 된다(HP-193).
+- **계측(Amplitude)은 `js/analytics.js` 한 곳이다**(HP-415). 이벤트를 추가·변경하려면
+  **`docs/analytics/tracking-plan.md` 부터** 고친다 — 코드에만 있고 문서에 없는 이벤트는 버그다.
+  설치 CTA 는 `data-cta="…"` 속성만 붙이면 자동 계측되고(세 곳 = `nav`·`hero`·`close`), 동의 배너·SDK
+  로드·철회는 그 파일이 맡는다. 검사: `node scripts/test-analytics.mjs`. `/invite` 는 계측하지 않는다(토큰).
 - **화면 안 UI 는 확장의 실제 구조·색을 옮긴 것**이다. `--accent: #e50914` 등
   토큰이 `Replix-extension/styles.css` 와 짝이므로 임의로 바꾸면 설치 전후가
   다른 제품으로 보인다.
