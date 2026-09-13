@@ -7,6 +7,13 @@
          2026-09-07 조현빈: 작품 탐색 전용 API(HP-390·391)가 아직 운영(main)에 없어 **임시로 개발 서버**를 본다.
          Replix-be develop→main 릴리스 뒤 https://api.replix.tv 로 되돌릴 것. 환경별 분리는 HP-280. -->
     <meta name="api-base" content="https://api.replix-dev.site" />
+    <!-- 로그인(작품 댓글·별점 쓰기용, HP-124). 확장과 같은 Keycloak realm·클라이언트(replix-web)를 쓴다 —
+         같은 계정으로 채팅과 댓글이 이어지고 백엔드의 azp 검증도 그대로 통과한다.
+         ⚠ Keycloak 클라이언트 replix-web 의 Valid redirect URIs 에 이 페이지 주소(https://replix.tv/catalog/*)가
+         등록돼 있어야 로그인이 완료된다(관리 콘솔 작업, 2026-09-14 기준 미등록). -->
+    <meta name="auth-base" content="https://auth.replix-dev.site" />
+    <meta name="auth-realm" content="replix" />
+    <meta name="auth-client" content="replix-web" />
     <title>Replix 작품 탐색</title>
     <meta name="description" content="넷플릭스를 보는 사람들의 채팅이 몰린 회차와 순간을 찾아 그 시각부터 봅니다." />
   </head>
