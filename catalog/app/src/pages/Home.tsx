@@ -14,6 +14,7 @@ import {
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../App'
+import { engaged, trackWatch } from '../analytics'
 import { Chip, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { EmptyNote, PosterGridSkeleton, RailSkeleton, RowsSkeleton, Shimmer } from '../components/skeleton'
 
@@ -68,7 +69,7 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
               type="button"
               role="tab"
               aria-selected={on}
-              onClick={() => setIdx(i)}
+              onClick={() => { setIdx(i); engaged('billboard', 'switch') }}
               className="relative block h-full w-full overflow-hidden text-left"
               style={{ background: 'var(--color-sink)', boxShadow: i ? 'inset 0 1px 0 rgba(255,255,255,.14)' : undefined }}
             >
@@ -93,7 +94,7 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
   const dots = slides.length > 1 ? (
     <div className="mt-6 flex items-center gap-2 md:hidden" role="tablist" aria-label="빌보드 작품">
       {slides.map((w, i) => (
-        <button key={`${w.show}-${i}`} type="button" role="tab" aria-selected={i === idx} aria-label={`${i + 1}위 ${w.show}`} onClick={() => setIdx(i)}
+        <button key={`${w.show}-${i}`} type="button" role="tab" aria-selected={i === idx} aria-label={`${i + 1}위 ${w.show}`} onClick={() => { setIdx(i); engaged('billboard', 'switch') }}
           className={`h-[6px] rounded-full transition-all ${i === idx ? 'w-7 bg-accent' : 'w-[6px] bg-ink/25 hover:bg-ink/50'}`} />
       ))}
     </div>
@@ -220,7 +221,7 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched
 
           <div className="mt-6 flex flex-wrap gap-2">
             {play && (
-              <a href={play} target="_blank" rel="noopener"
+              <a href={play} target="_blank" rel="noopener" onClick={() => trackWatch(play, 'home_billboard')}
                 className="inline-flex items-center gap-2 whitespace-nowrap rounded-btn bg-accent px-4 py-2.5 text-[14px] font-bold text-white transition-all hover:brightness-110 active:translate-y-px">
                 <PlayIcon size={15} weight="fill" />
                 넷플릭스에서 {peak ? `${fmtTime(peak.at)}부터 ` : ''}보기
@@ -332,7 +333,7 @@ function HotMoments({ top, live, loading }: { top: MostWatched | null; live: Liv
               const Row = href ? 'a' : 'div'
               return (
                 <li key={m.at}>
-                  <Row {...(href ? { href, target: '_blank', rel: 'noopener' } : {})}
+                  <Row {...(href ? { href, target: '_blank', rel: 'noopener', onClick: () => trackWatch(href, 'home_hot') } : {})}
                     className={`group grid grid-cols-[28px_1fr_auto] items-center gap-x-3 px-2 py-3 transition-colors sm:grid-cols-[28px_64px_1fr_auto] md:gap-x-4 ${on ? 'bg-accentw' : 'hover:bg-soft'}`}>
                     <span className="relative flex h-6 items-center justify-center">
                       <span className={`num font-mono text-[12px] ${href ? 'group-hover:opacity-0' : ''} ${on ? 'font-bold text-accent' : 'text-muted'}`}>{i + 1}</span>
@@ -382,7 +383,7 @@ function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
           const href = watchUrl(s.platform, s.watchId, hot?.at)
           return (
             <li key={s.showId} hidden={i >= fill.count}>
-              <a href={href ?? undefined} target={href ? '_blank' : undefined} rel="noopener" className="group block">
+              <a href={href ?? undefined} target={href ? '_blank' : undefined} rel="noopener" className="group block" onClick={() => trackWatch(href, 'home_live')}>
                 <div className="relative">
                   <PosterSlot title={s.show} poster={s.posterUrl} />
                   <span className="absolute bottom-2 right-2 inline-flex items-center rounded-sm bg-raise/95 px-2 py-1 leading-none shadow-[0_1px_4px_rgba(16,16,24,0.25)]">
