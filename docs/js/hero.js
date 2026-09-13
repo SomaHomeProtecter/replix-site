@@ -1,5 +1,6 @@
 /* 히어로 시뮬레이션 — 라이브 채팅 도착·탄막·재생바. */
 import { reduce, EP_LEN, mmss, msgHtml, density, buildHeat } from './common.js';
+import { track } from './analytics.js';
 
 /* ═══ 히어로 시뮬레이션 ═════════════════════════════════════
    빠르고 다채롭게. 일반 채팅·이모지만 있는 채팅·답글·좋아요가
@@ -272,5 +273,7 @@ if (heroToggle && heroScreen) {
     heroScreen.classList.toggle("off", !isReplix);
     heroToggle.classList.toggle("is-orig", !isReplix);
     heroToggle.setAttribute("aria-pressed", isReplix ? "true" : "false");
+    /* 계측(W4) — 랜딩에서 방문자가 실제로 조작할 수 있는 데모는 이 토글 하나다(히트맵 플레이어는 #scenes-legacy 에 숨김). */
+    track('demo_interacted', { demo: 'hero_toggle', action: 'toggle' });
   });
 }
