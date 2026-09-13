@@ -16,6 +16,9 @@ export var SDK_CONFIG = {
   autocapture: { attribution: true, sessions: true, pageViews: false, formInteractions: false,
     fileDownloads: false, elementInteractions: false, pageUrlEnrichment: false },
   trackingOptions: { ipAddress: false },
+  /* 원격 설정을 받지 않는다 — 켜 두면 Amplitude 대시보드의 Autocapture 설정이 위 autocapture 를 덮어
+     pageViews(전체 URL)·elementInteractions(클릭 요소 텍스트=작품명)를 원격으로 되살릴 수 있다(§2 금지). */
+  remoteConfig: { fetchRemoteConfig: false },
   identityStorage: 'cookie',
   cookieOptions: { sameSite: 'Lax' },
 };

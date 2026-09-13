@@ -113,7 +113,10 @@
 - **SDK**: `https://cdn.amplitude.com/libs/analytics-browser-2.45.8-min.js.gz`. **동의 허용 뒤에만** `<script>` 를 주입한다(정적 태그 금지 — 테스트가 고정).
 - **init 설정**(`SDK_CONFIG`):
   `autocapture: { attribution: true, sessions: true, pageViews: false, formInteractions: false, fileDownloads: false, elementInteractions: false, pageUrlEnrichment: false }` ·
-  `trackingOptions: { ipAddress: false }` · `identityStorage: 'cookie'` · `cookieOptions: { sameSite: 'Lax', secure: <https 여부> }`
+  `trackingOptions: { ipAddress: false }` · `remoteConfig: { fetchRemoteConfig: false }` · `identityStorage: 'cookie'` · `cookieOptions: { sameSite: 'Lax', secure: <https 여부> }`
+- **원격 설정을 끄는 이유**: 기본값(`true`)이면 SDK 가 `sr-client-cfg.amplitude.com` 에서 설정을 받아 오고, Amplitude 대시보드의
+  Autocapture 설정이 코드의 `autocapture` 를 **덮어쓴다** — 누군가 대시보드에서 스위치를 켜면 §2 가 금지한 전체 URL·클릭 요소 텍스트가
+  코드 변경 없이 실리기 시작한다. 계측 범위는 코드(이 문서)만이 정한다.
 - **왜 끄나**: 자동 `pageViews` 와 `pageUrlEnrichment` 는 전체 URL(쿼리·해시)을 싣는다 — §2 의 마지막 줄. `formInteractions` 는 검색창 입력을 잡는다. `elementInteractions` 는 클릭한 요소의 텍스트(작품명)를 싣는다.
 - **왜 SDK 인가**(확장은 HTTP API 직접): 웹은 세션·어트리뷰션(W2)·재시도·배치를 SDK 가 이미 하고, 원격 스크립트 로딩 제약(MV3)도 없다. 대신 자동수집을 끄는 것이 조건이다.
 - **큐**: SDK 로드 전 `track`/`page` 호출은 메모리 큐 → `onload` 뒤 flush. 로드 실패(차단·오프라인)는 큐를 버리고 조용히 포기(fail-open).
