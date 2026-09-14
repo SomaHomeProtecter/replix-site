@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { PlayIcon, ListPlusIcon, ArrowUpRightIcon } from '@phosphor-icons/react'
 import {
@@ -6,11 +6,11 @@ import {
   decodeEntities,
   episodeLabel,
   fmtTime,
-  heatToBars,
   watchUrl,
   type LiveShow,
   type Moment,
-  type MostWatched,
+  type RankItem,
+  type Window,
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../App'
@@ -35,15 +35,15 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 
 /* ═══ 빌보드 ══════════════════════════════════════════════════
-   오늘 1위 = public-stats.mostWatched[0](누적 시청시간). 지수 산식은 만들지 않기로 했으므로(2026-09-05)
-   "지수 100" 대신 "오늘 1위"만 적는다. 파형은 그 회차의 히트맵, 순간은 /moments. */
+   1위 = /catalog/home ranking[0](창별 누적 감상 시간). 지수 산식은 만들지 않기로 했으므로(2026-09-05)
+   "지수 100" 대신 순위만 적는다. 파형(bars)·순간(moments)·길이는 같은 응답에 실려 온다 — 슬라이드가 따로 요청하지 않는다. */
 /* ═══ 빌보드 자동 전환 ═════════════════════════════════════════
    상위 작품 몇 개를 일정 간격으로 돌린다(조현빈 2026-09-07). 마우스를 올리거나 포커스가 들어오면
    멈추고, 점을 누르면 그 작품으로 간다. 움직임 줄이기 설정이면 자동 전환은 하지 않는다. */
 const BILLBOARD_COUNT = 5
 const BILLBOARD_INTERVAL_MS = 7000
 
-function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveShow[]; loading: boolean }) {
+function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow[]; loading: boolean }) {
   const slides = items.slice(0, BILLBOARD_COUNT)
   const [idx, setIdx] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -62,9 +62,9 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
     <ol className="hidden h-[272px] flex-col self-center overflow-hidden rounded-[4px] md:flex" role="tablist" aria-label="빌보드 작품">
       {slides.map((w, i) => {
         const on = i === idx
-        const poster = w.thumbnailUrl ?? undefined
+        const poster = w.posterUrl ?? undefined
         return (
-          <li key={`${w.show}-${i}`} className="min-h-0" style={{ flex: on ? '1.8 1 0' : '1 1 0', transition: reduce ? undefined : 'flex .7s cubic-bezier(.16,1,.3,1)' }}>
+          <li key={`${w.contentId}-${i}`} className="min-h-0" style={{ flex: on ? '1.8 1 0' : '1 1 0', transition: reduce ? undefined : 'flex .7s cubic-bezier(.16,1,.3,1)' }}>
             <button
               type="button"
               role="tab"
@@ -82,7 +82,7 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
               )}
               <span className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-3 py-2">
                 <span className={`num font-mono text-[11px] font-bold leading-none ${on ? 'text-white' : 'text-white/55'}`} style={{ transition: 'color .5s' }}>{i + 1}</span>
-                <span className={`block min-w-0 truncate font-bold ${on ? 'text-[12.5px] text-white' : 'text-[12px] text-white/75'}`} style={{ transition: 'font-size .5s, color .5s' }}>{w.show}</span>
+                <span className={`block min-w-0 truncate font-bold ${on ? 'text-[12.5px] text-white' : 'text-[12px] text-white/75'}`} style={{ transition: 'font-size .5s, color .5s' }}>{w.title}</span>
               </span>
             </button>
           </li>
@@ -94,7 +94,7 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
   const dots = slides.length > 1 ? (
     <div className="mt-6 flex items-center gap-2 md:hidden" role="tablist" aria-label="빌보드 작품">
       {slides.map((w, i) => (
-        <button key={`${w.show}-${i}`} type="button" role="tab" aria-selected={i === idx} aria-label={`${i + 1}위 ${w.show}`} onClick={() => { setIdx(i); engaged('billboard', 'switch') }}
+        <button key={`${w.contentId}-${i}`} type="button" role="tab" aria-selected={i === idx} aria-label={`${i + 1}위 ${w.title}`} onClick={() => { setIdx(i); engaged('billboard', 'switch') }}
           className={`h-[6px] rounded-full transition-all ${i === idx ? 'w-7 bg-accent' : 'w-[6px] bg-ink/25 hover:bg-ink/50'}`} />
       ))}
     </div>
@@ -125,23 +125,18 @@ function Billboard({ items, live, loading }: { items: MostWatched[]; live: LiveS
   )
 }
 
-function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched | null; live: LiveShow[]; loading: boolean; rank: number; footer?: React.ReactNode }) {
+function BillboardSlide({ top, live, loading, rank, footer }: { top: RankItem | null; live: LiveShow[]; loading: boolean; rank: number; footer?: React.ReactNode }) {
   const episodeId = top?.episodeId ?? null
-  const heat = useAsync(() => (episodeId ? api.heatmap(episodeId) : null), [episodeId])
-  const moments = useAsync(() => (episodeId ? api.moments(episodeId, 5) : null), [episodeId])
-  const bars = useMemo(() => heatToBars(heat.data, 120), [heat.data])
-  const barsSm = useMemo(() => heatToBars(heat.data, 48), [heat.data])
+  const duration = top?.durationSec ?? 0
+  const bars = { values: top?.bars.length ? top.bars : Array(120).fill(0.04) as number[], duration }
+  // 모바일 파형은 48개 — 120개를 350px 에 넣으면 1px 미만이 되어 봉우리가 뭉개진다.
+  const barsSm = { values: downsample(bars.values, 48), duration }
+  const list = top?.moments ?? []
   const show = live.find((s) => s.showId === String(episodeId)) ?? null
   const viewers = show ? show.segments.reduce((a, s) => a + s.viewers, 0) : 0
-  const peak = (moments.data?.moments ?? []).reduce<Moment | null>((a, m) => (!a || m.strength > a.strength ? m : a), null)
-  // 재생 딥링크 재료(플랫폼·회차 id)는 '지금 보는 중'에 있으면 거기서, 아니면 작품 상세에서 가져온다 —
-  // 빌보드의 주 CTA 가 시청자 유무에 따라 사라지면 안 된다.
-  const contentId = top?.contentId ?? null
-  const detail = useAsync(() => (contentId && !show ? api.content(contentId).catch(() => null) : null), [contentId, !!show])
-  const ep = detail.data?.episodes.find((e) => e.episodeId === episodeId) ?? null
-  const play = show
-    ? watchUrl(show.platform, show.watchId, peak?.at)
-    : detail.data && ep ? watchUrl(detail.data.platform, ep.platformEpisodeId, peak?.at) : null
+  const peak = list.reduce<Moment | null>((a, m) => (!a || m.strength > a.strength ? m : a), null)
+  const play = top ? watchUrl(top.platform, top.platformEpisodeId, peak?.at) : null
+  const epTitle = top ? (top.episodeTitle ?? (episodeLabel({ seasonNumber: top.seasonNumber, episodeNumber: top.episodeNumber }, top.contentType) || '대표 회차')) : ''
 
   if (!top) {
     const tone = loading ? 'skeleton' : 'bg-sink/60'
@@ -167,8 +162,8 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched
   return (
     <section className="flex h-full flex-col justify-center">
       <div className="flex flex-col gap-7 md:flex-row md:items-center md:gap-10">
-        <a href={top.contentId ? titleHref(top.contentId, episodeId) : undefined} className="w-[168px] shrink-0 lg:w-[212px]">
-          <PosterSlot title={top.show} poster={top.thumbnailUrl} />
+        <a href={titleHref(top.contentId, episodeId)} className="w-[168px] shrink-0 lg:w-[212px]">
+          <PosterSlot title={top.title} poster={top.posterUrl} />
         </a>
 
         <div className="min-w-0 flex-1">
@@ -177,34 +172,34 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched
             {viewers > 0 && (<><Rule /><LiveCount n={viewers} /></>)}
           </div>
 
-          <h1 className="mt-3 text-[38px] leading-[1.02] tracking-[-0.05em] lg:text-[44px]">{top.show}</h1>
+          <h1 className="mt-3 text-[38px] leading-[1.02] tracking-[-0.05em] lg:text-[44px]">{top.title}</h1>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono text-[13px] text-muted">
-            <span className="font-bold text-ink">{top.episodeTitle ?? (show ? episodeLabel(show) : '대표 회차')}</span>
+            <span className="font-bold text-ink">{epTitle}</span>
             {bars.duration > 0 && (<><Rule /><span className="num">{fmtTime(bars.duration)}</span></>)}
-            {moments.data && moments.data.moments.length > 0 && (
-              <><Rule /><span className="font-bold text-accentd">뜨거운 순간 {moments.data.moments.length}</span></>
+            {list.length > 0 && (
+              <><Rule /><span className="font-bold text-accentd">뜨거운 순간 {list.length}</span></>
             )}
           </div>
 
           <div className="mt-6">
             <p className="mb-2.5 text-[12px] font-semibold text-muted">이 회차의 채팅 반응</p>
-            {heat.data && bars.duration > 0 ? (
+            {bars.duration > 0 ? (
               <>
                 <Waveform values={bars.values} height={104} className="hidden sm:flex"
                   active={peak ? [peak.at / bars.duration - 0.016, peak.at / bars.duration + 0.016] : undefined} />
                 <Waveform values={barsSm.values} height={72} className="sm:hidden"
                   active={peak ? [peak.at / bars.duration - 0.03, peak.at / bars.duration + 0.03] : undefined} />
                 <div className="relative mt-2 h-px bg-line">
-                  {(moments.data?.moments ?? []).map((m) => (
+                  {list.map((m) => (
                     <span key={m.at} className="absolute top-1/2 size-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full"
                       style={{ left: `${(m.at / bars.duration) * 100}%`, background: m === peak ? 'var(--color-accent)' : 'var(--color-faint)' }} />
                   ))}
                 </div>
                 <div className="relative mt-2 hidden h-9 sm:block">
                   {/* 가까운 순간끼리 라벨이 겹치므로 직전 라벨과 4.5% 안이면 라벨을 건너뛴다(점은 남는다). */}
-                  {(moments.data?.moments ?? []).filter((m, i, arr) => i === 0 || (m.at - arr[i - 1].at) / bars.duration > 0.045 || m === peak).map((m) => {
-                    const i = (moments.data?.moments ?? []).indexOf(m)
+                  {list.filter((m, i, arr) => i === 0 || (m.at - arr[i - 1].at) / bars.duration > 0.045 || m === peak).map((m) => {
+                    const i = list.indexOf(m)
                     return (
                     <div key={m.at} className="absolute -translate-x-1/2 text-center" style={{ left: `${(m.at / bars.duration) * 100}%` }}>
                       <p className={`num font-mono text-[11.5px] font-bold ${m === peak ? 'text-accent' : 'text-ink2'}`}>{fmtTime(m.at)}</p>
@@ -215,7 +210,7 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched
                 </div>
               </>
             ) : (
-              <Empty>{heat.loading ? '채팅 반응을 불러오는 중' : '이 회차에는 아직 채팅이 없습니다'}</Empty>
+              <Empty>이 회차에는 아직 채팅이 없습니다</Empty>
             )}
           </div>
 
@@ -228,13 +223,11 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched
                 <ArrowUpRightIcon size={13} weight="bold" className="opacity-80" />
               </a>
             )}
-            {top.contentId && (
-              <a href={titleHref(top.contentId, episodeId)}
-                className="inline-flex items-center gap-2 whitespace-nowrap rounded-btn border border-line2 bg-raise px-4 py-2.5 text-[14px] font-bold text-ink transition-colors hover:bg-soft">
-                <ListPlusIcon size={15} />
-                작품 상세
-              </a>
-            )}
+            <a href={titleHref(top.contentId, episodeId)}
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-btn border border-line2 bg-raise px-4 py-2.5 text-[14px] font-bold text-ink transition-colors hover:bg-soft">
+              <ListPlusIcon size={15} />
+              작품 상세
+            </a>
           </div>
           {footer}
         </div>
@@ -243,14 +236,28 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: MostWatched
   )
 }
 
-/* ═══ 오늘의 작품 순위 ════════════════════════════════════════
-   mostWatched 순서가 곧 순위다. 지수가 없으므로 숫자·선은 두지 않는다. */
-function Ranking({ items, loading }: { items: MostWatched[]; loading: boolean }) {
+/* ═══ 많이 본 작품 ════════════════════════════════════════════
+   ranking 순서가 곧 순위다. 지수가 없으므로 숫자·선은 두지 않는다. 창(전체/이번 주)은 읽기 모델(HP-124)의
+   시간축이 생기면서 가능해진 것 — 전체 누적은 시간이 갈수록 굳으므로 '이번 주'가 새 작품이 올라오는 길이다. */
+function WindowToggle({ value, onChange }: { value: Window; onChange: (w: Window) => void }) {
+  return (
+    <div className="flex gap-1 rounded-sm bg-sink p-0.5 text-[12px] font-bold" role="group" aria-label="기간">
+      {(['all', '7d'] as const).map((k) => (
+        <button key={k} type="button" onClick={() => onChange(k)} aria-pressed={value === k}
+          className={`rounded-[6px] px-2.5 py-1 transition-colors ${value === k ? 'bg-raise text-ink shadow-[0_1px_2px_rgba(16,16,24,0.12)]' : 'text-muted hover:text-ink'}`}>
+          {k === 'all' ? '전체' : '이번 주'}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function Ranking({ items, loading, window, onWindow }: { items: RankItem[]; loading: boolean; window: Window; onWindow: (w: Window) => void }) {
   /* 열 수는 폭이 정하고 줄은 두 줄 — 작품 선택의 폭을 위해 순위만 두 줄을 허용한다. */
   const fill = useFillCount(150, 16, 2)
   return (
     <section id="ranking" className={`scroll-mt-[74px] ${SEC}`} aria-busy={loading}>
-      <SectionHead title="많이 본 작품" />
+      <SectionHead title="많이 본 작품" action={<WindowToggle value={window} onChange={onWindow} />} />
       {items.length === 0 ? (
         <div ref={fill.ref}>
           <PosterGridSkeleton count={fill.count} loading={loading} />
@@ -259,17 +266,17 @@ function Ranking({ items, loading }: { items: MostWatched[]; loading: boolean })
       ) : (
         <div ref={fill.ref} className="fill-grid" style={{ '--min': '150px', '--gx': '16px', '--gy': '24px' } as React.CSSProperties}>
           {items.map((w, i) => (
-            <Reveal key={`${w.show}-${i}`} delay={Math.min(i, 6) * 0.03} hidden={i >= fill.count}>
-              <a href={w.contentId ? titleHref(w.contentId, w.episodeId) : undefined} className="group block"
-                aria-label={`${i + 1}위 ${w.show}`}>
+            <Reveal key={`${w.contentId}-${i}`} delay={Math.min(i, 6) * 0.03} hidden={i >= fill.count}>
+              <a href={titleHref(w.contentId, w.episodeId)} className="group block"
+                aria-label={`${i + 1}위 ${w.title}`}>
                 <div className="relative">
-                  <PosterSlot title={w.show} poster={w.thumbnailUrl} />
+                  <PosterSlot title={w.title} poster={w.posterUrl} />
                   <span className={`num absolute left-2 top-2 inline-flex items-center rounded-sm px-2 py-1 font-mono text-[11px] font-bold leading-none shadow-[0_1px_4px_rgba(16,16,24,0.35)] ${i === 0 ? 'bg-accent text-white' : 'bg-ink/80 text-white'}`}>
                     {i + 1}
                   </span>
                 </div>
-                <p className="mt-2.5 truncate text-[13.5px] font-bold text-ink">{w.show}</p>
-                <p className="mt-0.5 truncate text-[12px] text-muted">{w.episodeTitle ?? ' '}</p>
+                <p className="mt-2.5 truncate text-[13.5px] font-bold text-ink">{w.title}</p>
+                <p className="mt-0.5 truncate text-[12px] text-muted">{w.episodeTitle ?? (episodeLabel({ seasonNumber: w.seasonNumber, episodeNumber: w.episodeNumber }, w.contentType) || ' ')}</p>
                 {w.quoteText && <p className="mt-1 truncate text-[12px] text-ink2">“{decodeEntities(w.quoteText)}”</p>}
               </a>
             </Reveal>
@@ -281,11 +288,10 @@ function Ranking({ items, loading }: { items: MostWatched[]; loading: boolean })
 }
 
 /* ═══ 이 회차의 뜨거운 순간 — 포스터 + 트랙리스트 ═══════════ */
-function HotMoments({ top, live, loading }: { top: MostWatched | null; live: LiveShow[]; loading: boolean }) {
+function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveShow[]; loading: boolean }) {
   const episodeId = top?.episodeId ?? null
-  const moments = useAsync(() => (episodeId ? api.moments(episodeId, 5) : null), [episodeId])
   const show = live.find((s) => s.showId === String(episodeId)) ?? null
-  const list = moments.data?.moments ?? []
+  const list = top?.moments ?? []
   const peak = list.reduce<Moment | null>((a, m) => (!a || m.strength > a.strength ? m : a), null)
   if (!top || !episodeId) {
     return (
@@ -307,12 +313,12 @@ function HotMoments({ top, live, loading }: { top: MostWatched | null; live: Liv
       <SectionHead title="이 회차의 뜨거운 순간" />
       <div className="grid gap-6 md:grid-cols-[168px_1fr] md:gap-8 lg:grid-cols-[200px_1fr] lg:gap-10">
         <div className="flex gap-4 md:block">
-          <a href={top.contentId ? titleHref(top.contentId, episodeId) : undefined} className="block w-[96px] shrink-0 md:w-full">
-            <PosterSlot title={top.show} poster={top.thumbnailUrl} />
+          <a href={titleHref(top.contentId, episodeId)} className="block w-[96px] shrink-0 md:w-full">
+            <PosterSlot title={top.title} poster={top.posterUrl} />
           </a>
           <div className="min-w-0 md:mt-3">
-            <p className="text-[15px] font-bold text-ink">{top.show}</p>
-            <p className="mt-0.5 text-[12.5px] text-muted">{top.episodeTitle ?? (show ? episodeLabel(show) : '')}</p>
+            <p className="text-[15px] font-bold text-ink">{top.title}</p>
+            <p className="mt-0.5 text-[12.5px] text-muted">{top.episodeTitle ?? episodeLabel({ seasonNumber: top.seasonNumber, episodeNumber: top.episodeNumber }, top.contentType)}</p>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-muted">
               <span>순간 {list.length}개</span>
               {show && (<><Rule /><LiveCount n={show.segments.reduce((a, s) => a + s.viewers, 0)} /></>)}
@@ -322,14 +328,14 @@ function HotMoments({ top, live, loading }: { top: MostWatched | null; live: Liv
 
         {list.length === 0 ? (
           <div>
-            <RowsSkeleton rows={5} loading={moments.loading} />
-            {!moments.loading && <EmptyNote>아직 순간이 없습니다.</EmptyNote>}
+            <RowsSkeleton rows={5} loading={false} />
+            <EmptyNote>아직 순간이 없습니다.</EmptyNote>
           </div>
         ) : (
           <ol className="min-w-0 divide-y divide-line border-y border-line">
             {list.map((m, i) => {
               const on = m === peak
-              const href = show ? watchUrl(show.platform, show.watchId, m.at) : null
+              const href = watchUrl(top.platform, top.platformEpisodeId, m.at)
               const Row = href ? 'a' : 'div'
               return (
                 <li key={m.at}>
@@ -402,19 +408,16 @@ function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
 }
 const sum = (s: LiveShow) => s.segments.reduce((a, x) => a + x.viewers, 0)
 
-/* ═══ 이번 주 인기 순간 — 순위 작품들의 1위 순간 ═══════════ */
-function WeeklyMoments({ items, loading }: { items: MostWatched[]; loading: boolean }) {
+/* ═══ 이번 주 인기 순간 — 최근 7일 순위 작품들의 1위 순간 ═══
+   창이 '7d' 인 홈 응답을 쓴다 — 읽기 모델의 시간축 덕분에 이름 그대로 "이번 주"다(이전엔 전체 누적이었다). */
+function WeeklyMoments({ items, loading }: { items: RankItem[]; loading: boolean }) {
   const fill = useFillCount(300, 20, 1)
   const heads = items.filter((w) => w.episodeId).slice(0, Math.max(fill.count, 1))
-  const fetched = useAsync(
-    () => (heads.length ? Promise.all(heads.map((w) => api.moments(w.episodeId!, 1).catch(() => null))) : null),
-    [heads.map((w) => w.episodeId).join(',')],
-  )
-  const rows = heads.map((w, i) => {
-    const m = fetched.data?.[i]?.moments[0]
-    return m ? { key: `${w.episodeId}`, work: w.show, episode: w.episodeTitle ?? '', at: fmtTime(m.at), quote: m.quote ?? '', poster: w.thumbnailUrl, contentId: w.contentId ?? null } : null
+  const rows = heads.map((w) => {
+    const m = [...w.moments].sort((a, b) => b.strength - a.strength)[0]
+    return m ? { key: `${w.episodeId}`, work: w.title, episode: w.episodeTitle ?? episodeLabel({ seasonNumber: w.seasonNumber, episodeNumber: w.episodeNumber }, w.contentType), at: fmtTime(m.at), quote: m.quote ?? '', poster: w.posterUrl, contentId: w.contentId } : null
   }).filter((x): x is NonNullable<typeof x> => x !== null)
-  const busy = loading || (heads.length > 0 && fetched.loading)
+  const busy = loading
   if (rows.length === 0) {
     return (
       <section className={`border-t border-line ${SEC}`} aria-busy={busy}>
@@ -442,7 +445,7 @@ function WeeklyMoments({ items, loading }: { items: MostWatched[]; loading: bool
         <ol ref={fill.ref} className="fill-grid" style={{ '--min': '300px', '--gx': '20px', '--gy': '0px' } as React.CSSProperties}>
           {rows.map((c, i) => (
             <li key={c.key} hidden={i >= fill.count} className={i > 0 ? 'border-l border-line pl-5' : ''}>
-              <a href={c.contentId ? titleHref(c.contentId) : undefined} className="group flex gap-4">
+              <a href={titleHref(c.contentId)} className="group flex gap-4">
                 <div className="relative w-[76px] shrink-0">
                   <PosterSlot title={c.work} poster={c.poster} className="transition-transform duration-300 ease-out-soft group-hover:-translate-y-0.5" />
                   <span className={`num absolute left-1.5 top-1.5 rounded-sm px-1.5 py-[2px] font-mono text-[11px] font-bold text-white ${i === 0 ? 'bg-accent' : 'bg-ink'}`}>{i + 1}</span>
@@ -461,22 +464,39 @@ function WeeklyMoments({ items, loading }: { items: MostWatched[]; loading: bool
   )
 }
 
-/* ═══ 홈 ═════════════════════════════════════════════════════ */
+/* 막대 배열을 n개로 줄인다(구간 최대값) — 봉우리를 살리기 위해 평균이 아니라 최대를 취한다. */
+function downsample(values: number[], n: number): number[] {
+  if (values.length <= n) return values
+  const out: number[] = []
+  for (let i = 0; i < n; i++) {
+    const a = Math.floor((i / n) * values.length)
+    const b = Math.max(a + 1, Math.floor(((i + 1) / n) * values.length))
+    out.push(Math.max(...values.slice(a, b)))
+  }
+  return out
+}
+
+/* ═══ 홈 ═════════════════════════════════════════════════════
+   요청은 셋뿐이다 — /catalog/home(전체) · /catalog/home(이번 주) · /live-scenes. 순위·빌보드·순간·파형은 전부
+   첫 두 응답에 실려 온다(HP-124 읽기 모델). 창 전환은 이미 받은 두 응답을 바꿔 끼우는 것이라 요청이 없다. */
 export default function Home() {
-  const stats = useAsync(() => api.publicStats(), [])
+  const [window, setWindow] = useState<Window>('all')
+  const all = useAsync(() => api.catalogHome('all'), [])
+  const week = useAsync(() => api.catalogHome('7d'), [])
   const live = useAsync(() => api.liveScenes(), [])
-  const items = stats.data?.mostWatched ?? []
+  const cur = window === 'all' ? all : week
+  const items = cur.data?.ranking ?? []
   const shows = live.data?.shows ?? []
 
   return (
     <>
-      <Billboard items={items} live={shows} loading={stats.loading} />
-      <Ranking items={items} loading={stats.loading} />
-      <HotMoments top={items[0] ?? null} live={shows} loading={stats.loading} />
-      <WeeklyMoments items={items} loading={stats.loading} />
+      <Billboard items={items} live={shows} loading={cur.loading} />
+      <Ranking items={items} loading={cur.loading} window={window} onWindow={setWindow} />
+      <HotMoments top={items[0] ?? null} live={shows} loading={cur.loading} />
+      <WeeklyMoments items={week.data?.ranking ?? []} loading={week.loading} />
       <LiveRail shows={shows} loading={live.loading} />
-      {stats.error && (
-        <p className={`text-[12.5px] text-muted ${SEC}`}>서버 응답 오류: {stats.error.message}</p>
+      {cur.error && (
+        <p className={`text-[12.5px] text-muted ${SEC}`}>서버 응답 오류: {cur.error.message}</p>
       )}
     </>
   )

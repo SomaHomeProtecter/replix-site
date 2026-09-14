@@ -1,4 +1,6 @@
-/* 작품 탐색(catalog) 페이지가 쓰는 Replix 공개 API (전부 비로그인 읽기, HP-77).
+import { accessToken } from './auth'
+
+/* 작품 탐색(catalog) 페이지가 쓰는 Replix 공개 API (읽기는 전부 비로그인, HP-77; 댓글 쓰기만 JWT).
    기본 대상은 개발 서버다. 빌드 시 VITE_API_BASE 로 바꾼다(운영 = https://api.replix.tv).
    HP-390(함께 본 작품)·HP-391(작품 상세·순간·검색)은 develop 머지·dev 롤아웃 뒤에 응답한다 —
    그 전에는 404 가 오고, 화면은 그 섹션을 비운다(지어내지 않는다). */
@@ -86,19 +88,104 @@ export type Moments = { episodeId: number; bucketSeconds: number; moments: Momen
 export type AlsoWatchedItem = { contentId: number; title: string; posterUrl: string | null }
 export type AlsoWatched = { contentId: number; items: AlsoWatchedItem[] }
 
+/* ── 카탈로그 읽기 모델(HP-124, 2026-09-14) — worker 가 미리 계산한 표를 페이지당 한 번에 받는다 ── */
+export type Window = 'all' | '7d'
+export type RankItem = {
+  rank: number
+  contentId: number
+  title: string
+  contentType: 'MOVIE' | 'SERIES'
+  platform: string
+  posterUrl: string | null
+  episodeId: number | null
+  platformEpisodeId: string | null
+  seasonNumber: number | null
+  episodeNumber: number | null
+  episodeTitle: string | null
+  quoteText: string | null
+  quoteAuthor: string | null
+  moments: Moment[]           // 전부에 채워진다(순간 시각순)
+  bars: number[]              // 빌보드(앞 billboardCount개)에만. 0~1, 120개
+  durationSec: number | null  // 같은 조건. 마지막 채팅 버킷 끝 = 회차 길이 추정
+}
+export type CatalogHome = { window: Window; liveViewers: number; liveRooms: number; billboardCount: number; ranking: RankItem[] }
+export type CatalogEpisode = {
+  episodeId: number
+  platformEpisodeId: string
+  seasonNumber: number
+  episodeNumber: number
+  title: string | null
+  heatShare: number
+  heatShare7d: number
+  moments: Moment[]   // 그 회차의 순간(시각순) — 회차 카드가 따로 요청하지 않게 작품 응답에 실린다
+}
+export type Rating = { average: number | null; count: number }
+export type CatalogContent = {
+  contentId: number
+  platform: string
+  platformContentId: string
+  title: string
+  contentType: 'MOVIE' | 'SERIES'
+  posterUrl: string | null
+  episodes: CatalogEpisode[]
+  alsoWatched: AlsoWatchedItem[]
+  rating: Rating
+}
+export type CatalogEpisodeDetail = { episodeId: number; bucketSeconds: number; durationSec: number; moments: Moment[]; bars: number[] }
+
+/* ── 작품 댓글(별점) ── */
+export type Comment = {
+  id: number
+  userId: number
+  displayName: string
+  profileImageUrl: string | null
+  body: string
+  rating: number
+  spoiler: boolean
+  likeCount: number
+  likedByMe: boolean
+  mine: boolean
+  createdAt: string
+  updatedAt: string
+}
+export type CommentPage = { items: Comment[]; hasMore: boolean; rating: Rating }
+export type CommentSort = 'recent' | 'top'
+
 /* ── 호출 ─────────────────────────────────────────────────── */
 
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, { headers: { Accept: 'application/json' } })
+async function get<T>(path: string, auth = false): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  if (auth) { const t = await accessToken(); if (t) headers.Authorization = `Bearer ${t}` }
+  const res = await fetch(`${API_BASE}${path}`, { headers })
   if (!res.ok) throw new ApiError(res.status, path)
+  return (await res.json()) as T
+}
+
+/** 로그인 필수 요청. 토큰이 없으면 401 로 취급해 호출자가 로그인 안내를 띄운다. */
+async function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
+  const t = await accessToken()
+  if (!t) throw new ApiError(401, path)
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: { Accept: 'application/json', Authorization: `Bearer ${t}`, ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  if (!res.ok) {
+    let code: string | undefined
+    try { code = ((await res.json()) as { code?: string }).code } catch { /* 본문 없음 */ }
+    throw new ApiError(res.status, path, code)
+  }
+  if (res.status === 204) return undefined as T
   return (await res.json()) as T
 }
 
 export class ApiError extends Error {
   status: number
-  constructor(status: number, path: string) {
+  code?: string
+  constructor(status: number, path: string, code?: string) {
     super(`${status} ${path}`)
     this.status = status
+    this.code = code
   }
 }
 
@@ -112,6 +199,26 @@ export const api = {
   search: (q: string) => get<ContentSearchItem[]>(`/api/v1/contents?q=${encodeURIComponent(q)}`),
   moments: (episodeId: number, limit = 5) => get<Moments>(`/api/v1/episodes/${episodeId}/moments?limit=${limit}`),
   alsoWatched: (contentId: number) => get<AlsoWatched>(`/api/v1/contents/${contentId}/also-watched`),
+
+  catalogHome: (window: Window) => get<CatalogHome>(`/api/v1/catalog/home?window=${window}`),
+  catalogContent: (contentId: number) => get<CatalogContent>(`/api/v1/catalog/contents/${contentId}`),
+  catalogEpisode: (episodeId: number) => get<CatalogEpisodeDetail>(`/api/v1/catalog/episodes/${episodeId}`),
+
+  comments: (contentId: number, sort: CommentSort, offset = 0, limit = 20) =>
+    get<CommentPage>(`/api/v1/contents/${contentId}/comments?sort=${sort}&offset=${offset}&limit=${limit}`, true),
+  myComment: async (contentId: number) => {
+    const t = await accessToken()
+    if (!t) return null
+    const res = await fetch(`${API_BASE}/api/v1/contents/${contentId}/comments/mine`, { headers: { Accept: 'application/json', Authorization: `Bearer ${t}` } })
+    if (res.status === 204) return null
+    if (!res.ok) throw new ApiError(res.status, 'comments/mine')
+    return (await res.json()) as Comment
+  },
+  writeComment: (contentId: number, body: { body: string; rating: number; spoiler: boolean }) =>
+    send<Comment>('POST', `/api/v1/contents/${contentId}/comments`, body),
+  deleteComment: (commentId: number) => send<void>('DELETE', `/api/v1/comments/${commentId}`),
+  likeComment: (commentId: number, on: boolean) =>
+    send<{ commentId: number; likeCount: number; liked: boolean }>(on ? 'PUT' : 'DELETE', `/api/v1/comments/${commentId}/like`),
 }
 
 /* ── 화면 공용 계산 ────────────────────────────────────────── */

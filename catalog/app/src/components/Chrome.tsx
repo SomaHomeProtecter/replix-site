@@ -4,10 +4,10 @@ import { api, type ContentSearchItem } from '../api'
 import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
 import { titleHref } from '../App'
 import { engaged } from '../analytics'
+import { login, logout, useAuth } from '../auth'
 
-/* 공개 카탈로그의 실제 목적지만 둔다. 같은 곳으로 가는 메뉴 두 개나
-   로그인 상태를 전제하는 항목(아바타·알림)은 두지 않는다 — 개인화를 하지
-   않기로 한 결정(2026-07-14)과 어긋나는 빈 약속이 된다. */
+/* 공개 카탈로그의 실제 목적지만 둔다. 같은 곳으로 가는 메뉴 두 개나 알림 같은 빈 약속은 두지 않는다.
+   로그인은 2026-09-14부터 있다(작품 댓글·별점, HP-124) — 개인화가 아니라 쓰기 권한이다. 화면은 여전히 누구에게나 같다. */
 const STORE = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp'
 
 /* 메뉴바는 랜딩과 같은 치수지만 항목은 섞지 않는다(2026-09-05): 로고 옆 '인기 작품' 라벨이 지금
@@ -50,11 +50,30 @@ export function Nav({ current: _current }: { current: 'home' | 'title' }) {
         <a href="/" className="btn btn--ghost btn--sm hidden shrink-0 min-[761px]:inline-flex">
           홈으로
         </a>
+        <AuthButton />
         <a href={STORE} target="_blank" rel="noopener" className="btn btn--primary btn--sm shrink-0" data-cta="catalog_nav">
           크롬 확장프로그램 설치하기
         </a>
       </div>
     </header>
+  )
+}
+
+/** 로그인 상태. 이름만 보이고 눌러 로그아웃 — 프로필·설정 화면은 두지 않는다(그건 확장의 몫). */
+function AuthButton() {
+  const { ready, user } = useAuth()
+  if (!ready) return null
+  if (!user) {
+    return (
+      <button type="button" onClick={login} className="hidden shrink-0 text-[14px] text-muted transition-colors hover:text-ink min-[761px]:inline-flex">
+        로그인
+      </button>
+    )
+  }
+  return (
+    <button type="button" onClick={logout} title="로그아웃" className="hidden max-w-[140px] shrink-0 truncate text-[14px] font-bold text-ink min-[761px]:inline-flex">
+      {user.name}
+    </button>
   )
 }
 

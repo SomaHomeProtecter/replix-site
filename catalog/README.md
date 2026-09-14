@@ -8,6 +8,22 @@
 갱신하고 함께 커밋한다(레포 README '배포 구조' 예외 항목). 2026-09-05 초안(`draft-curation`, 미커밋)에서
 실제 표면으로 승격했고, 랜딩(`/`)과 같은 도메인에 두고 서로 오갈 수 있게 내비를 이었다.
 
+## 2026-09-14 — 읽기 모델 위로 옮김 + 작품 댓글(별점) + 로그인
+
+- **데이터는 `/api/v1/catalog/*` 세 응답에서만 온다**(Replix-be HP-124 읽기 모델: worker 가 미리 만든 표).
+  홈 = `catalog/home?window=all|7d` 두 번 + `live-scenes`, 상세 = `catalog/contents/{id}` + 선택 회차의
+  `catalog/episodes/{id}` + 채팅 창(`episodes/{id}/messages`). 슬라이드·회차 카드가 각자 `heatmap`·`moments`를
+  부르던 팬아웃(홈 30~40 요청)은 없어졌다. 순위에 **전체 / 이번 주** 창이 생겼다 — '이번 주 인기 순간'은 이제
+  이름 그대로 최근 7일 순위 기준이다.
+- **평가(작품 댓글·별점)** — `components/Comments.tsx`. 작품 하나에 한 창, 사용자당 한 건(다시 쓰면 갱신), 별점 1~5,
+  스포일러 자가 표시(가림 + 눌러서 보기), 좋아요, 최신순/공감순. 히어로에 평균 별점·인원. 2026-07-14 "별점 없음"
+  결정은 2026-09-14 조현빈 지시로 이 표면에 한해 재개했다(memory 결정 로그).
+- **로그인** — `auth.ts`, keycloak-js(PKCE, `responseMode: 'query'` — 해시 라우터와 충돌 방지). 대상은
+  `index.html`의 `auth-base`·`auth-realm`·`auth-client` 메타. 처음 온 방문자에겐 Keycloak 왕복을 시키지 않고,
+  로그인한 적이 있을 때(localStorage 표시)만 `silent-check-sso.html`(public/) 로 조용히 세션을 확인한다.
+  ⚠️ **Keycloak `replix-web` 의 Valid redirect URIs 에 `https://replix.tv/catalog/*` 가 등록돼야 로그인이 끝난다** —
+  2026-09-14 기준 미등록(관리 콘솔 작업).
+
 ## 고치고 배포하기
 
 ```bash

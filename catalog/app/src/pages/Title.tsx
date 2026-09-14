@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { PlayIcon, ArrowUpRightIcon, PuzzlePieceIcon, HeartIcon } from '@phosphor-icons/react'
 import {
@@ -6,20 +6,21 @@ import {
   decodeEntities,
   episodeLabel,
   fmtTime,
-  heatToBars,
   watchUrl,
   ApiError,
+  type CatalogContent,
+  type CatalogEpisode,
   type ChatMessage,
-  type ContentDetail,
-  type EpisodeSummary,
   type LiveShow,
   type Moment,
+  type Rating,
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../App'
 import { engaged, trackWatch } from '../analytics'
 import { Avatar, Chip, MomentDots, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { CardGridSkeleton, EmptyNote, RailSkeleton, RowsSkeleton } from '../components/skeleton'
+import { Comments, RatingSummary } from '../components/Comments'
 
 const SEC = 'wrap py-9'
 const SPOILER_CUT = 3
@@ -27,6 +28,7 @@ const SPOILER_CUT = 3
 const SUBNAV = [
   { id: 'episodes', label: '회차' },
   { id: 'moments', label: '순간과 채팅' },
+  { id: 'comments', label: '평가' },
   { id: 'related', label: '함께 본 작품' },
 ]
 
@@ -40,13 +42,13 @@ function liveViewers(live: LiveShow[], episodeId: number | null) {
 }
 
 /* ═══ 히어로 ═════════════════════════════════════════════════ */
-function Hero({ c, ep, live, peak }: { c: ContentDetail; ep: EpisodeSummary | null; live: LiveShow[]; peak: Moment | null }) {
+function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpisode | null; live: LiveShow[]; peak: Moment | null; rating: Rating }) {
   const viewers = liveViewers(live, ep?.episodeId ?? null)
   const play = ep ? watchUrl(c.platform, ep.platformEpisodeId) : null
   const maxShare = Math.max(1, ...c.episodes.map((e) => e.heatShare))
   // 시즌별 묶음(시즌 오름차순, 안에서 회차 오름차순). 영화나 시즌 정보가 없는 회차는 season 0.
   const seasons = Array.from(
-    c.episodes.reduce((m, e) => { const k = e.seasonNumber ?? 0; (m.get(k) ?? m.set(k, []).get(k)!).push(e); return m }, new Map<number, EpisodeSummary[]>()),
+    c.episodes.reduce((m, e) => { const k = e.seasonNumber ?? 0; (m.get(k) ?? m.set(k, []).get(k)!).push(e); return m }, new Map<number, CatalogEpisode[]>()),
   ).sort((a, b) => a[0] - b[0]).map(([season, eps]) => ({ season, eps: [...eps].sort((a, b) => a.episodeNumber - b.episodeNumber) }))
 
   return (
@@ -63,11 +65,15 @@ function Hero({ c, ep, live, peak }: { c: ContentDetail; ep: EpisodeSummary | nu
             {ep && (<><Rule /><span>{episodeLabel(ep, c.contentType) || ep.title}</span></>)}
           </div>
 
-          <div className="mt-6 grid gap-6 border-t border-line pt-5 lg:grid-cols-[168px_260px_1fr] lg:gap-8">
+          <div className="mt-6 grid gap-6 border-t border-line pt-5 lg:grid-cols-[150px_150px_240px_1fr] lg:gap-8">
             <div>
               <p className="text-[12px] font-semibold text-muted">지금 보는 사람</p>
               <p className="num mt-1 font-mono text-[38px] font-extrabold leading-none tracking-tight text-accent">{viewers}</p>
-                          </div>
+            </div>
+            <div>
+              <p className="text-[12px] font-semibold text-muted"><a href="#comments" className="hover:text-ink">별점</a></p>
+              <div className="mt-1.5"><RatingSummary rating={rating} /></div>
+            </div>
             <div>
               <p className="text-[12px] font-semibold text-muted">가장 뜨거운 순간의 채팅</p>
               {peak?.quote ? (
@@ -174,10 +180,9 @@ function SubNav() {
 }
 
 /* ═══ 회차 카드 ══════════════════════════════════════════════
-   카드의 몸통은 그 회차의 채팅이다. 순간 3개를 회차마다 따로 받는다(회차 수만큼 호출, 서버 5분 캐시). */
-function EpisodeCard({ c, e, selected, i }: { c: ContentDetail; e: EpisodeSummary; selected: boolean; i: number }) {
-  const m = useAsync(() => api.moments(e.episodeId, 3).catch(() => null), [e.episodeId])
-  const list = m.data?.moments ?? []
+   카드의 몸통은 그 회차의 채팅이다. 순간은 작품 응답에 회차마다 실려 온다(HP-124 읽기 모델) — 카드가 따로 요청하지 않는다. */
+function EpisodeCard({ c, e, selected, i }: { c: CatalogContent; e: CatalogEpisode; selected: boolean; i: number }) {
+  const list = [...e.moments].sort((a, b) => b.strength - a.strength).slice(0, 3).sort((a, b) => a.at - b.at)
   const top = list.reduce<Moment | null>((a, x) => (!a || x.strength > a.strength ? x : a), null)
   const duration = list.length ? Math.max(...list.map((x) => x.at)) * 1.15 : 1
   return (
@@ -201,7 +206,7 @@ function EpisodeCard({ c, e, selected, i }: { c: ContentDetail; e: EpisodeSummar
               <span className="truncate text-ink2">{decodeEntities(x.quote)}</span>
             </li>
           ))}
-          {!m.loading && list.length === 0 && <li className="text-[12px] text-faint">아직 순간이 없습니다.</li>}
+          {list.length === 0 && <li className="text-[12px] text-faint">아직 순간이 없습니다.</li>}
         </ul>
         <div className="mt-auto pt-3">
           <MomentDots moments={list.map((x) => ({ id: String(x.at), sec: x.at }))} duration={duration} activeSec={top?.at} />
@@ -211,7 +216,7 @@ function EpisodeCard({ c, e, selected, i }: { c: ContentDetail; e: EpisodeSummar
   )
 }
 
-function Episodes({ c, selected }: { c: ContentDetail; selected: EpisodeSummary | null }) {
+function Episodes({ c, selected }: { c: CatalogContent; selected: CatalogEpisode | null }) {
   const [sort, setSort] = useState<'ep' | 'heat'>('ep')
   const list = [...c.episodes].sort((a, b) =>
     sort === 'ep' ? a.seasonNumber - b.seasonNumber || a.episodeNumber - b.episodeNumber : b.heatShare - a.heatShare)
@@ -243,12 +248,10 @@ function Episodes({ c, selected }: { c: ContentDetail; selected: EpisodeSummary 
 }
 
 /* ═══ 순간 + 채팅 (마스터-디테일) ═══════════════════════════ */
-function Moments({ c, ep, moments, momentsLoading, onPeak }: { c: ContentDetail; ep: EpisodeSummary | null; moments: Moment[]; momentsLoading: boolean; onPeak: (m: Moment | null) => void }) {
+function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogContent; ep: CatalogEpisode | null; moments: Moment[]; momentsLoading: boolean; bars: { values: number[]; duration: number }; onPeak: (m: Moment | null) => void }) {
   const [sel, setSel] = useState(0)
   const reduce = useReducedMotion()
   const episodeId = ep?.episodeId ?? null
-  const heat = useAsync(() => (episodeId ? api.heatmap(episodeId) : null), [episodeId])
-  const bars = useMemo(() => heatToBars(heat.data, 150), [heat.data])
   const peakIdx = moments.reduce((bi, m, i, arr) => (m.strength > (arr[bi]?.strength ?? -1) ? i : bi), 0)
   useEffect(() => { setSel(peakIdx) }, [peakIdx, episodeId])
   useEffect(() => { onPeak(moments[peakIdx] ?? null) }, [moments, peakIdx, onPeak])
@@ -353,17 +356,15 @@ function Moments({ c, ep, moments, momentsLoading, onPeak }: { c: ContentDetail;
   )
 }
 
-function Related({ contentId }: { contentId: number }) {
-  const r = useAsync(() => api.alsoWatched(contentId).catch(() => null), [contentId])
+function Related({ items }: { items: CatalogContent['alsoWatched'] }) {
   const fill = useFillCount(140, 16, 1)
-  const items = r.data?.items ?? []
   return (
     <section id="related" className={`scroll-mt-28 border-t border-line ${SEC}`}>
       <SectionHead title="함께 본 작품" />
       {items.length === 0 ? (
         <div ref={fill.ref}>
-          <RailSkeleton count={fill.count} loading={r.loading} />
-          {!r.loading && <EmptyNote>아직 함께 본 작품이 없습니다.</EmptyNote>}
+          <RailSkeleton count={fill.count} loading={false} />
+          <EmptyNote>아직 함께 본 작품이 없습니다.</EmptyNote>
         </div>
       ) : (
         <ul ref={fill.ref} className="fill-grid" style={{ '--min': '140px', '--gx': '16px', '--gy': '0px' } as React.CSSProperties}>
@@ -383,17 +384,22 @@ function Related({ contentId }: { contentId: number }) {
 
 /* ═══ 작품 상세 ══════════════════════════════════════════════ */
 export default function Title({ contentId, episodeId }: { contentId: number; episodeId: number | null }) {
-  const detail = useAsync(() => api.content(contentId), [contentId])
+  const detail = useAsync(() => api.catalogContent(contentId), [contentId])
   const live = useAsync(() => api.liveScenes(), [])
   const c = detail.data
-  const ep = useMemo<EpisodeSummary | null>(() => {
+  const ep = useMemo<CatalogEpisode | null>(() => {
     if (!c) return null
     return c.episodes.find((e) => e.episodeId === episodeId)
       ?? [...c.episodes].sort((a, b) => b.heatShare - a.heatShare)[0]
       ?? null
   }, [c, episodeId])
-  const moments = useAsync(() => (ep ? api.moments(ep.episodeId, 5).catch(() => null) : null), [ep?.episodeId])
+  // 선택한 회차의 파형·순간 한 번(HP-124 읽기 모델). 회차를 바꾸면 그 회차 것만 다시 받는다.
+  const epDetail = useAsync(() => (ep ? api.catalogEpisode(ep.episodeId).catch(() => null) : null), [ep?.episodeId])
+  const bars = useMemo(() => ({ values: epDetail.data?.bars.length ? epDetail.data.bars : [], duration: epDetail.data?.durationSec ?? 0 }), [epDetail.data])
   const [peak, setPeak] = useState<Moment | null>(null)
+  const [rating, setRating] = useState<Rating>({ average: null, count: 0 })
+  useEffect(() => { if (c) setRating(c.rating) }, [c])
+  const onRating = useCallback((r: Rating) => setRating(r), [])
 
   if (detail.loading) {
     return (
@@ -427,11 +433,12 @@ export default function Title({ contentId, episodeId }: { contentId: number; epi
 
   return (
     <>
-      <Hero c={c} ep={ep} live={live.data?.shows ?? []} peak={peak} />
+      <Hero c={c} ep={ep} live={live.data?.shows ?? []} peak={peak} rating={rating} />
       <SubNav />
       <Episodes c={c} selected={ep} />
-      <Moments c={c} ep={ep} moments={moments.data?.moments ?? []} momentsLoading={moments.loading} onPeak={setPeak} />
-      <Related contentId={c.contentId} />
+      <Moments c={c} ep={ep} moments={epDetail.data?.moments ?? ep?.moments ?? []} momentsLoading={epDetail.loading} bars={bars} onPeak={setPeak} />
+      <Comments contentId={c.contentId} onRating={onRating} />
+      <Related items={c.alsoWatched} />
     </>
   )
 }
