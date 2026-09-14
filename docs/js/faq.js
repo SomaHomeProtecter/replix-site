@@ -1,4 +1,5 @@
 /* 자주 묻는 질문 — 아코디언. */
+import { track } from './analytics.js';
 /* ═══ FAQ ═══════════════════════════════════════════════════ */
 var QA = [
   ["넷플릭스 계정이 따로 필요한가요?",
@@ -44,6 +45,10 @@ if (faqEl) {
       b.removeAttribute("open");
       b.querySelector(".qa-q").setAttribute("aria-expanded", "false");
     });
-    if (!was) { box.setAttribute("open", ""); q.setAttribute("aria-expanded", "true"); }
+    if (!was) {
+      box.setAttribute("open", ""); q.setAttribute("aria-expanded", "true");
+      /* 계측(W4) — 열 때만. 닫기까지 세면 한 번의 사용이 2건이 된다. 질문 본문 대신 순번을 싣는다. */
+      track('faq_opened', { question_index: Array.prototype.indexOf.call(faqEl.children, box) });
+    }
   });
 }

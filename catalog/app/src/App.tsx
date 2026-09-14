@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Footer, Nav } from './components/Chrome'
 import Home from './pages/Home'
 import Title from './pages/Title'
+import { page } from './analytics'
 
 /* 해시 라우터. 서버 없이 file:// 로 열려야 하고 GitHub Pages 정적 배포라 history API 대신 해시를 쓴다.
    #/                 홈
@@ -43,6 +44,8 @@ export default function App() {
     }
     window.scrollTo(0, 0)
   }, [key, anchor])
+  // 계측: 라우트마다 page_viewed. page_path 는 analytics.js 가 해시에서 라우트 이름까지만 남긴다(작품·회차 ID 제거).
+  useEffect(() => { page({ route: route.page }) }, [key, anchor, route.page])
 
   return (
     <>

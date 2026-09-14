@@ -3,6 +3,7 @@ import { MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { api, type ContentSearchItem } from '../api'
 import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
 import { titleHref } from '../App'
+import { engaged } from '../analytics'
 import { login, logout, useAuth } from '../auth'
 
 /* 공개 카탈로그의 실제 목적지만 둔다. 같은 곳으로 가는 메뉴 두 개나 알림 같은 빈 약속은 두지 않는다.
@@ -50,7 +51,7 @@ export function Nav({ current: _current }: { current: 'home' | 'title' }) {
           홈으로
         </a>
         <AuthButton />
-        <a href={STORE} target="_blank" rel="noopener" className="btn btn--primary btn--sm shrink-0">
+        <a href={STORE} target="_blank" rel="noopener" className="btn btn--primary btn--sm shrink-0" data-cta="catalog_nav">
           크롬 확장프로그램 설치하기
         </a>
       </div>
@@ -82,6 +83,7 @@ function Search() {
   const [items, setItems] = useState<ContentSearchItem[] | null>(null)
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
+  const focused = useRef(false) // 계측 search/open 은 포커스당 1회 — 타이핑마다 세지 않는다
 
   useEffect(() => {
     const needle = q.trim()
@@ -107,7 +109,8 @@ function Search() {
           type="search"
           value={q}
           onChange={(e) => { setQ(e.target.value); setOpen(true) }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => { setOpen(true); if (!focused.current) { focused.current = true; engaged('search', 'open') } }}
+          onBlur={() => { focused.current = false }}
           placeholder="작품 검색"
           aria-label="작품 검색"
           className="hidden w-full bg-transparent text-[12.5px] text-ink outline-none placeholder:text-faint md:block"
@@ -122,7 +125,7 @@ function Search() {
             <li key={it.contentId}>
               <a
                 href={titleHref(it.contentId)}
-                onClick={() => { setOpen(false); setQ('') }}
+                onClick={() => { setOpen(false); setQ(''); engaged('search', 'select', { has_results: true }) }}
                 className="flex items-center gap-3 px-3 py-2 hover:bg-soft"
               >
                 <span className="h-9 w-6 shrink-0 overflow-hidden rounded-[3px] bg-sink">
@@ -165,7 +168,9 @@ export function Footer() {
             <ul className="space-y-1.5 text-muted">
               <li><a href="/privacy" className="hover:text-ink">개인정보처리방침</a></li>
               <li><a href="/terms" className="hover:text-ink">이용약관</a></li>
-              <li><a href={STORE} target="_blank" rel="noopener" className="hover:text-ink">크롬 확장프로그램 설치</a></li>
+              <li><a href={STORE} target="_blank" rel="noopener" className="hover:text-ink" data-cta="catalog_footer">크롬 확장프로그램 설치</a></li>
+              {/* 방문 통계 동의를 다시 묻는다 — /js/analytics.js 가 위임 처리. 처리방침 §6 이 약속한 철회 경로. */}
+              <li><a href="#" data-analytics-settings className="hover:text-ink">분석 설정</a></li>
             </ul>
           </div>
         </div>

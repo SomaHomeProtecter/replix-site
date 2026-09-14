@@ -17,6 +17,7 @@ import {
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../App'
+import { engaged, trackWatch } from '../analytics'
 import { Avatar, Chip, MomentDots, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { CardGridSkeleton, EmptyNote, RailSkeleton, RowsSkeleton } from '../components/skeleton'
 import { Comments, RatingSummary } from '../components/Comments'
@@ -100,7 +101,7 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
                     <div key={g.season} className="min-w-0" style={{ flex: `${g.eps.length} 1 0`, minWidth: Math.min(g.eps.length, 3) * 16 + 16 /* '108'·'시즌 4'가 잘리지 않는 최소 폭 */ }}>
                       <div className="flex h-[76px] items-end gap-[3px]">
                         {g.eps.map((e) => (
-                          <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)} title={episodeLabel(e, c.contentType) || e.title || ''}
+                          <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)} title={episodeLabel(e, c.contentType) || e.title || ''} onClick={() => engaged('episode_list', 'select')}
                             className="flex h-full min-w-0 flex-1 flex-col justify-end">
                             <div className="rounded-t-[2px]" style={{ height: `${Math.max(3, (e.heatShare / maxShare) * 100)}%`, background: e.episodeId === ep?.episodeId ? 'var(--color-accent)' : 'rgba(16,16,24,0.16)' }} />
                           </a>
@@ -108,7 +109,7 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
                       </div>
                       <div className="mt-1.5 flex gap-[3px]">
                         {g.eps.map((e) => (
-                          <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)}
+                          <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)} onClick={() => engaged('episode_list', 'select')}
                             className={`num min-w-0 flex-1 whitespace-nowrap text-center font-mono leading-none hover:text-ink ${e.episodeNumber >= 100 ? 'text-[9px]' : 'text-[10px]'} ${e.episodeId === ep?.episodeId ? 'font-bold text-accent' : 'text-muted'}`}>
                             {e.episodeNumber || '·'}
                           </a>
@@ -128,7 +129,7 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
 
           <div className="mt-6 flex flex-wrap gap-2">
             {play && (
-              <a href={play} target="_blank" rel="noopener"
+              <a href={play} target="_blank" rel="noopener" onClick={() => trackWatch(play, 'title_hero')}
                 className="inline-flex items-center gap-2 whitespace-nowrap rounded-btn bg-accent px-4 py-2.5 text-[14px] font-bold text-white transition-all hover:brightness-110 active:translate-y-px">
                 <PlayIcon size={15} weight="fill" />
                 넷플릭스에서 {ep ? episodeLabel(ep, c.contentType) || '이 회차' : ''} 보기
@@ -186,7 +187,7 @@ function EpisodeCard({ c, e, selected, i }: { c: CatalogContent; e: CatalogEpiso
   const duration = list.length ? Math.max(...list.map((x) => x.at)) * 1.15 : 1
   return (
     <Reveal delay={Math.min(i, 6) * 0.03} className="flex">
-      <a href={titleHref(c.contentId, e.episodeId) + '#moments'}
+      <a href={titleHref(c.contentId, e.episodeId) + '#moments'} onClick={() => engaged('episode_list', 'select')}
         className={`flex w-full flex-col rounded-md border p-4 transition-colors ${selected ? 'border-accent/30 bg-accentw' : 'border-line bg-raise hover:bg-soft'}`}>
         <div className="flex items-baseline justify-between gap-3">
           <div className="flex items-baseline gap-2">
@@ -225,7 +226,7 @@ function Episodes({ c, selected }: { c: CatalogContent; selected: CatalogEpisode
         action={
           <div className="flex gap-1 rounded-sm bg-sink p-0.5 text-[12px] font-bold" role="group" aria-label="정렬">
             {(['ep', 'heat'] as const).map((k) => (
-              <button key={k} type="button" onClick={() => setSort(k)} aria-pressed={sort === k}
+              <button key={k} type="button" onClick={() => { setSort(k); engaged('episode_list', 'sort', { sort: k }) }} aria-pressed={sort === k}
                 className={`rounded-[6px] px-2.5 py-1 transition-colors ${sort === k ? 'bg-raise text-ink shadow-[0_1px_2px_rgba(16,16,24,0.12)]' : 'text-muted hover:text-ink'}`}>
                 {k === 'ep' ? '회차순' : '반응순'}
               </button>
@@ -286,7 +287,7 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
               <Waveform values={bars.values} height={64} active={m ? [m.at / bars.duration - 0.026, m.at / bars.duration + 0.026] : undefined} />
               <div className="relative mt-2 h-px bg-line2">
                 {moments.map((mm, i) => (
-                  <button key={mm.at} type="button" onClick={() => setSel(i)} aria-label={`${fmtTime(mm.at)} 순간 ${i + 1}`} aria-pressed={i === sel}
+                  <button key={mm.at} type="button" onClick={() => { setSel(i); engaged('moments', 'select') }} aria-label={`${fmtTime(mm.at)} 순간 ${i + 1}`} aria-pressed={i === sel}
                     className="absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2" style={{ left: `${(mm.at / bars.duration) * 100}%` }}>
                     <span className="mx-auto block rounded-full ring-4 ring-soft" style={{ width: i === sel ? 9 : 6, height: i === sel ? 9 : 6, background: i === sel ? 'var(--color-accent)' : 'var(--color-faint)' }} />
                   </button>
@@ -302,7 +303,7 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
                 const on = i === sel
                 return (
                   <li key={mm.at} className="flex">
-                    <button type="button" onClick={() => setSel(i)} aria-pressed={on}
+                    <button type="button" onClick={() => { setSel(i); engaged('moments', 'select') }} aria-pressed={on}
                       className={`grid w-full grid-cols-[64px_1fr_auto] items-center gap-x-3 px-4 py-3 text-left transition-colors ${on ? 'bg-accentw' : 'hover:bg-soft'}`}>
                       <span className={`num font-mono text-[15px] font-bold ${on ? 'text-accent' : 'text-ink'}`}>{fmtTime(mm.at)}</span>
                       <span className="min-w-0">
@@ -325,7 +326,7 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
                     <p className="truncate text-[15px] font-bold text-ink">순간 {sel + 1}</p>
                   </div>
                   {play && (
-                    <a href={play} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-btn bg-accent px-3.5 py-2 text-[13px] font-bold text-white transition-all hover:brightness-110">
+                    <a href={play} target="_blank" rel="noopener" onClick={() => trackWatch(play, 'moment')} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-btn bg-accent px-3.5 py-2 text-[13px] font-bold text-white transition-all hover:brightness-110">
                       <PlayIcon size={12} weight="fill" />넷플릭스에서 {fmtTime(m.at)}부터 보기<ArrowUpRightIcon size={11} weight="bold" className="opacity-80" />
                     </a>
                   )}
@@ -344,7 +345,7 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
                   {!chats.loading && log.length === 0 && <li className="px-5 py-6 text-center text-[12.5px] text-muted">채팅이 없습니다.</li>}
                 </ol>
                 <div className="flex items-center justify-end border-t border-line bg-soft px-5 py-3">
-                  <a href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-ink hover:text-accent"><PuzzlePieceIcon size={14} />크롬 확장프로그램 설치하기</a>
+                  <a href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" data-cta="catalog_title" className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-ink hover:text-accent"><PuzzlePieceIcon size={14} />크롬 확장프로그램 설치하기</a>
                 </div>
               </motion.div>
             )}
@@ -369,7 +370,7 @@ function Related({ items }: { items: CatalogContent['alsoWatched'] }) {
         <ul ref={fill.ref} className="fill-grid" style={{ '--min': '140px', '--gx': '16px', '--gy': '0px' } as React.CSSProperties}>
           {items.map((t, i) => (
             <li key={t.contentId} hidden={i >= fill.count}>
-              <a href={titleHref(t.contentId)} className="group block">
+              <a href={titleHref(t.contentId)} className="group block" onClick={() => engaged('also_watched', 'click')}>
                 <PosterSlot title={t.title} poster={t.posterUrl} />
                 <p className="mt-2 truncate text-[12.5px] font-bold text-ink">{t.title}</p>
               </a>

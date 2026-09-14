@@ -1,5 +1,7 @@
 /* 진입점 — 구획 모듈을 불러오기만 한다. 각 모듈은 자기 구획의 DOM 을
-   찾아 스스로 붙으므로 여기서 호출할 것이 없다. */
+   찾아 스스로 붙으므로 여기서 호출할 것이 없다. 예외는 page_viewed 하나 —
+   페이지 단위 사건이라 어느 구획에도 속하지 않아 여기서 1회 부른다. */
+import { page } from './analytics.js';
 import './hero.js';
 import './scenes.js';
 import './rooms.js';
@@ -15,3 +17,6 @@ var chartSection = document.getElementById('chart');
 if (chartSection && !chartSection.hidden && window.getComputedStyle(chartSection).display !== 'none') {
   import('./chart.js');
 }
+
+/* 계측(docs/analytics/tracking-plan.md) — 동의 전이면 analytics.js 가 기억해 두고 허용 직후 1회 보낸다. */
+page();
