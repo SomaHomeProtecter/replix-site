@@ -8,3 +8,9 @@ export function feedbackNote(loggedIn: boolean): string
 export function errorMessage(status: number): string
 export const STAR_LABELS: string[]
 export const STORE_URL: string
+export const CHIPS: ReadonlyArray<{ value: FeedbackCategory; label: string }>
+export const Q_SCORE: string
+export const Q_CATEGORY: string
+export const PLACEHOLDER: string
+export const THANKS: string
+export const STORE_TEXT: string

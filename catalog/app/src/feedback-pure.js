@@ -38,4 +38,20 @@ export function errorMessage(status) {
 
 export const STAR_LABELS = ['', '별로예요', '아쉬워요', '괜찮아요', '좋아요', '최고예요']
 
+/** 유형 칩 — 순서는 서버 열거값 순서(ANNOY·BUG·IDEA·PRAISE)와 같게 둔다. 화면이 지어내지 않도록 값·문구를 여기서 못박는다. */
+export const CHIPS = [
+  { value: 'ANNOY', label: '불편해요' },
+  { value: 'BUG', label: '버그예요' },
+  { value: 'IDEA', label: '이런 게 있으면' },
+  { value: 'PRAISE', label: '잘 쓰고 있어요' },
+]
+
+/* 화면에 박히는 고정 문구(세트 A). TSX 에 흩어 두면 글자가 조용히 어긋나도 아무도 모른다 —
+   여기 모아 두고 scripts/test-feedback.mjs 가 글자 그대로 검사한다. */
+export const Q_SCORE = '전체적으로 어땠어요?'
+export const Q_CATEGORY = '어떤 이야기예요? (선택)'
+export const PLACEHOLDER = '좋았던 점이나 아쉬운 점을 적어 주세요.'
+export const THANKS = '의견 감사합니다. 리플릭스를 더 낫게 고쳐 볼게요.'
+export const STORE_TEXT = '스토어에도 평가를 남겨 주세요 ↗'
+
 export const STORE_URL = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp/reviews'
