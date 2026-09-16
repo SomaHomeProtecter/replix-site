@@ -190,13 +190,20 @@ async function get<T>(path: string, auth = false): Promise<T> {
   return (await res.json()) as T
 }
 
-/** 로그인 필수 요청. 토큰이 없으면 401 로 취급해 호출자가 로그인 안내를 띄운다. */
-async function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
+/** 로그인 필수 요청. 토큰이 없으면 401 로 취급해 호출자가 로그인 안내를 띄운다.
+ *  `optionalAuth` 는 그 규칙을 끄는 요청용이다 — 피드백(HP-426)은 **비로그인도 보낼 수 있어야 하고**(서버 계약:
+ *  Authorization 이 있으면 user_id 를 붙이고 없으면 NULL), 로그인 안내로 막으면 로그인 안 한 사람의 의견이 사라진다.
+ *  이때는 토큰이 있으면 붙이고 없으면 그대로 보낸다. */
+async function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown, opts: { optionalAuth?: boolean } = {}): Promise<T> {
   const t = await accessToken()
-  if (!t) throw new ApiError(401, path)
+  if (!t && !opts.optionalAuth) throw new ApiError(401, path)
   const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: { Accept: 'application/json', Authorization: `Bearer ${t}`, ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+    headers: {
+      Accept: 'application/json',
+      ...(t ? { Authorization: `Bearer ${t}` } : {}),
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!res.ok) {
@@ -205,22 +212,6 @@ async function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: u
     throw new ApiError(res.status, path, code)
   }
   if (res.status === 204) return undefined as T
-  return (await res.json()) as T
-}
-
-/** 로그인 여부와 무관하게 보내는 POST(비로그인 피드백 등). 토큰이 있으면 붙이고 없어도 그대로 보낸다 — send() 와 달리 401 로 막지 않는다. */
-async function postPublic<T>(path: string, body: unknown): Promise<T> {
-  const t = await accessToken()
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) {
-    let code: string | undefined
-    try { code = ((await res.json()) as { code?: string }).code } catch { /* 본문 없음 */ }
-    throw new ApiError(res.status, path, code)
-  }
   return (await res.json()) as T
 }
 
@@ -267,7 +258,7 @@ export const api = {
   likeComment: (commentId: number, on: boolean) =>
     send<{ commentId: number; likeCount: number; liked: boolean }>(on ? 'PUT' : 'DELETE', `/api/v1/comments/${commentId}/like`),
 
-  sendFeedback: (body: FeedbackCreate) => postPublic<{ id: number }>('/api/v1/feedback', body),
+  sendFeedback: (body: FeedbackCreate) => send<{ id: number }>('POST', '/api/v1/feedback', body, { optionalAuth: true }),
 }
 
 /* ── 화면 공용 계산 ────────────────────────────────────────── */

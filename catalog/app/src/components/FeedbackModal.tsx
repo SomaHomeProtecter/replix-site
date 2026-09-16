@@ -86,20 +86,23 @@ export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () =>
   const firstStar = useRef<HTMLButtonElement | null>(null)
   const doneBtn = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)
-  /* 전송 중에도 닫을 수 있다(기다리게 하지 않는다). 그래서 응답이 늦게 오면 이미 닫힌 화면의 상태를 건드릴 수 있어,
-     다음에 열었을 때 감사 뷰나 지난 오류가 남는다 — 응답 처리 직전에 이 ref 로 "아직 열려 있나"를 확인한다. */
-  const openRef = useRef(open)
-  useEffect(() => { openRef.current = open }, [open])
+  /* 전송 중에도 닫을 수 있다(기다리게 하지 않는다). 그래서 늦게 온 응답이 이미 지나간 화면의 상태를 건드릴 수 있다 —
+     "지금 열려 있나"로는 부족하다: 보내는 중에 닫고 응답 전에 다시 열면 그때도 열려 있어, 지난번 응답이 방금 연
+     빈 화면에 감사 뷰나 오류를 얹는다. 그래서 '열림 한 번'마다 번호를 매기고(열 때·닫을 때 +1),
+     보내기 전에 그 번호를 손에 쥐었다가 응답이 온 뒤 아직 같은 번호일 때만 상태를 쓴다. */
+  const sessionRef = useRef(0)
 
   /* 닫기는 한 곳으로 모은다: 상태를 비우고(다음에 열면 처음부터) 부모에게 알린다. 비우기를 effect 가 아니라
      이 핸들러에서 하는 이유 — 열 때 비우면 그 첫 렌더에 지난 화면(감사 뷰)이 남아 첫 별에 포커스를 줄 수 없다. */
   const close = useCallback(() => {
+    sessionRef.current += 1
     setScore(0); setCategory(''); setBody(''); setBusy(false); setErr(null); setDone(false)
     onClose()
   }, [onClose])
 
   useEffect(() => {
     if (!open) return
+    sessionRef.current += 1
     engaged('feedback', 'opened')
     firstStar.current?.focus()
   }, [open])
@@ -142,19 +145,20 @@ export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () =>
   useEffect(() => { if (done) doneBtn.current?.focus() }, [done])
 
   const submit = useCallback(async () => {
+    const session = sessionRef.current
     setBusy(true); setErr(null)
     try {
       await api.sendFeedback(buildPayload({ score, category, body }))
-      /* 계측은 닫혔어도 보낸다 — 서버가 실제로 접수했으므로 세지 않으면 건수가 어긋난다.
+      /* 계측은 그 사이 닫혔어도 보낸다 — 서버가 실제로 접수했으므로 세지 않으면 건수가 어긋난다.
          무엇을 적었는지는 싣지 않는다 — 점수와 유형(둘 다 열거값)만. */
       engaged('feedback', 'submitted', { score, category: category || 'none' })
-      if (!openRef.current) return
+      if (sessionRef.current !== session) return
       setDone(true)
     } catch (x) {
-      if (!openRef.current) return
+      if (sessionRef.current !== session) return
       setErr(errorMessage(x instanceof ApiError ? x.status : 0))
     } finally {
-      if (openRef.current) setBusy(false)
+      if (sessionRef.current === session) setBusy(false)
     }
   }, [score, category, body])
 
@@ -231,7 +235,7 @@ export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () =>
               <span id="feedback-count" className="ml-auto num font-mono text-[11px] text-faint">{body.length}/1000</span>
               <button type="button" onClick={close} className="btn btn--ghost btn--sm">취소</button>
               {/* !ready 면 잠근다 — Keycloak 의 조용한 세션 확인이 끝나기 전에는 이 글이 계정에 붙을지 아닐지가
-                  아직 정해지지 않았다(postPublic 은 보낼 때 토큰을 붙인다). 안내문과 실제 전송이 어긋나지 않게 기다린다. */}
+                  아직 정해지지 않았다(send 의 optionalAuth 는 보낼 때 토큰을 붙인다). 안내문과 실제 전송이 어긋나지 않게 기다린다. */}
               <button
                 type="button"
                 onClick={submit}
