@@ -19,6 +19,8 @@ const N = (id, kind, endedAt = null) => ({
 assert.equal(unreadCount([N(4, 'NOTICE'), N(3, 'MAINTENANCE')], 3), 1);
 assert.equal(unreadCount([N(4, 'NOTICE'), N(3, 'MAINTENANCE')], 0), 2);
 assert.equal(unreadCount([], 0), 0);
+// 목록 순서와 무관하게 id 로만 센다(읽은 것 사이에 안 읽은 것이 끼어도).
+assert.equal(unreadCount([N(2, 'NOTICE'), N(7, 'INCIDENT'), N(1, 'NOTICE'), N(5, 'MAINTENANCE')], 4), 2);
 
 // 띠 — 종료되지 않은 점검·장애가 일반 공지보다 우선한다.
 assert.equal(pickBand([N(4, 'NOTICE'), N(3, 'MAINTENANCE')], 0, []).notice.id, 3);
@@ -35,5 +37,9 @@ assert.equal(pickBand([N(1, 'INCIDENT', '2026-09-09T01:00:00Z')], 0, []), null);
 
 // 닫은 일반 공지는 다시 뜨지 않는다(같은 세션).
 assert.equal(pickBand([N(4, 'NOTICE')], 0, [4]), null);
+
+// 후보가 여럿이면 최신 1건 — 서버가 startsAt 내림차순으로 주므로 목록 앞쪽이 최신이다.
+assert.equal(pickBand([N(5, 'MAINTENANCE'), N(3, 'MAINTENANCE')], 0, []).notice.id, 5);
+assert.equal(pickBand([N(5, 'NOTICE'), N(4, 'NOTICE')], 0, []).notice.id, 5);
 
 console.log('scripts/test-notices.mjs: 통과');
