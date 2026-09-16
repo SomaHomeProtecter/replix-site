@@ -5,5 +5,6 @@ import type { Notice } from './api'
 export type BandTone = 'maint' | 'incident' | 'notice'
 export type Band = { notice: Notice; tone: BandTone }
 
+export function applyLoadFailure(prev: Notice[] | null): Notice[]
 export function unreadCount(items: Notice[], seenId: number): number
 export function pickBand(items: Notice[], seenId: number, dismissed: number[]): Band | null

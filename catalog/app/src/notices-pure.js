@@ -2,6 +2,12 @@
 // 타입은 notices.ts 쪽에서 붙인다(여기는 타입 없는 ESM 이라 node 가 그대로 읽는다).
 // 목록은 서버가 startsAt 내림차순으로 주므로 앞에서부터 찾으면 최신이다.
 
+/** 목록 로드 실패 뒤의 목록: 이전에 성공한 캐시가 있으면 그대로 두고, 없으면 빈 목록으로 떨군다.
+ *  (null 로 두면 화면이 영영 '불러오는 중'에 갇힌다 — 공지는 없어도 화면이 돌아야 한다.) */
+export function applyLoadFailure(prev) {
+  return prev ?? [];
+}
+
 /** 마지막으로 읽은 id 보다 큰 공지 수. */
 export function unreadCount(items, seenId) {
   return items.filter((n) => Number(n.id) > seenId).length;

@@ -2,7 +2,7 @@
 // 규칙을 `catalog/app/src/notices-pure.js`(타입 없는 ESM)로 분리해 node 로 직접 돌린다.
 // 실행: node scripts/test-notices.mjs
 import assert from 'node:assert/strict';
-import { unreadCount, pickBand } from '../catalog/app/src/notices-pure.js';
+import { applyLoadFailure, unreadCount, pickBand } from '../catalog/app/src/notices-pure.js';
 
 const N = (id, kind, endedAt = null) => ({
   id,
@@ -41,5 +41,11 @@ assert.equal(pickBand([N(4, 'NOTICE')], 0, [4]), null);
 // 후보가 여럿이면 최신 1건 — 서버가 startsAt 내림차순으로 주므로 목록 앞쪽이 최신이다.
 assert.equal(pickBand([N(5, 'MAINTENANCE'), N(3, 'MAINTENANCE')], 0, []).notice.id, 5);
 assert.equal(pickBand([N(5, 'NOTICE'), N(4, 'NOTICE')], 0, []).notice.id, 5);
+
+// 로드 실패 — 아직 한 번도 못 받았으면 빈 목록(화면이 '불러오는 중'에 갇히지 않게),
+// 이전에 성공한 캐시가 있으면 그 캐시를 그대로 유지한다.
+assert.deepEqual(applyLoadFailure(null), []);
+const cached = [N(4, 'NOTICE')];
+assert.equal(applyLoadFailure(cached), cached);
 
 console.log('scripts/test-notices.mjs: 통과');
