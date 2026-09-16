@@ -105,6 +105,9 @@
 | `also_watched` | `click` | 함께 본 작품 카드 클릭 | — |
 | `notice` | `opened` | 공지 페이지(`#/notice`)로 가는 링크 클릭 — `Chrome.tsx` 헤더 링크·공지 띠의 '보기'·푸터 링크 | `source`: `nav` \| `band` \| `footer` |
 | `notice` | `band_dismissed` | 공지 띠의 '닫기' 클릭(`Chrome.tsx` `NoticeBand`) | `kind`: `NOTICE` \| `MAINTENANCE` \| `INCIDENT` |
+| `feedback` | `opened` | 푸터 '피드백 보내기' 로 모달이 열린 순간(`FeedbackModal.tsx`) | — |
+| `feedback` | `submitted` | 피드백 전송 **성공**(`POST /api/v1/feedback` 201) | `score`: `0`(미선택) \| `1`~`5`, `category`: `ANNOY` \| `BUG` \| `IDEA` \| `PRAISE` \| `none`(미선택) |
+| `feedback` | `store_review_clicked` | 전송 뒤 감사 화면의 스토어 평가 링크 클릭 | — |
 
 > ⚠️ `demo_interacted` 는 `hero_toggle` 하나다. 인터랙티브 히트맵 플레이어(`hm*`)는 `#scenes-legacy` 에 `display:none` 으로
 > 숨겨져 있어 발화 지점이 없다 — 되살리면 `scenes_player`(`play`/`pause`/`jump`)를 여기 먼저 추가한다.
@@ -114,6 +117,11 @@
 > ⚠️ 공지(HP-425)는 새 이벤트를 만들지 않는다 — 진입은 `catalog_engaged{feature: notice}`, 페이지 노출은
 > `page_viewed{route: notice}` 로 센다. 공지 **본문·제목·noticeId 는 어떤 속성에도 싣지 않는다**(§2 와 같은 이유).
 > `band_dismissed` 의 `kind` 는 세 개짜리 열거값이라 개별 공지를 지목하지 않는다.
+>
+> ⚠️ 피드백(HP-426)도 새 이벤트를 만들지 않는다 — `catalog_engaged{feature: feedback}` 하나로 센다.
+> **사용자가 적은 본문은 어떤 속성에도 싣지 않는다**(§2). `submitted` 가 싣는 것은 `score`·`category` 둘뿐이고
+> 둘 다 열거값이다 — 본문은 서버(`/api/v1/feedback`)에만 가고 계측에는 오지 않는다. 실패(4xx·5xx)는 세지 않는다:
+> 보냈다는 사실이 아니라 **접수된 건수**를 봐야 서버에 쌓인 피드백 수와 맞출 수 있다.
 
 ## 7. 전송 방식 — Browser SDK, 자동수집 최소화
 
@@ -143,3 +151,4 @@
 | 버전 | 날짜 | 변경 |
 | --- | --- | --- |
 | v1 | 2026-09-13 | 초안·구현 — 이벤트 7종, 동의 배너, 금지 목록 3항 추가, `/invite` 제외(HP-415) — 고경우 |
+| v2 | 2026-09-16 | `catalog_engaged` 에 `feature: feedback`(`opened`·`submitted`·`store_review_clicked`) 추가 — 새 이벤트 없이 기존 이벤트 확장, 본문은 계측 금지(HP-426) — 김지호 |
