@@ -84,7 +84,7 @@
 
 | 이벤트 | surface | 발화 시점 | 속성 | 질문 |
 | --- | --- | --- | --- | --- |
-| `page_viewed` | 둘 다 | 랜딩: `main.js` 끝 `page()` 1회 · 카탈로그: `App.tsx` 라우트 effect(홈/작품/앵커 변경마다). 동의 전 호출은 기억만 하고 허용 직후 1회 | `route`(카탈로그: `home` \| `title`) | W1 분모 |
+| `page_viewed` | 둘 다 | 랜딩: `main.js` 끝 `page()` 1회 · 카탈로그: `App.tsx` 라우트 effect(홈/작품/앵커 변경마다). 동의 전 호출은 기억만 하고 허용 직후 1회 | `route`(카탈로그: `home` \| `title` \| `notice`) | W1 분모 |
 | `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture) | `location`: `nav` \| `hero` \| `close`(랜딩) · `catalog_nav` \| `catalog_title` \| `catalog_footer` | **W1** |
 | `section_viewed` | landing | `reveal.js` — 섹션 상단이 뷰포트 위 60% 안에 들어올 때 페이지뷰당 1회 | `section`: `intro` \| `how` \| `scenes` \| `works` \| `rooms` \| `faq` \| `install` | W3 |
 | `demo_interacted` | landing | `hero.js` 히어로 원본/Replix 토글 클릭 | `demo`: `hero_toggle` · `action`: `toggle` | W4 |
@@ -103,11 +103,17 @@
 | `episode_list` | `sort` | 회차 정렬 토글 | `sort`: `ep` \| `heat` |
 | `moments` | `select` | 순간 타임라인 점·목록 클릭 | — |
 | `also_watched` | `click` | 함께 본 작품 카드 클릭 | — |
+| `notice` | `opened` | 공지 페이지(`#/notice`)로 가는 링크 클릭 — `Chrome.tsx` 헤더 링크·공지 띠의 '보기'·푸터 링크 | `source`: `nav` \| `band` \| `footer` |
+| `notice` | `band_dismissed` | 공지 띠의 '닫기' 클릭(`Chrome.tsx` `NoticeBand`) | `kind`: `NOTICE` \| `MAINTENANCE` \| `INCIDENT` |
 
 > ⚠️ `demo_interacted` 는 `hero_toggle` 하나다. 인터랙티브 히트맵 플레이어(`hm*`)는 `#scenes-legacy` 에 `display:none` 으로
 > 숨겨져 있어 발화 지점이 없다 — 되살리면 `scenes_player`(`play`/`pause`/`jump`)를 여기 먼저 추가한다.
 >
 > ⚠️ 검색 `select` 는 결과 제목·contentId 를 싣지 않는다(§2). "무엇을 찾나"는 서버 `/contents?q=` 로그로 본다.
+>
+> ⚠️ 공지(HP-425)는 새 이벤트를 만들지 않는다 — 진입은 `catalog_engaged{feature: notice}`, 페이지 노출은
+> `page_viewed{route: notice}` 로 센다. 공지 **본문·제목·noticeId 는 어떤 속성에도 싣지 않는다**(§2 와 같은 이유).
+> `band_dismissed` 의 `kind` 는 세 개짜리 열거값이라 개별 공지를 지목하지 않는다.
 
 ## 7. 전송 방식 — Browser SDK, 자동수집 최소화
 

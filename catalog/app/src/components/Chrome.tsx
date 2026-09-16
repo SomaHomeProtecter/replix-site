@@ -2,16 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { api, type ContentSearchItem } from '../api'
 import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
-import { titleHref } from '../App'
+import { noticeHref, titleHref } from '../App'
 import { engaged } from '../analytics'
 import { login, logout, useAuth } from '../auth'
+import { dismissBand, markSeen, pickBand, unreadCount, useNotices } from '../notices'
 
 /* 공개 카탈로그의 실제 목적지만 둔다. 같은 곳으로 가는 메뉴 두 개나 알림 같은 빈 약속은 두지 않는다.
    로그인은 2026-09-14부터 있다(작품 댓글·별점, HP-124) — 개인화가 아니라 쓰기 권한이다. 화면은 여전히 누구에게나 같다. */
 const STORE = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp'
 
 /* 메뉴바는 랜딩과 같은 치수지만 항목은 섞지 않는다(2026-09-05): 로고 옆 '인기 작품' 라벨이 지금
-   어느 표면인지 말하고, 링크는 이 표면의 섹션뿐이다. 랜딩으로는 오른쪽 '홈으로'. */
+   어느 표면인지 말하고, 링크는 이 표면의 섹션뿐이다. 랜딩으로는 오른쪽 '홈으로'.
+   사이트 수준 페이지(공지)는 섹션 묶음 밖 오른쪽 '홈으로'와 로그인 사이에 둔다(2026-09-16 김지호) — 섹션 링크가 아니라 규칙과 충돌하지 않는다. */
 const NAV = [
   { href: '#/ranking', label: '많이 본 작품' },
   { href: '#/hot', label: '뜨거운 순간' },
@@ -19,7 +21,7 @@ const NAV = [
 ]
 
 /* 원 시안과 같은 60px 한 줄 바, 좌우 48px 거터. */
-export function Nav({ current: _current }: { current: 'home' | 'title' }) {
+export function Nav({ current }: { current: 'home' | 'title' | 'notice' }) {
   /* 랜딩 .nav 와 같은 치수: sticky 66px, 같은 배경·블러, .wrap 안에 gap 26px, 로고 34px, 메뉴 14px gap 24px,
      오른쪽 끝 .btn--primary.btn--sm. 랜딩과 다른 것은 '홈으로' 버튼 하나뿐이다(작품 탐색에서 랜딩으로 돌아가는 길). */
   return (
@@ -50,12 +52,73 @@ export function Nav({ current: _current }: { current: 'home' | 'title' }) {
         <a href="/" className="btn btn--ghost btn--sm hidden shrink-0 min-[761px]:inline-flex">
           홈으로
         </a>
+        <NoticeLink current={current === 'notice'} />
         <AuthButton />
         <a href={STORE} target="_blank" rel="noopener" className="btn btn--primary btn--sm shrink-0" data-cta="catalog_nav">
           크롬 확장프로그램 설치하기
         </a>
       </div>
     </header>
+  )
+}
+
+/** 헤더의 공지 진입(HP-425). 아이콘 버튼이 아니라 조용한 텍스트 링크다 — 섹션 링크 묶음에 섞지 않고
+ *  '홈으로'와 로그인 사이에 둔다(위 주석의 2026-09-16 규칙). 안 읽은 **일반 공지**가 있을 때만 빨간 점이 붙는다:
+ *  점검·장애는 아래 NoticeBand 가 이미 화면 맨 위에서 알리므로 여기서 두 번 세지 않는다. */
+function NoticeLink({ current }: { current: boolean }) {
+  const { items, seenId } = useNotices()
+  const unread = items ? unreadCount(items.filter((n) => n.kind === 'NOTICE'), seenId) : 0
+  return (
+    <a
+      href={noticeHref()}
+      title={unread ? `새 공지 ${unread}건` : '공지'}
+      onClick={() => engaged('notice', 'opened', { source: 'nav' })}
+      className={`relative hidden shrink-0 text-[14px] transition-colors hover:text-ink min-[761px]:inline-flex ${current ? 'font-bold text-ink' : 'text-muted'}`}
+    >
+      공지
+      {unread > 0 && <span aria-label="새 공지" className="absolute -right-2 top-1 size-[7px] rounded-full bg-accent" />}
+    </a>
+  )
+}
+
+/** 진행 중인 점검·장애, 또는 안 읽은 새 공지 한 건을 헤더 바로 아래 띠로 알린다. 무엇을 고를지는
+ *  pickBand(notices-pure.js)가 정하고 node 로 검사한다. 닫으면 그 탭에서는 다시 뜨지 않는다(sessionStorage). */
+export function NoticeBand() {
+  const { items, seenId, dismissed } = useNotices()
+  const pick = items ? pickBand(items, seenId, dismissed) : null
+  if (!pick) return null
+  const { notice, tone } = pick
+  const cls = tone === 'maint' ? 'bg-[#fbf1df] text-[#7a4a00]' : tone === 'incident' ? 'bg-accentw text-accentd' : 'bg-soft text-ink2'
+  const label = tone === 'maint' ? '점검' : tone === 'incident' ? '장애' : '새 공지'
+  return (
+    <div role="status" className={`border-b border-line text-[13px] ${cls}`}>
+      <div className="wrap flex items-center gap-3 py-2">
+        <span className="whitespace-nowrap rounded bg-black/5 px-1.5 font-mono text-[10.5px]">{label}</span>
+        <span className="min-w-0 flex-1 truncate">
+          <b>{notice.title}</b>
+          {tone !== 'notice' && ` — ${notice.message}`}
+        </span>
+        <a
+          href={noticeHref(notice.id)}
+          onClick={() => engaged('notice', 'opened', { source: 'band' })}
+          className="font-bold underline underline-offset-[3px]"
+        >
+          보기
+        </a>
+        <button
+          type="button"
+          onClick={() => {
+            engaged('notice', 'band_dismissed', { kind: notice.kind })
+            // 일반 공지 띠는 '안 읽음'이 근거이므로 닫는 것이 곧 읽음이다. 점검·장애는 끝나야 사라진다.
+            if (tone === 'notice') markSeen([notice])
+            dismissBand(notice.id)
+          }}
+          className="opacity-70 hover:opacity-100"
+        >
+          닫기
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -163,6 +226,7 @@ export function Footer() {
             <ul className="space-y-1.5 text-muted">
               <li><a href="#/ranking" className="hover:text-ink">많이 본 작품</a></li>
               <li><a href="#/hot" className="hover:text-ink">뜨거운 순간</a></li>
+              <li><a href={noticeHref()} className="hover:text-ink" onClick={() => engaged('notice', 'opened', { source: 'footer' })}>공지</a></li>
               <li><a href="/" className="hover:text-ink">Replix 홈</a></li>
             </ul>
             <ul className="space-y-1.5 text-muted">
