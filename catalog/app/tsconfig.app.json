@@ -6,6 +6,8 @@
     "module": "esnext",
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
+    /* notices-pure.js — 공지 표시 규칙은 node 로 검사하려고 타입 없는 .js 로 둔다(scripts/test-notices.mjs) */
+    "allowJs": true,
     "skipLibCheck": true,
 
     /* Bundler mode */
