@@ -89,7 +89,7 @@
 | `section_viewed` | landing | `reveal.js` — 섹션 상단이 뷰포트 위 60% 안에 들어올 때 페이지뷰당 1회 | `section`: `intro` \| `how` \| `scenes` \| `works` \| `rooms` \| `faq` \| `install` | W3 |
 | `demo_interacted` | landing | `hero.js` 히어로 원본/Replix 토글 클릭 | `demo`: `hero_toggle` · `action`: `toggle` | W4 |
 | `faq_opened` | landing | `faq.js` 아코디언을 **열 때만** | `question_index`(0~7) | W4 |
-| `catalog_engaged` | catalog | 아래 표 | `feature`, `action`(+`has_results`·`sort`) | W5 |
+| `catalog_engaged` | catalog | 아래 표 | `feature`, `action`(+`has_results`·`sort`·`source`·`kind`·`score`·`category`) | W5 |
 | `watch_link_clicked` | catalog | 재생 딥링크 `<a>` 클릭(`analytics.ts` `trackWatch`) | `platform`(`netflix`), `from`: `title_hero` \| `moment` \| `home_billboard` \| `home_hot` \| `home_live`, `has_timestamp`(bool — `?t=` 유무) | **W5** |
 
 `catalog_engaged` 발화 지점(`analytics.ts` `engaged(feature, action)`):

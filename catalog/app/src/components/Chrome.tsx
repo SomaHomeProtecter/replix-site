@@ -234,7 +234,7 @@ export function Footer() {
               <li><a href="#/ranking" className="hover:text-ink">많이 본 작품</a></li>
               <li><a href="#/hot" className="hover:text-ink">뜨거운 순간</a></li>
               <li><a href={noticeHref()} className="hover:text-ink" onClick={() => engaged('notice', 'opened', { source: 'footer' })}>공지</a></li>
-              <li><button ref={feedbackBtn} type="button" onClick={() => setFeedback(true)} className="hover:text-ink">피드백 보내기</button></li>
+              <li><button ref={feedbackBtn} type="button" onClick={() => setFeedback(true)} className="cursor-pointer hover:text-ink">피드백 보내기</button></li>
               <li><a href="/" className="hover:text-ink">Replix 홈</a></li>
             </ul>
             <ul className="space-y-1.5 text-muted">

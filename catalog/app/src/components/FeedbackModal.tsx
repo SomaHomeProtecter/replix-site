@@ -19,15 +19,23 @@ const CHIPS: Array<{ key: FeedbackCategory; label: string }> = [
 ]
 
 /** 별점 띠. Comments.tsx 의 Stars 와 달리 칸·테두리 없이 이어 붙고 옆에 라벨이 따라온다 — 그래서 저기를 고치지 않고
- *  여기 따로 둔다. 라디오 묶음이라 좌우 화살표로 옮겨 다니고, 가리키거나 포커스한 별의 라벨을 미리 보여 준다. */
+ *  여기 따로 둔다. 라디오 묶음(APG radiogroup)이라 화살표·Home·End 가 포커스를 옮기면서 **그 자리를 고른다**.
+ *  미리보기는 마우스로 가리킬 때만이다 — 포커스로도 켜면 열자마자 첫 별에 포커스가 가므로 고르지 않았는데 1점처럼 보인다. */
 function StarBand({ value, onChange, firstRef }: { value: number; onChange: (v: number) => void; firstRef: React.RefObject<HTMLButtonElement | null> }) {
   const [hover, setHover] = useState(0)
   const group = useRef<HTMLDivElement>(null)
   const shown = hover || value
-  const move = (e: React.KeyboardEvent, n: number) => {
-    const to = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? n + 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? n - 1 : 0
+  const key = (e: React.KeyboardEvent, n: number) => {
+    const to = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? n + 1
+      : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? n - 1
+      : e.key === 'Home' ? 1
+      : e.key === 'End' ? 5
+      : 0
+    /* 양 끝에서는 멈춘다(APG 의 순환 대신). 별점은 순환하면 최고예요에서 화살표 한 번에 별로예요가 되어
+       누른 사람이 모르는 사이 정반대 점수가 들어간다 — 되돌릴 수 없는 전송이 붙어 있어 순환을 뺀다. */
     if (!to || to < 1 || to > 5) return
     e.preventDefault()
+    onChange(to)
     ;(group.current?.children[to - 1] as HTMLButtonElement | undefined)?.focus()
   }
   return (
@@ -38,7 +46,6 @@ function StarBand({ value, onChange, firstRef }: { value: number; onChange: (v: 
         aria-label="별점"
         className="inline-flex"
         onMouseLeave={() => setHover(0)}
-        onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHover(0) }}
       >
         {[1, 2, 3, 4, 5].map((n) => {
           const on = n <= shown
@@ -53,8 +60,7 @@ function StarBand({ value, onChange, firstRef }: { value: number; onChange: (v: 
               tabIndex={n === (value || 1) ? 0 : -1}
               onClick={() => onChange(n)}
               onMouseEnter={() => setHover(n)}
-              onFocus={() => setHover(n)}
-              onKeyDown={(e) => move(e, n)}
+              onKeyDown={(e) => key(e, n)}
               className={`inline-flex size-9 cursor-pointer items-center justify-center leading-none transition-colors ${on ? 'text-accent' : 'text-line2'}`}
             >
               <StarIcon size={28} weight={on ? 'fill' : 'regular'} />
@@ -76,6 +82,8 @@ export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () =>
   const [err, setErr] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const firstStar = useRef<HTMLButtonElement | null>(null)
+  const doneBtn = useRef<HTMLButtonElement>(null)
+  const card = useRef<HTMLDivElement>(null)
 
   /* 열 때마다 처음부터. 비우는 것은 '열 때'가 아니라 '닫을 때'다 — 열 때 비우면 그 첫 렌더에는 지난번 화면(감사 뷰)이
      아직 남아 있어 별이 없고, 첫 별에 포커스를 줄 수 없다. 닫힌 동안은 아무것도 그리지 않으므로 비워도 보이지 않는다. */
@@ -94,6 +102,22 @@ export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () =>
     document.addEventListener('keydown', on)
     return () => document.removeEventListener('keydown', on)
   }, [open, onClose])
+
+  /* 보낸 뒤에는 화면이 통째로 바뀌어 포커스가 body 로 떨어진다 — 남아 있는 유일한 버튼('닫기')으로 옮긴다. */
+  useEffect(() => { if (done) doneBtn.current?.focus() }, [done])
+
+  /* 포커스 가둠. aria-modal="true" 라고 적어 두고 Tab 으로 뒤쪽 푸터 링크까지 나가면 그 선언이 거짓이 된다.
+     tabIndex -1 인 별(로빙 탭)은 목록에서 빠지므로 양 끝은 늘 실제로 Tab 이 닿는 요소다. */
+  const trapTab = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab' || !card.current) return
+    const f = Array.from(card.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea, input, select'))
+      .filter((el) => el.tabIndex >= 0)
+    if (!f.length) return
+    const edge = e.shiftKey ? f[0] : f[f.length - 1]
+    if (document.activeElement !== edge) return
+    e.preventDefault()
+    ;(e.shiftKey ? f[f.length - 1] : f[0]).focus()
+  }
 
   const submit = useCallback(async () => {
     setBusy(true); setErr(null)
@@ -118,10 +142,12 @@ export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () =>
     >
       {/* 세로 가운데는 items-center 가 아니라 카드의 my-auto 로 잡는다 — 스크롤 컨테이너에서 items-center 는
           카드가 화면보다 높을 때 위쪽이 잘려 스크롤로도 닿지 못한다(낮은 창·가로 모드). */}
-      <div role="dialog" aria-modal="true" aria-labelledby="feedback-title" className="my-auto h-fit w-[calc(100%-32px)] max-w-[440px] rounded-lg bg-raise p-6 shadow-[0_24px_64px_rgba(16,16,24,0.22)]">
+      <div ref={card} onKeyDown={trapTab} role="dialog" aria-modal="true" aria-labelledby="feedback-title" className="my-auto h-fit w-[calc(100%-32px)] max-w-[440px] rounded-lg bg-raise p-6 shadow-[0_24px_64px_rgba(16,16,24,0.22)]">
         {done ? (
           <div className="grid gap-3">
-            <p className="text-[17px] font-bold text-ink">의견 감사합니다. 리플릭스를 더 낫게 고쳐 볼게요.</p>
+            {/* 감사 뷰에도 같은 id 를 준다 — 둘 중 하나만 그려지므로 중복되지 않고, 이것 없이는
+                aria-labelledby 가 사라진 제목을 가리켜 대화상자가 이름 없이 읽힌다. */}
+            <p id="feedback-title" className="text-[17px] font-bold text-ink">의견 감사합니다. 리플릭스를 더 낫게 고쳐 볼게요.</p>
             {/* 점수와 무관하게 누구에게나 같은 링크를 보인다 — 좋게 준 사람만 스토어로 보내지 않는다. */}
             <a
               href={STORE_URL}
@@ -133,7 +159,7 @@ export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () =>
               스토어에도 평가를 남겨 주세요 ↗
             </a>
             <div className="mt-1 flex justify-end">
-              <button type="button" onClick={onClose} className="btn btn--ghost btn--sm">닫기</button>
+              <button ref={doneBtn} type="button" onClick={onClose} className="btn btn--ghost btn--sm">닫기</button>
             </div>
           </div>
         ) : (
@@ -153,7 +179,7 @@ export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () =>
                     type="button"
                     aria-pressed={on}
                     onClick={() => setCategory(on ? '' : c.key)}
-                    className={`rounded-btn px-3 py-1.5 text-[12.5px] transition-colors ${on ? 'bg-ink text-warm' : 'bg-soft text-ink2 hover:bg-sink'}`}
+                    className={`cursor-pointer rounded-btn px-3 py-1.5 text-[12.5px] transition-colors ${on ? 'bg-ink text-warm' : 'bg-soft text-ink2 hover:bg-sink'}`}
                   >
                     {c.label}
                   </button>
@@ -173,7 +199,7 @@ export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () =>
             <p className="text-[12px] leading-relaxed text-muted">{feedbackNote(!!user)}</p>
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              {err && <span className="text-[12.5px] text-accentd">{err}</span>}
+              {err && <span role="alert" className="text-[12.5px] text-accentd">{err}</span>}
               <span className="ml-auto num font-mono text-[11px] text-faint">{body.length}/1000</span>
               <button type="button" onClick={onClose} className="btn btn--ghost btn--sm">취소</button>
               <button
