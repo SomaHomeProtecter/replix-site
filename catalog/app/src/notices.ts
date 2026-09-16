@@ -3,31 +3,34 @@
    저장 키: 읽음 = localStorage(기기에 남는다) · 띠 닫힘 = sessionStorage(탭을 닫으면 다시 보여준다). */
 import { useEffect, useSyncExternalStore } from 'react'
 import { api, type Notice } from './api'
-import { applyLoadFailure, pickBand, unreadCount } from './notices-pure.js'
+import { applyLoadFailure, noticePageState, pickBand, unreadCount } from './notices-pure.js'
 
-export { applyLoadFailure, pickBand, unreadCount }
-export type { Band, BandTone } from './notices-pure.js'
+export { applyLoadFailure, noticePageState, pickBand, unreadCount }
+export type { Band, BandTone, NoticePageState } from './notices-pure.js'
 
 const SEEN_KEY = 'replix_notice_seen_id'
 const BAND_KEY = 'replix_notice_band_dismissed'
 
-/** `failed` = 마지막 로드가 실패했는지(빈 목록과 구분해 C2 가 안내 문구를 고를 수 있게). */
-export type NoticeState = { items: Notice[] | null; seenId: number; dismissed: number[]; failed: boolean }
+/** `failed` = 마지막 로드가 실패했는지(빈 목록과 구분해 C2 가 안내 문구를 고를 수 있게).
+ *  `loading` = 지금 요청이 떠 있는지(in-flight). 실패 뒤 재시도 동안 items 는 빈 목록·failed 는 false 라
+ *  이 값이 없으면 화면이 "아직 공지가 없어요"를 거짓으로 보인다 — 그 구간을 구분하는 것이 이 필드의 목적이다. */
+export type NoticeState = { items: Notice[] | null; seenId: number; dismissed: number[]; failed: boolean; loading: boolean }
 
 let shared: Promise<Notice[]> | null = null // 헤더 링크·띠·공지 페이지가 한 번의 응답을 나눠 쓴다
 let loaded: Notice[] | null = null
 let failed = false
+let loading = false
 let snapshot: NoticeState | null = null
 const listeners = new Set<() => void>()
 
 /* useSyncExternalStore 는 렌더마다 같은 객체를 돌려받아야 한다(매번 새 배열을 만들면 무한 루프) —
    그래서 스냅샷을 한 번 만들어 두고, 목록·읽음·닫힘이 바뀔 때만 새로 만든다. */
 function getSnapshot(): NoticeState {
-  if (!snapshot) snapshot = { items: loaded, seenId: readSeenId(), dismissed: dismissedBands(), failed }
+  if (!snapshot) snapshot = { items: loaded, seenId: readSeenId(), dismissed: dismissedBands(), failed, loading }
   return snapshot
 }
 function notify() {
-  snapshot = { items: loaded, seenId: readSeenId(), dismissed: dismissedBands(), failed }
+  snapshot = { items: loaded, seenId: readSeenId(), dismissed: dismissedBands(), failed, loading }
   listeners.forEach((l) => l())
 }
 function subscribe(l: () => void) {
@@ -40,17 +43,19 @@ function subscribe(l: () => void) {
 /** 모듈 전역 1회 fetch. 실패하면 이전 캐시(없으면 빈 목록)로 상태를 확정해 알리고, 공유 캐시는 비운다 —
  *  화면은 '공지 없음'으로 떨어지고(로딩에 갇히지 않고), 다음 호출(새 마운트·라우트 전환)은 다시 시도한다.
  *  (SPA 라 실패를 그대로 캐시하면 새로고침 전까지 공지가 영영 안 뜬다.)
- *  재시도가 시작되면 failed 를 먼저 내린다 — 그대로 true 로 두면 공지 페이지가 응답이 오기 전까지
- *  "불러오지 못했어요"를 잠깐 보인다. 정말 실패하면 아래 catch 가 다시 올린다. */
+ *  재시도가 시작되면 failed 를 내리고 loading 을 올린다 — failed 를 true 로 두면 응답 전까지
+ *  "불러오지 못했어요"를 잠깐 보이고, loading 없이 내리기만 하면 그 사이 빈 목록이 '공지 0건'으로 읽힌다.
+ *  둘 다 필요하다: failed=false 로 실패 문구를 끄고, loading=true 로 '불러오는 중'임을 알린다. */
 export function fetchNotices(): Promise<Notice[]> {
   if (!shared) {
-    const wasFailed = failed
     failed = false
+    loading = true
     shared = api
       .notices(20)
       .then((r) => {
         loaded = r
         failed = false
+        loading = false
         notify()
         return r
       })
@@ -59,12 +64,14 @@ export function fetchNotices(): Promise<Notice[]> {
         const items = applyLoadFailure(loaded)
         loaded = items
         failed = true
+        loading = false
         shared = null // 캐시는 비워 다음 fetchNotices()(새 마운트·라우트 전환)가 재시도한다
         notify()
         return items
       })
-    /* shared 를 먼저 채운 뒤 알린다 — 구독자가 다시 렌더되며 fetchNotices() 를 재진입해도 no-op 이 되게. */
-    if (wasFailed) notify()
+    /* shared 를 먼저 채운 뒤 알린다 — 구독자가 다시 렌더되며 fetchNotices() 를 재진입해도 no-op 이 되게.
+       loading 이 false→true 로 바뀌었으므로 (첫 로드든 재시도든) 항상 알린다. */
+    notify()
   }
   return shared
 }

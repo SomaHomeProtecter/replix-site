@@ -3,7 +3,7 @@
    운영자가 공지에 넣은 linkUrl 을 그대로 연다 — 이 페이지와 확장 공지함은 같은 목록을 각자 보여 줄 뿐이다.
    목록·읽음 상태는 notices.ts 가 모듈 전역으로 한 번만 가져와 헤더 링크·띠와 나눠 쓴다. */
 import { useEffect, useState } from 'react'
-import { markSeen, readSeenId, useNotices } from '../notices'
+import { markSeen, noticePageState, readSeenId, useNotices } from '../notices'
 import type { Notice as NoticeRow } from '../api'
 
 /* 태그 문구는 확장·웹 공통(global-constraints): 공지 / 점검 / 장애. 점검색은 토큰에 없는 호박색 한 쌍이다
@@ -21,7 +21,10 @@ function fmt(iso: string | null) {
 }
 
 export default function Notice({ noticeId }: { noticeId: number | null }) {
-  const { items, failed } = useNotices()
+  const { items, failed, loading } = useNotices()
+  /* 어떤 안내 한 줄을 보일지는 순수 함수가 정한다(notices-pure.js) — React 밖에서 검사하려고(scripts/test-notices.mjs).
+     핵심은 loading: 첫 실패 뒤 재시도 동안은 items 가 빈 목록이라도 '공지 0건'이 아니라 '불러오는 중'이다. */
+  const view = noticePageState({ items, failed, loading, noticeId })
   /* NEW 배지의 기준선은 **페이지에 들어온 순간**의 읽음 값이다. 훅이 주는 seenId 를 쓰면 바로 아래
      markSeen 이 그 값을 올려 버려 배지가 한 프레임 만에 전부 사라진다 — "이번에 새로 올라온 것"을
      알려 주는 표시가 아무 일도 못 하게 된다. 마운트 때 한 번 읽어 이 방문 동안 고정한다. */
@@ -37,20 +40,18 @@ export default function Notice({ noticeId }: { noticeId: number | null }) {
       <p className="mb-6 text-[14px] text-muted">
         점검·업데이트·장애 소식을 모아 둡니다. 확장 패널의 공지함과 같은 내용이에요.
       </p>
-      {items === null && <p className="text-muted">불러오는 중…</p>}
+      {view === 'loading' && <p className="text-muted">불러오는 중…</p>}
       {/* #/notice/<id> 로 왔는데 그 공지가 목록에 없는 경우(90일 지나 내려갔거나 limit 밖) — 아무 표시도
           없으면 링크가 깨진 것처럼 보인다. 목록은 그대로 두고 왜 그 항목이 없는지만 한 줄로 알린다.
-          로드 실패(failed)일 때는 빼놓는다 — 그때 목록이 빈 것은 '내려갔기' 때문이 아니라 못 불러왔기
-          때문이고, 아래 실패 안내와 같이 나오면 서로 다른 말을 한다. */}
-      {items !== null && !failed && noticeId !== null && !items.some((n: NoticeRow) => n.id === noticeId) && (
+          목록이 비었을 때는 내지 않는다(아래 '아직 공지가 없어요'와 같이 나오면 서로 다른 말을 한다). */}
+      {view === 'missing' && (
         <p role="status" className="mb-4 text-[14px] text-muted">
           찾는 공지는 목록에서 내려갔어요. 아래는 최근 공지예요.
         </p>
       )}
       {/* 못 불러온 것과 아직 아무 공지도 없는 것은 다른 사실이다 — 섞어 쓰면 장애 중에 "공지 없음"이라고 거짓말한다. */}
-      {items && items.length === 0 && (
-        <p className="text-muted">{failed ? '공지를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.' : '아직 공지가 없어요.'}</p>
-      )}
+      {view === 'failed' && <p className="text-muted">공지를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.</p>}
+      {view === 'empty' && <p className="text-muted">아직 공지가 없어요.</p>}
       {items?.map((n: NoticeRow) => {
         const [label, cls] = KIND[n.kind] ?? KIND.NOTICE
         const isNew = n.id > seenAtEntry

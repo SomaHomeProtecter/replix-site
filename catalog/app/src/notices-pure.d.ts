@@ -8,3 +8,11 @@ export type Band = { notice: Notice; tone: BandTone }
 export function applyLoadFailure(prev: Notice[] | null): Notice[]
 export function unreadCount(items: Notice[], seenId: number): number
 export function pickBand(items: Notice[], seenId: number, dismissed: number[]): Band | null
+
+export type NoticePageState = 'loading' | 'failed' | 'empty' | 'missing' | 'list'
+export function noticePageState(input: {
+  items: Notice[] | null
+  failed: boolean
+  loading: boolean
+  noticeId: number | null
+}): NoticePageState

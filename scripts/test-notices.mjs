@@ -2,7 +2,7 @@
 // 규칙을 `catalog/app/src/notices-pure.js`(타입 없는 ESM)로 분리해 node 로 직접 돌린다.
 // 실행: node scripts/test-notices.mjs
 import assert from 'node:assert/strict';
-import { applyLoadFailure, unreadCount, pickBand } from '../catalog/app/src/notices-pure.js';
+import { applyLoadFailure, unreadCount, pickBand, noticePageState } from '../catalog/app/src/notices-pure.js';
 
 const N = (id, kind, endedAt = null) => ({
   id,
@@ -47,5 +47,22 @@ assert.equal(pickBand([N(5, 'NOTICE'), N(4, 'NOTICE')], 0, []).notice.id, 5);
 assert.deepEqual(applyLoadFailure(null), []);
 const cached = [N(4, 'NOTICE')];
 assert.equal(applyLoadFailure(cached), cached);
+
+// 공지 페이지가 보일 안내 한 줄 — 특히 '첫 실패 뒤 재시도 중'을 '공지 0건'과 구분한다.
+const page = (o) => noticePageState({ items: null, failed: false, loading: false, noticeId: null, ...o });
+// 첫 로드(아직 목록 없음) · 재시도 중(실패로 빈 목록이 됐지만 요청이 떠 있음) 둘 다 '불러오는 중'.
+assert.equal(page({ items: null, loading: true }), 'loading');
+assert.equal(page({ items: [], failed: false, loading: true }), 'loading');
+// 요청이 끝났을 때만 실패·0건을 구분해 말한다.
+assert.equal(page({ items: [], failed: true, loading: false }), 'failed');
+assert.equal(page({ items: [], failed: false, loading: false }), 'empty');
+// 재시도 중이라도 이전 성공 목록이 있으면 목록만 보이고 문구는 없다.
+assert.equal(page({ items: [N(4, 'NOTICE')], loading: true, noticeId: 9 }), 'list');
+// #/notice/<id> 인데 그 공지가 목록에 없으면 안내 — 단 목록이 있을 때만(0건이면 'empty' 한 줄로 끝낸다).
+assert.equal(page({ items: [N(4, 'NOTICE')], noticeId: 9 }), 'missing');
+assert.equal(page({ items: [], noticeId: 9 }), 'empty');
+assert.equal(page({ items: [N(4, 'NOTICE')], noticeId: 4 }), 'list');
+// 로드 실패로 목록이 부족한 것은 '내려가서'가 아니다 — 그때는 안내하지 않는다.
+assert.equal(page({ items: [N(4, 'NOTICE')], failed: true, noticeId: 9 }), 'list');
 
 console.log('scripts/test-notices.mjs: 통과');
