@@ -39,9 +39,13 @@ function subscribe(l: () => void) {
 
 /** 모듈 전역 1회 fetch. 실패하면 이전 캐시(없으면 빈 목록)로 상태를 확정해 알리고, 공유 캐시는 비운다 —
  *  화면은 '공지 없음'으로 떨어지고(로딩에 갇히지 않고), 다음 호출(새 마운트·라우트 전환)은 다시 시도한다.
- *  (SPA 라 실패를 그대로 캐시하면 새로고침 전까지 공지가 영영 안 뜬다.) */
+ *  (SPA 라 실패를 그대로 캐시하면 새로고침 전까지 공지가 영영 안 뜬다.)
+ *  재시도가 시작되면 failed 를 먼저 내린다 — 그대로 true 로 두면 공지 페이지가 응답이 오기 전까지
+ *  "불러오지 못했어요"를 잠깐 보인다. 정말 실패하면 아래 catch 가 다시 올린다. */
 export function fetchNotices(): Promise<Notice[]> {
   if (!shared) {
+    const wasFailed = failed
+    failed = false
     shared = api
       .notices(20)
       .then((r) => {
@@ -59,6 +63,8 @@ export function fetchNotices(): Promise<Notice[]> {
         notify()
         return items
       })
+    /* shared 를 먼저 채운 뒤 알린다 — 구독자가 다시 렌더되며 fetchNotices() 를 재진입해도 no-op 이 되게. */
+    if (wasFailed) notify()
   }
   return shared
 }

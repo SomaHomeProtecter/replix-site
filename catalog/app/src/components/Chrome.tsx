@@ -5,7 +5,7 @@ import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
 import { noticeHref, titleHref } from '../App'
 import { engaged } from '../analytics'
 import { login, logout, useAuth } from '../auth'
-import { dismissBand, markSeen, pickBand, unreadCount, useNotices } from '../notices'
+import { dismissBand, pickBand, unreadCount, useNotices } from '../notices'
 
 /* 공개 카탈로그의 실제 목적지만 둔다. 같은 곳으로 가는 메뉴 두 개나 알림 같은 빈 약속은 두지 않는다.
    로그인은 2026-09-14부터 있다(작품 댓글·별점, HP-124) — 개인화가 아니라 쓰기 권한이다. 화면은 여전히 누구에게나 같다. */
@@ -109,8 +109,9 @@ export function NoticeBand() {
           type="button"
           onClick={() => {
             engaged('notice', 'band_dismissed', { kind: notice.kind })
-            // 일반 공지 띠는 '안 읽음'이 근거이므로 닫는 것이 곧 읽음이다. 점검·장애는 끝나야 사라진다.
-            if (tone === 'notice') markSeen([notice])
+            /* 닫기는 '이 띠만' 접는다 — 읽음은 올리지 않는다. 읽음 워터마크는 목록 최대 id 하나라서
+               여기서 markSeen([notice]) 을 하면 그 공지보다 id 가 낮은 안 읽은 공지까지 읽음이 된다.
+               읽음 처리는 공지 페이지를 실제로 열었을 때만 하고, 띠는 다음 안 읽은 공지로 넘어간다. */
             dismissBand(notice.id)
           }}
           className="opacity-70 hover:opacity-100"
