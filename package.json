@@ -4,6 +4,6 @@
   "type": "module",
   "description": "replix.tv 정적 웹 표면. 빌드는 없고(카탈로그 앱만 예외 — catalog/app), 이 package.json 은 node 검사 스크립트를 한 번에 돌리기 위한 것이다.",
   "scripts": {
-    "check": "node scripts/test-analytics.mjs && node scripts/test-runtime-policy.mjs && node scripts/test-notices.mjs"
+    "check": "node scripts/test-analytics.mjs && node scripts/test-runtime-policy.mjs && node scripts/test-notices.mjs && node scripts/test-feedback.mjs"
   }
 }

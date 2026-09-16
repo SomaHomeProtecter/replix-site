@@ -165,6 +165,21 @@ export type Comment = {
 export type CommentPage = { items: Comment[]; hasMore: boolean; rating: Rating }
 export type CommentSort = 'recent' | 'top'
 
+/* ── 피드백(HP-426) — 세 레포(BE·확장·웹) 공통 계약, 비로그인도 보낼 수 있다(Authorization 있으면 user_id 연결).
+   이 화면(웹, 카탈로그)은 특정 회차 위에서 뜨지 않으므로 contentId·episodeId·appVersion·platform 은 항상 null(feedback-pure.js). */
+export type FeedbackCategory = 'ANNOY' | 'BUG' | 'IDEA' | 'PRAISE'
+export type FeedbackCreate = {
+  surface: 'EXT' | 'WEB'
+  score: number | null
+  category: FeedbackCategory | null
+  body: string | null
+  appVersion: string | null
+  platform: string | null
+  contentId: number | null
+  episodeId: number | null
+  trigger: 'PROMPT' | 'MANUAL'
+}
+
 /* ── 호출 ─────────────────────────────────────────────────── */
 
 async function get<T>(path: string, auth = false): Promise<T> {
@@ -175,13 +190,20 @@ async function get<T>(path: string, auth = false): Promise<T> {
   return (await res.json()) as T
 }
 
-/** 로그인 필수 요청. 토큰이 없으면 401 로 취급해 호출자가 로그인 안내를 띄운다. */
-async function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
+/** 로그인 필수 요청. 토큰이 없으면 401 로 취급해 호출자가 로그인 안내를 띄운다.
+ *  `optionalAuth` 는 그 규칙을 끄는 요청용이다 — 피드백(HP-426)은 **비로그인도 보낼 수 있어야 하고**(서버 계약:
+ *  Authorization 이 있으면 user_id 를 붙이고 없으면 NULL), 로그인 안내로 막으면 로그인 안 한 사람의 의견이 사라진다.
+ *  이때는 토큰이 있으면 붙이고 없으면 그대로 보낸다. */
+async function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown, opts: { optionalAuth?: boolean } = {}): Promise<T> {
   const t = await accessToken()
-  if (!t) throw new ApiError(401, path)
+  if (!t && !opts.optionalAuth) throw new ApiError(401, path)
   const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: { Accept: 'application/json', Authorization: `Bearer ${t}`, ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+    headers: {
+      Accept: 'application/json',
+      ...(t ? { Authorization: `Bearer ${t}` } : {}),
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!res.ok) {
@@ -235,6 +257,8 @@ export const api = {
   deleteComment: (commentId: number) => send<void>('DELETE', `/api/v1/comments/${commentId}`),
   likeComment: (commentId: number, on: boolean) =>
     send<{ commentId: number; likeCount: number; liked: boolean }>(on ? 'PUT' : 'DELETE', `/api/v1/comments/${commentId}/like`),
+
+  sendFeedback: (body: FeedbackCreate) => send<{ id: number }>('POST', '/api/v1/feedback', body, { optionalAuth: true }),
 }
 
 /* ── 화면 공용 계산 ────────────────────────────────────────── */

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { api, type ContentSearchItem } from '../api'
 import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
@@ -6,6 +6,7 @@ import { noticeHref, titleHref } from '../App'
 import { engaged } from '../analytics'
 import { login, logout, useAuth } from '../auth'
 import { dismissBand, pickBand, unreadCount, useNotices } from '../notices'
+import { FeedbackModal } from './FeedbackModal'
 
 /* 공개 카탈로그의 실제 목적지만 둔다. 같은 곳으로 가는 메뉴 두 개나 알림 같은 빈 약속은 두지 않는다.
    로그인은 2026-09-14부터 있다(작품 댓글·별점, HP-124) — 개인화가 아니라 쓰기 권한이다. 화면은 여전히 누구에게나 같다. */
@@ -216,6 +217,11 @@ export function DraftBanner() {
 }
 
 export function Footer() {
+  /* 피드백(HP-426)은 헤더가 아니라 여기서만 연다 — 새 아이콘을 두지 않는다(HP-425 결정 3).
+     열림 상태는 이 푸터의 지역 상태다(라우트·해시를 새로 만들지 않는다). 닫으면 포커스를 연 버튼으로 되돌린다. */
+  const [feedback, setFeedback] = useState(false)
+  const feedbackBtn = useRef<HTMLButtonElement>(null)
+  const closeFeedback = useCallback(() => { setFeedback(false); feedbackBtn.current?.focus() }, [])
   return (
     <footer className="border-t border-line">
       <div className="wrap py-8">
@@ -228,6 +234,7 @@ export function Footer() {
               <li><a href="#/ranking" className="hover:text-ink">많이 본 작품</a></li>
               <li><a href="#/hot" className="hover:text-ink">뜨거운 순간</a></li>
               <li><a href={noticeHref()} className="hover:text-ink" onClick={() => engaged('notice', 'opened', { source: 'footer' })}>공지</a></li>
+              <li><button ref={feedbackBtn} type="button" onClick={() => setFeedback(true)} className="cursor-pointer hover:text-ink">피드백 보내기</button></li>
               <li><a href="/" className="hover:text-ink">Replix 홈</a></li>
             </ul>
             <ul className="space-y-1.5 text-muted">
@@ -245,6 +252,7 @@ export function Footer() {
           endorsed, certified, or otherwise approved by TMDB.
         </p>
       </div>
+      <FeedbackModal open={feedback} onClose={closeFeedback} />
     </footer>
   )
 }
