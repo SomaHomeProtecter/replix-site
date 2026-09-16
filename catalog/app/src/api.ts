@@ -165,6 +165,21 @@ export type Comment = {
 export type CommentPage = { items: Comment[]; hasMore: boolean; rating: Rating }
 export type CommentSort = 'recent' | 'top'
 
+/* ── 피드백(HP-426) — 세 레포(BE·확장·웹) 공통 계약, 비로그인도 보낼 수 있다(Authorization 있으면 user_id 연결).
+   이 화면(웹, 카탈로그)은 특정 회차 위에서 뜨지 않으므로 contentId·episodeId·appVersion·platform 은 항상 null(feedback-pure.js). */
+export type FeedbackCategory = 'ANNOY' | 'BUG' | 'IDEA' | 'PRAISE'
+export type FeedbackCreate = {
+  surface: 'EXT' | 'WEB'
+  score: number | null
+  category: FeedbackCategory | null
+  body: string | null
+  appVersion: string | null
+  platform: string | null
+  contentId: number | null
+  episodeId: number | null
+  trigger: 'PROMPT' | 'MANUAL'
+}
+
 /* ── 호출 ─────────────────────────────────────────────────── */
 
 async function get<T>(path: string, auth = false): Promise<T> {
@@ -190,6 +205,22 @@ async function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: u
     throw new ApiError(res.status, path, code)
   }
   if (res.status === 204) return undefined as T
+  return (await res.json()) as T
+}
+
+/** 로그인 여부와 무관하게 보내는 POST(비로그인 피드백 등). 토큰이 있으면 붙이고 없어도 그대로 보낸다 — send() 와 달리 401 로 막지 않는다. */
+async function postPublic<T>(path: string, body: unknown): Promise<T> {
+  const t = await accessToken()
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    let code: string | undefined
+    try { code = ((await res.json()) as { code?: string }).code } catch { /* 본문 없음 */ }
+    throw new ApiError(res.status, path, code)
+  }
   return (await res.json()) as T
 }
 
@@ -235,6 +266,8 @@ export const api = {
   deleteComment: (commentId: number) => send<void>('DELETE', `/api/v1/comments/${commentId}`),
   likeComment: (commentId: number, on: boolean) =>
     send<{ commentId: number; likeCount: number; liked: boolean }>(on ? 'PUT' : 'DELETE', `/api/v1/comments/${commentId}/like`),
+
+  sendFeedback: (body: FeedbackCreate) => postPublic<{ id: number }>('/api/v1/feedback', body),
 }
 
 /* ── 화면 공용 계산 ────────────────────────────────────────── */
