@@ -133,6 +133,20 @@ export type CatalogContent = {
 }
 export type CatalogEpisodeDetail = { episodeId: number; bucketSeconds: number; durationSec: number; moments: Moment[]; bars: number[] }
 
+/* ── 공지(HP-425) — 공개(비로그인), 최신순(startsAt desc). 종료된 점검·장애는 endedAt 이 채워진다.
+   목록엔 진행 중인 것 + 끝난 지 90일 이내인 것만 실린다(BE). */
+export type NoticeKind = 'NOTICE' | 'MAINTENANCE' | 'INCIDENT'
+export type Notice = {
+  id: number
+  kind: NoticeKind
+  title: string
+  message: string
+  startsAt: string | null
+  endsAt: string | null
+  endedAt: string | null
+  linkUrl: string | null
+}
+
 /* ── 작품 댓글(별점) ── */
 export type Comment = {
   id: number
@@ -203,6 +217,8 @@ export const api = {
   catalogHome: (window: Window) => get<CatalogHome>(`/api/v1/catalog/home?window=${window}`),
   catalogContent: (contentId: number) => get<CatalogContent>(`/api/v1/catalog/contents/${contentId}`),
   catalogEpisode: (episodeId: number) => get<CatalogEpisodeDetail>(`/api/v1/catalog/episodes/${episodeId}`),
+
+  notices: (limit = 20) => get<Notice[]>(`/api/v1/notices?limit=${limit}`),
 
   comments: (contentId: number, sort: CommentSort, offset = 0, limit = 20) =>
     get<CommentPage>(`/api/v1/contents/${contentId}/comments?sort=${sort}&offset=${offset}&limit=${limit}`, true),

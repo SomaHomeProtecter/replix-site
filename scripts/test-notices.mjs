@@ -1,0 +1,68 @@
+// scripts/test-notices.mjs — 공지 표시 규칙(HP-425)의 순수 함수 검사. 카탈로그 앱엔 테스트 러너가 없어
+// 규칙을 `catalog/app/src/notices-pure.js`(타입 없는 ESM)로 분리해 node 로 직접 돌린다.
+// 실행: node scripts/test-notices.mjs
+import assert from 'node:assert/strict';
+import { applyLoadFailure, unreadCount, pickBand, noticePageState } from '../catalog/app/src/notices-pure.js';
+
+const N = (id, kind, endedAt = null) => ({
+  id,
+  kind,
+  title: 't' + id,
+  message: 'm',
+  startsAt: '2026-09-' + (10 + id) + 'T00:00:00Z',
+  endsAt: null,
+  endedAt,
+  linkUrl: null,
+});
+
+// 안 읽은 수 = id 가 마지막으로 읽은 id 보다 큰 것들.
+assert.equal(unreadCount([N(4, 'NOTICE'), N(3, 'MAINTENANCE')], 3), 1);
+assert.equal(unreadCount([N(4, 'NOTICE'), N(3, 'MAINTENANCE')], 0), 2);
+assert.equal(unreadCount([], 0), 0);
+// 목록 순서와 무관하게 id 로만 센다(읽은 것 사이에 안 읽은 것이 끼어도).
+assert.equal(unreadCount([N(2, 'NOTICE'), N(7, 'INCIDENT'), N(1, 'NOTICE'), N(5, 'MAINTENANCE')], 4), 2);
+
+// 띠 — 종료되지 않은 점검·장애가 일반 공지보다 우선한다.
+assert.equal(pickBand([N(4, 'NOTICE'), N(3, 'MAINTENANCE')], 0, []).notice.id, 3);
+assert.equal(pickBand([N(4, 'NOTICE'), N(3, 'MAINTENANCE')], 0, []).tone, 'maint');
+assert.equal(pickBand([N(4, 'NOTICE'), N(3, 'INCIDENT')], 0, []).tone, 'incident');
+
+// 점검을 닫으면 그 다음은 안 읽은 일반 공지.
+assert.equal(pickBand([N(4, 'NOTICE'), N(3, 'MAINTENANCE')], 0, [3]).notice.id, 4);
+assert.equal(pickBand([N(4, 'NOTICE'), N(3, 'MAINTENANCE')], 0, [3]).tone, 'notice');
+
+// 다 읽었으면 띠 없음 · 해결된(endedAt 있는) 장애도 띠가 아니다.
+assert.equal(pickBand([N(4, 'NOTICE')], 4, []), null);
+assert.equal(pickBand([N(1, 'INCIDENT', '2026-09-09T01:00:00Z')], 0, []), null);
+
+// 닫은 일반 공지는 다시 뜨지 않는다(같은 세션).
+assert.equal(pickBand([N(4, 'NOTICE')], 0, [4]), null);
+
+// 후보가 여럿이면 최신 1건 — 서버가 startsAt 내림차순으로 주므로 목록 앞쪽이 최신이다.
+assert.equal(pickBand([N(5, 'MAINTENANCE'), N(3, 'MAINTENANCE')], 0, []).notice.id, 5);
+assert.equal(pickBand([N(5, 'NOTICE'), N(4, 'NOTICE')], 0, []).notice.id, 5);
+
+// 로드 실패 — 아직 한 번도 못 받았으면 빈 목록(화면이 '불러오는 중'에 갇히지 않게),
+// 이전에 성공한 캐시가 있으면 그 캐시를 그대로 유지한다.
+assert.deepEqual(applyLoadFailure(null), []);
+const cached = [N(4, 'NOTICE')];
+assert.equal(applyLoadFailure(cached), cached);
+
+// 공지 페이지가 보일 안내 한 줄 — 특히 '첫 실패 뒤 재시도 중'을 '공지 0건'과 구분한다.
+const page = (o) => noticePageState({ items: null, failed: false, loading: false, noticeId: null, ...o });
+// 첫 로드(아직 목록 없음) · 재시도 중(실패로 빈 목록이 됐지만 요청이 떠 있음) 둘 다 '불러오는 중'.
+assert.equal(page({ items: null, loading: true }), 'loading');
+assert.equal(page({ items: [], failed: false, loading: true }), 'loading');
+// 요청이 끝났을 때만 실패·0건을 구분해 말한다.
+assert.equal(page({ items: [], failed: true, loading: false }), 'failed');
+assert.equal(page({ items: [], failed: false, loading: false }), 'empty');
+// 재시도 중이라도 이전 성공 목록이 있으면 목록만 보이고 문구는 없다.
+assert.equal(page({ items: [N(4, 'NOTICE')], loading: true, noticeId: 9 }), 'list');
+// #/notice/<id> 인데 그 공지가 목록에 없으면 안내 — 단 목록이 있을 때만(0건이면 'empty' 한 줄로 끝낸다).
+assert.equal(page({ items: [N(4, 'NOTICE')], noticeId: 9 }), 'missing');
+assert.equal(page({ items: [], noticeId: 9 }), 'empty');
+assert.equal(page({ items: [N(4, 'NOTICE')], noticeId: 4 }), 'list');
+// 로드 실패로 목록이 부족한 것은 '내려가서'가 아니다 — 그때는 안내하지 않는다.
+assert.equal(page({ items: [N(4, 'NOTICE')], failed: true, noticeId: 9 }), 'list');
+
+console.log('scripts/test-notices.mjs: 통과');
