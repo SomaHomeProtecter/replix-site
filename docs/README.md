@@ -6,9 +6,8 @@ Pages가 지원하는 두 소스 위치 중 하나이기 때문이다(레포 루
 
 **2026-08-06부터 `replix.tv`가 이 폴더를 실제로 서빙한다** — `main` push가 곧 배포다.
 문구는 여전히 초안이다(담당자 직접 작성, 확정 전 override로 먼저 공개됨). 고칠 땐
-로컬(`python3 -m http.server`)에서 먼저 확인하고, `main`에 머지하면 `replix.tv`와
-팀 리뷰용 미리보기(`https://landing.replix-dev.site`)가 함께 갱신된다(레포 루트
-README '배포 구조' 참조).
+로컬(`python3 -m http.server`)에서 먼저 확인하고, `main`에 머지하면 `replix.tv`가
+갱신된다(레포 루트 README '배포 구조' 참조).
 
 ## 열어 보기
 
@@ -67,8 +66,7 @@ python3 -m http.server 8000     # http://localhost:8000
   숨고, '많이 본 작품'은 모자란 자리에 "데이터 없음"을 보여준다 — 둘 다 대체 콘텐츠로
   메우지 않는다. 상세는 아래 '실데이터 연동' 참조.
 - **`meta robots noindex` 는 이미 제거됐다**(2026-08-06, 실공개와 함께) — `index.html`에
-  다시 넣지 말 것. 임시 미리보기 nginx만 `X-Robots-Tag`로 따로 검색을 막는다
-  (`../nginx.conf`, 검토용 표면이라 계속 유지).
+  다시 넣지 말 것.
 
 ### 시뮬레이션을 만지는 자리
 
@@ -114,14 +112,4 @@ specificity라 뒤에 로드된 쪽이 이긴다. 이런 요소를 스크립트�
 
 ## 배포 — 상세는 레포 루트 README '배포 구조'
 
-이 폴더는 두 곳에 동시에 나간다. **둘 다 `main` push 로 자동 갱신된다**(2026-08-06부터).
-
-- **실제 공개(`replix.tv`)** — GitHub Pages 소스가 이 폴더다.
-- **팀 리뷰용 미리보기(`landing.replix-dev.site`)** — `.github/workflows/deploy-preview-on-main.yml`이 같은 커밋을 EKS dev에도 올린다. 클러스터에 어떻게 뜨는지(Deployment·Service·Ingress)는 **Replix-be 레포 `k8s/base/landing.yaml` · `k8s/overlays/dev/ingress.yaml`** 에 있다.
-
-`main`에 아직 안 올라간 브랜치를 미리 보고 싶을 때는 `scripts/deploy-dev.sh`로 지금 체크아웃된 걸 직접 미리보기에 올릴 수 있다(자동 배포를 일시적으로 덮어씀 — 다음 `main` push 때 자동으로 다시 덮인다).
-
-```bash
-bash scripts/deploy-dev.sh          # 새 태그로 빌드·배포(수동, 임시)
-bash scripts/deploy-dev.sh <태그>    # ECR 의 기존 태그로 롤백
-```
+이 폴더가 GitHub Pages 소스다. **`main` push 로 `replix.tv`가 자동 갱신된다**(2026-08-06부터). 머지 전 확인은 로컬(`python3 -m http.server`)로 한다 — 팀 리뷰용 미리보기(`landing.replix-dev.site`)는 2026-09-20 없앴다(HP-433).
