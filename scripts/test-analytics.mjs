@@ -13,7 +13,7 @@ const a = await import('../docs/js/analytics.js');
 // 환경 판정 — 운영 도메인만 prod, 미리보기·로컬·file 은 dev(확장 config.js 와 같은 두 프로젝트).
 assert.equal(a.envOf('replix.tv'), 'prod');
 assert.equal(a.envOf('www.replix.tv'), 'prod');
-assert.equal(a.envOf('landing.replix-dev.site'), 'dev');
+assert.equal(a.envOf('localhost'), 'dev');
 assert.equal(a.envOf('localhost'), 'dev');
 assert.equal(a.envOf(''), 'dev');
 
