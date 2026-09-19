@@ -5,6 +5,7 @@ Replix의 정적 웹 표면. GitHub Pages로 `https://replix.tv`에 서빙된다
 | 경로 | 현재 | 계획 |
 | --- | --- | --- |
 | `/catalog/` | **작품 탐색 페이지(HP-124, 내부 명칭 catalog — 2026-09-07 '큐레이션'에서 개명, 옛 경로 `/curation/`은 폐기)** — 실제 시청·채팅 기록을 작품 → 회차 → 순간으로 펼치는 참조 카탈로그. 소스 = `catalog/app`(Vite+React), 산출물 = `docs/catalog/index.html` 한 장(빌드해서 커밋). 대상 API 는 `catalog/app/index.html` 의 `<meta name="api-base">` |
+| `/seeding/` | **관리자용 시딩 도구**(HP-435) — 작품·회차 선택 → 커뮤니티 수집(디시·더쿠) 실행·진행·결과·JSON 저장. 관리자 롤 로그인 필수, `noindex`. 소스 `seeding/app`, 산출물 `docs/seeding/index.html` |
 | `/` | 자리 지킴(워드마크) | **HP-87 랜딩 페이지**(소개·설치 CTA — 문구는 담당자 직접 작성 규칙). 작업본은 `docs/`에 있다 — 확정되면 아래 '배포 구조'대로 전환만 하면 된다 |
 | `/invite` | **HP-186 초대 스텁**(C안) — `?w=<넷플릭스 watch id>&t=<초대 토큰>`을 받아 `netflix.com/watch/<w>#replix-invite=<t>`로 이동 | 랜딩형 초대 페이지로 교체(설치 CTA + "넷플릭스에서 열기") — **URL·파라미터 계약 불변** |
 
@@ -29,6 +30,12 @@ Replix의 정적 웹 표면. GitHub Pages로 `https://replix.tv`에 서빙된다
 **`replix.tv`가 부르는 API는 아직 dev(`api.replix-dev.site`)다.** 분리하지 않은 이유는 실제 prod 백엔드가 아직 없기 때문이다(운영 EC2 정지, `PROD_DEPLOY_ENABLED=false` — HP-215). prod 백엔드가 실제로 뜨면 그때 `docs/index.html`의 `api-base`를 환경별로 나누는 걸 다시 볼 것(백로그 **HP-280**).
 
 이후로는 별도 승격·복사 단계가 없다 — `docs/`가 계속 유일한 작업 위치이자 배포 소스다.
+
+**같은 방식 = 시딩 도구(`/seeding/`).** 소스 `seeding/app`, 산출물 `docs/seeding/index.html`. `cd seeding/app && npm install && npm run build`
+로 빌드해 커밋한다. 이 페이지는 **주소로 서버를 고른다**(`seeding/app/src/env.ts`) — `replix.tv` 면 운영(`api.replix.tv`·`auth.replix.tv`),
+그 외(localhost:5175 등)면 개발 서버. 운영 데이터를 쓰는 도구라 메타·빌드 인자로 바꿀 수 없게 했다. Keycloak `replix-web` 의
+redirect URI 에 `https://replix.tv/seeding/*` 와 `http://localhost:5175/*` 가 있어야 로그인이 된다. 서버 API 는 Replix-be
+`/api/v1/admin/seeding/**`(HP-434).
 
 **예외 = 작품 탐색(`/catalog/`).** 이 표면만 React 앱이라 소스는 `catalog/app`, 배포물은
 `docs/catalog/index.html` 한 장이다(`vite-plugin-singlefile`). 고치면 `cd catalog/app && npm install && npm run preview:file`
