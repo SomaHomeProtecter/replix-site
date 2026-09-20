@@ -22,6 +22,8 @@ export type Post = {
   id: number; source: SourceKind; sourcePostId: string; postedAt: string; precision: 'SECOND' | 'MINUTE'
   title: string; body: string | null; authorToken: string; sourceUrl: string | null
 }
+export type DensityBucket = { at: string; count: number }
+export type Density = { from: string; to: string; bucketMinutes: number; buckets: DensityBucket[]; suggestedStartAt: string | null; suggestedEndAt: string | null; note: string }
 export type PostsPage = { items: Post[]; nextCursor: number | null; countBySource: Partial<Record<SourceKind, number>> }
 
 export class ApiError extends Error {
@@ -66,6 +68,7 @@ export const api = {
     q.set('size', String(opts.size ?? 100))
     return call<PostsPage>('GET', `/api/v1/admin/seeding/collections/${id}/posts?${q}`)
   },
+  density: (id: number) => call<Density>('GET', `/api/v1/admin/seeding/collections/${id}/density`),
   cancel: (id: number) => call<Collection>('POST', `/api/v1/admin/seeding/collections/${id}/cancel`),
   remove: (id: number) => call<void>('DELETE', `/api/v1/admin/seeding/collections/${id}`),
   /* 내보내기는 Authorization 이 필요해 <a href> 로 못 연다 — 받아서 blob 링크로 저장한다. */
