@@ -259,7 +259,9 @@ function CollectionDetail({ collection: c, episode, writable, reload, onError, o
   const [anchor, setAnchor] = useState<Anchor>({ from: null, order: 'asc' })
   const [timeText, setTimeText] = useState('')
   const [busy, setBusy] = useState(false)
+  const [view, setView] = useState<{ from: string; to: string } | null>(null) // 지금 화면에 보이는 글의 시각 범위
   const listRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef(0)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const finished = c.status === 'DONE' || c.status === 'FAILED' || c.status === 'CANCELLED'
@@ -287,6 +289,28 @@ function CollectionDetail({ collection: c, episode, writable, reload, onError, o
     io.observe(el)
     return () => io.disconnect()
   }, [c.id, source, anchor.order, page, onError])
+
+  // 스크롤할 때마다 화면에 보이는 첫 행·끝 행의 시각을 읽어 그래프에 넘긴다. 행마다 data-at 을 달아 두고
+  // offsetTop 으로 이진 탐색하므로 수천 행이어도 스크롤당 계산은 log n 이다. rAF 로 프레임당 한 번만 계산한다.
+  const trackView = () => {
+    cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(() => {
+      const root = listRef.current
+      if (!root) return
+      const rows = Array.from(root.querySelectorAll<HTMLTableRowElement>('tbody tr[data-at]'))
+      if (rows.length === 0) { setView(null); return }
+      const top = root.scrollTop, bottom = top + root.clientHeight
+      let lo = 0, hi = rows.length - 1
+      while (lo < hi) { const mid = (lo + hi) >>> 1; if (rows[mid].offsetTop + rows[mid].offsetHeight < top) lo = mid + 1; else hi = mid }
+      const first = lo
+      lo = first; hi = rows.length - 1
+      while (lo < hi) { const mid = (lo + hi + 1) >>> 1; if (rows[mid].offsetTop < bottom) lo = mid; else hi = mid - 1 }
+      const a = rows[first].dataset.at!, b = rows[lo].dataset.at!
+      setView(a <= b ? { from: a, to: b } : { from: b, to: a })
+    })
+  }
+  useEffect(() => { trackView() }, [items]) // 새로 불러온 뒤에도 갱신
+  useEffect(() => () => cancelAnimationFrame(rafRef.current), [])
 
   const jumpTo = (iso: string) => setAnchor({ from: iso, order: 'asc' })
   // HH:mm → 방영일 KST 의 그 시각. 수집 구간 시작보다 이르면(자정을 넘긴 시각) 다음날로 본다.
@@ -322,7 +346,7 @@ function CollectionDetail({ collection: c, episode, writable, reload, onError, o
           </div>
         )}
       </div>
-      {finished && c.postCount > 0 && <DensityPanel collection={c} episode={episode} writable={writable} onError={onError} onEpisodeChanged={onEpisodeChanged} onJump={jumpTo} />}
+      {finished && c.postCount > 0 && <DensityPanel collection={c} episode={episode} writable={writable} onError={onError} onEpisodeChanged={onEpisodeChanged} onJump={jumpTo} view={view} />}
       {page && c.postCount > 0 && (
         <div className="px-4 py-2 border-t border-line flex flex-wrap items-center gap-2 text-xs">
           <button className="btn h-6 px-2 text-[11px]" disabled={anchor.from === null && anchor.order === 'asc'} onClick={() => setAnchor({ from: null, order: 'asc' })}>처음</button>
@@ -336,12 +360,12 @@ function CollectionDetail({ collection: c, episode, writable, reload, onError, o
           </span>
         </div>
       )}
-      <div ref={listRef} className="max-h-[520px] overflow-auto border-t border-line">
+      <div ref={listRef} onScroll={trackView} className="max-h-[520px] overflow-auto border-t border-line">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-soft text-[11px] text-muted"><tr><th className="text-left px-3 py-1.5 font-medium">시각(KST)</th><th className="text-left px-2 py-1.5 font-medium">출처</th><th className="text-left px-2 py-1.5 font-medium">제목</th><th className="text-left px-2 py-1.5 font-medium">작성자</th></tr></thead>
           <tbody>
             {items.map((p) => (
-              <tr key={p.id} className="border-t border-line align-top">
+              <tr key={p.id} data-at={p.postedAt} className="border-t border-line align-top">
                 <td className="px-3 py-1.5 mono text-xs whitespace-nowrap text-ink2">{fmtKst(p.postedAt, p.precision === 'MINUTE' ? { second: undefined } : {})}{p.precision === 'MINUTE' && <span className="text-faint"> ±분</span>}</td>
                 <td className="px-2 py-1.5 text-xs text-muted whitespace-nowrap">{SOURCE_LABEL[p.source]}</td>
                 <td className="px-2 py-1.5">{p.sourceUrl ? <a href={p.sourceUrl} target="_blank" rel="noreferrer" className="hover:underline">{p.title}</a> : p.title}{p.body && <div className="text-xs text-muted mt-0.5 line-clamp-2">{p.body}</div>}</td>
@@ -359,7 +383,7 @@ function CollectionDetail({ collection: c, episode, writable, reload, onError, o
 
 /* 분당 밀도 그래프 + 시작·종료 제안(HP-434 후속). 제안은 자동 반영하지 않는다 — 이 값이 벽시계→재생시각 환산의
    기준이라, 사람이 그래프를 보고 "적용"을 눌러야 회차에 저장된다. */
-function DensityPanel({ collection: c, episode, writable, onError, onEpisodeChanged, onJump }: { collection: Collection; episode: Episode; writable: boolean; onError: (m: string) => void; onEpisodeChanged: () => void; onJump: (iso: string) => void }) {
+function DensityPanel({ collection: c, episode, writable, onError, onEpisodeChanged, onJump, view }: { collection: Collection; episode: Episode; writable: boolean; onError: (m: string) => void; onEpisodeChanged: () => void; onJump: (iso: string) => void; view: { from: string; to: string } | null }) {
   const [d, setD] = useState<Density | null>(null)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
@@ -388,11 +412,14 @@ function DensityPanel({ collection: c, episode, writable, onError, onEpisodeChan
       <div className="flex items-center gap-3 text-xs">
         <span className="font-semibold tracking-widest text-muted">분당 글 수</span>
         <span className="text-faint">{fmtKst(d.from, { second: undefined })} ~ {fmtKst(d.to, { second: undefined })} · 최대 {max}건/분 · 막대를 누르면 그 분의 글로 이동</span>
+        {view && <span className="mono text-[11px] px-1.5 rounded" style={{ background: '#e0a12633', color: '#8a6508' }}>보는 중 {fmtKst(view.from, { second: undefined })} ~ {fmtKst(view.to, { second: undefined })}</span>}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-24 bg-soft rounded" preserveAspectRatio="none">
         {d.buckets.map((b, i) => <rect key={i} x={i / Math.max(1, n - 1) * W} y={H - (b.count / max) * H} width={Math.max(1, W / n)} height={(b.count / max) * H} fill="#9db4ff" />)}
         {/* 클릭 영역: 막대가 얇아 누르기 어려우므로 분마다 세로 전체를 덮는 투명 사각형을 둔다 */}
         {d.buckets.map((b, i) => <rect key={`h${i}`} x={i / Math.max(1, n - 1) * W} y={0} width={Math.max(1, W / n)} height={H} fill="transparent" className="cursor-pointer hover:fill-[#2f6da833]" onClick={() => onJump(b.at)}><title>{fmtKst(b.at, { second: undefined })} · {b.count}건</title></rect>)}
+        {/* 목록에서 지금 보고 있는 글들의 시각 범위. 한 화면이 1분 안에 들어가도 보이도록 최소 폭을 준다 */}
+        {view && <rect x={Math.min(x(view.from), W - 3)} y={0} width={Math.max(3, x(view.to) - x(view.from))} height={H} fill="#e0a12655" stroke="#b8860b" strokeWidth={1} pointerEvents="none" />}
         <Marker iso={episode.airStartAt} color="#2f6da8" label="시작(저장)" />
         <Marker iso={episode.airEndAt} color="#2f6da8" label="종료(저장)" />
         <Marker iso={d.suggestedStartAt} color="#b03030" label="시작 제안" />
