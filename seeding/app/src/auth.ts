@@ -19,6 +19,7 @@ let kc: Keycloak | null = null
 let ready = false
 let user: AuthUser | null = null
 let initPromise: Promise<void> | null = null
+let initialized = false // k.init() 을 실제로 호출했는가 — initPromise 가 resolve 돼도 init 은 안 했을 수 있다
 
 function emit() { listeners.forEach((l) => l()) }
 
@@ -47,6 +48,7 @@ export function initAuth(): Promise<void> {
   const k = instance()
   const returning = /[?&](code|error)=/.test(location.search)
   if (!returning && !hasFlag()) { ready = true; initPromise = Promise.resolve(); emit(); return initPromise }
+  initialized = true
   initPromise = k
     .init({
       pkceMethod: 'S256',
@@ -60,11 +62,16 @@ export function initAuth(): Promise<void> {
   return initPromise
 }
 
+/* ⚠ 처음 온 방문자는 initAuth() 가 Keycloak init() 을 건너뛴다(왕복 절약). 그 상태에서 k.login() 을 부르면
+   어댑터가 없어 "Cannot read properties of undefined (reading 'login')" 로 터진다(2026-09-20 실측) —
+   initPromise 가 아니라 **init() 을 실제로 했는지**를 보고, 안 했으면 여기서 한다. */
 export function login() {
   const k = instance()
   const go = () => k.login({ redirectUri: location.href })
-  if (initPromise) initPromise.then(go)
-  else k.init({ pkceMethod: 'S256', responseMode: 'query', checkLoginIframe: false }).then(go, go)
+  if (initialized && initPromise) { initPromise.then(go); return }
+  initialized = true
+  initPromise = k.init({ pkceMethod: 'S256', responseMode: 'query', checkLoginIframe: false }).then(() => {}, () => {})
+  initPromise.then(go)
 }
 
 export function logout() {
