@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { api, ApiError, type Collection, type Density, type Episode, type Post, type PostsPage, type SourceKind, type Work } from './api'
 import { canRead, canWrite, login, logout, useAuth } from './auth'
 import { ENV } from './env'
@@ -247,23 +247,54 @@ function CollectionPanel({ episode, collections, collectionId, setCollectionId, 
   )
 }
 
+/* 글 목록은 "더 보기"로 넘기지 않는다 — 수천 건을 페이지로 넘기면 원하는 시각에 닿기까지 수십 번을 눌러야 했다
+   (2026-09-20 조현빈). 대신 ① 시각으로 점프(입력칸 / 밀도 그래프 막대 클릭 → 그 분부터) ② 바닥에 닿으면 다음
+   500건을 자동으로 이어 붙임 ③ 처음·끝 버튼. 시작점은 서버의 from(시각) 파라미터 하나로 처리한다. */
+type Anchor = { from: string | null; order: 'asc' | 'desc' }
+
 function CollectionDetail({ collection: c, episode, writable, reload, onError, onDeleted, onEpisodeChanged }: { collection: Collection; episode: Episode; writable: boolean; reload: () => void; onError: (m: string) => void; onDeleted: () => void; onEpisodeChanged: () => void }) {
   const [page, setPage] = useState<PostsPage | null>(null)
   const [items, setItems] = useState<Post[]>([])
   const [source, setSource] = useState<SourceKind | ''>('')
+  const [anchor, setAnchor] = useState<Anchor>({ from: null, order: 'asc' })
+  const [timeText, setTimeText] = useState('')
   const [busy, setBusy] = useState(false)
+  const listRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const loadingRef = useRef(false)
   const finished = c.status === 'DONE' || c.status === 'FAILED' || c.status === 'CANCELLED'
 
   useEffect(() => {
     let alive = true
-    api.posts(c.id, { source: source || undefined, size: 100 }).then((p) => { if (alive) { setPage(p); setItems(p.items) } }).catch((e) => onError(errText(e)))
+    api.posts(c.id, { source: source || undefined, from: anchor.from, order: anchor.order, size: 200 })
+      .then((p) => { if (alive) { setPage(p); setItems(p.items); listRef.current?.scrollTo({ top: 0 }) } })
+      .catch((e) => onError(errText(e)))
     return () => { alive = false }
-  }, [c.id, c.status, c.postCount, source, onError])
+  }, [c.id, c.status, c.postCount, source, anchor, onError])
 
-  const more = async () => {
-    if (!page?.nextCursor) return
-    try { const p = await api.posts(c.id, { source: source || undefined, cursor: page.nextCursor, size: 200 }); setPage(p); setItems((cur) => [...cur, ...p.items]) }
-    catch (e) { onError(errText(e)) }
+  // 바닥 감시: 목록 끝의 빈 요소가 보이면 다음 500건을 붙인다. loadingRef 로 겹치는 요청을 막는다.
+  useEffect(() => {
+    const el = sentinelRef.current, root = listRef.current
+    if (!el || !root || !page?.nextCursor) return
+    const io = new IntersectionObserver(async (entries) => {
+      if (!entries[0].isIntersecting || loadingRef.current) return
+      loadingRef.current = true
+      try {
+        const p = await api.posts(c.id, { source: source || undefined, cursor: page.nextCursor, order: anchor.order, size: 500 })
+        setPage(p); setItems((cur) => [...cur, ...p.items])
+      } catch (e) { onError(errText(e)) } finally { loadingRef.current = false }
+    }, { root, rootMargin: '200px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [c.id, source, anchor.order, page, onError])
+
+  const jumpTo = (iso: string) => setAnchor({ from: iso, order: 'asc' })
+  // HH:mm → 방영일 KST 의 그 시각. 수집 구간 시작보다 이르면(자정을 넘긴 시각) 다음날로 본다.
+  const jumpToTime = () => {
+    if (!/^\d{2}:\d{2}$/.test(timeText)) return
+    let t = new Date(`${episode.airDate}T${timeText}:00+09:00`)
+    if (t.getTime() < new Date(c.windowStartAt).getTime()) t = new Date(t.getTime() + 86400000)
+    jumpTo(t.toISOString())
   }
   const act = async (fn: () => Promise<unknown>, after?: () => void) => { setBusy(true); try { await fn(); reload(); after?.() } catch (e) { onError(errText(e)) } finally { setBusy(false) } }
 
@@ -291,8 +322,21 @@ function CollectionDetail({ collection: c, episode, writable, reload, onError, o
           </div>
         )}
       </div>
-      {finished && c.postCount > 0 && <DensityPanel collection={c} episode={episode} writable={writable} onError={onError} onEpisodeChanged={onEpisodeChanged} />}
-      <div className="max-h-[520px] overflow-auto border-t border-line">
+      {finished && c.postCount > 0 && <DensityPanel collection={c} episode={episode} writable={writable} onError={onError} onEpisodeChanged={onEpisodeChanged} onJump={jumpTo} />}
+      {page && c.postCount > 0 && (
+        <div className="px-4 py-2 border-t border-line flex flex-wrap items-center gap-2 text-xs">
+          <button className="btn h-6 px-2 text-[11px]" disabled={anchor.from === null && anchor.order === 'asc'} onClick={() => setAnchor({ from: null, order: 'asc' })}>처음</button>
+          <button className="btn h-6 px-2 text-[11px]" disabled={anchor.order === 'desc'} onClick={() => setAnchor({ from: null, order: 'desc' })}>끝 (최신순)</button>
+          <span className="text-faint ml-2">시각으로 이동</span>
+          <input type="time" value={timeText} onChange={(e) => setTimeText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') jumpToTime() }} className="input text-xs py-0.5 w-24" />
+          <button className="btn h-6 px-2 text-[11px]" disabled={!timeText} onClick={jumpToTime}>이동</button>
+          <span className="flex-1" />
+          <span className="text-faint mono">
+            {anchor.order === 'desc' ? '최신 → 과거' : anchor.from ? `${fmtKst(anchor.from, { second: undefined })} 부터` : '구간 처음부터'} · 아래로 내리면 이어서 불러옵니다
+          </span>
+        </div>
+      )}
+      <div ref={listRef} className="max-h-[520px] overflow-auto border-t border-line">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-soft text-[11px] text-muted"><tr><th className="text-left px-3 py-1.5 font-medium">시각(KST)</th><th className="text-left px-2 py-1.5 font-medium">출처</th><th className="text-left px-2 py-1.5 font-medium">제목</th><th className="text-left px-2 py-1.5 font-medium">작성자</th></tr></thead>
           <tbody>
@@ -304,10 +348,10 @@ function CollectionDetail({ collection: c, episode, writable, reload, onError, o
                 <td className="px-2 py-1.5 mono text-xs text-faint">{p.authorToken.slice(0, 6)}</td>
               </tr>
             ))}
-            {items.length === 0 && <tr><td colSpan={4} className="px-3 py-4 text-sm text-muted">{finished ? '수집된 글이 없습니다.' : '수집이 끝나면 여기에 보입니다.'}</td></tr>}
+            {items.length === 0 && <tr><td colSpan={4} className="px-3 py-4 text-sm text-muted">{finished ? (anchor.from ? '이 시각 이후 글이 없습니다.' : '수집된 글이 없습니다.') : '수집이 끝나면 여기에 보입니다.'}</td></tr>}
           </tbody>
         </table>
-        {page?.nextCursor && <div className="p-2"><button className="btn w-full" onClick={more}>더 보기</button></div>}
+        <div ref={sentinelRef} className="p-2 text-center text-[11px] text-faint">{page?.nextCursor ? '불러오는 중…' : items.length > 0 ? '끝' : ''}</div>
       </div>
     </div>
   )
@@ -315,7 +359,7 @@ function CollectionDetail({ collection: c, episode, writable, reload, onError, o
 
 /* 분당 밀도 그래프 + 시작·종료 제안(HP-434 후속). 제안은 자동 반영하지 않는다 — 이 값이 벽시계→재생시각 환산의
    기준이라, 사람이 그래프를 보고 "적용"을 눌러야 회차에 저장된다. */
-function DensityPanel({ collection: c, episode, writable, onError, onEpisodeChanged }: { collection: Collection; episode: Episode; writable: boolean; onError: (m: string) => void; onEpisodeChanged: () => void }) {
+function DensityPanel({ collection: c, episode, writable, onError, onEpisodeChanged, onJump }: { collection: Collection; episode: Episode; writable: boolean; onError: (m: string) => void; onEpisodeChanged: () => void; onJump: (iso: string) => void }) {
   const [d, setD] = useState<Density | null>(null)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
@@ -343,10 +387,12 @@ function DensityPanel({ collection: c, episode, writable, onError, onEpisodeChan
     <div className="px-4 py-3 border-t border-line flex flex-col gap-2">
       <div className="flex items-center gap-3 text-xs">
         <span className="font-semibold tracking-widest text-muted">분당 글 수</span>
-        <span className="text-faint">{fmtKst(d.from, { second: undefined })} ~ {fmtKst(d.to, { second: undefined })} · 최대 {max}건/분</span>
+        <span className="text-faint">{fmtKst(d.from, { second: undefined })} ~ {fmtKst(d.to, { second: undefined })} · 최대 {max}건/분 · 막대를 누르면 그 분의 글로 이동</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-24 bg-soft rounded" preserveAspectRatio="none">
         {d.buckets.map((b, i) => <rect key={i} x={i / Math.max(1, n - 1) * W} y={H - (b.count / max) * H} width={Math.max(1, W / n)} height={(b.count / max) * H} fill="#9db4ff" />)}
+        {/* 클릭 영역: 막대가 얇아 누르기 어려우므로 분마다 세로 전체를 덮는 투명 사각형을 둔다 */}
+        {d.buckets.map((b, i) => <rect key={`h${i}`} x={i / Math.max(1, n - 1) * W} y={0} width={Math.max(1, W / n)} height={H} fill="transparent" className="cursor-pointer hover:fill-[#2f6da833]" onClick={() => onJump(b.at)}><title>{fmtKst(b.at, { second: undefined })} · {b.count}건</title></rect>)}
         <Marker iso={episode.airStartAt} color="#2f6da8" label="시작(저장)" />
         <Marker iso={episode.airEndAt} color="#2f6da8" label="종료(저장)" />
         <Marker iso={d.suggestedStartAt} color="#b03030" label="시작 제안" />

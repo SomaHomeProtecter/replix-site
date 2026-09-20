@@ -61,10 +61,12 @@ export const api = {
   collections: (episodeId: number) => call<Collection[]>('GET', `/api/v1/admin/seeding/episodes/${episodeId}/collections`),
   startCollection: (episodeId: number) => call<Collection>('POST', `/api/v1/admin/seeding/episodes/${episodeId}/collections`),
   collection: (id: number) => call<Collection>('GET', `/api/v1/admin/seeding/collections/${id}`),
-  posts: (id: number, opts: { source?: SourceKind; cursor?: number | null; size?: number } = {}) => {
+  posts: (id: number, opts: { source?: SourceKind; cursor?: number | null; from?: string | null; order?: 'asc' | 'desc'; size?: number } = {}) => {
     const q = new URLSearchParams()
     if (opts.source) q.set('source', opts.source)
     if (opts.cursor) q.set('cursor', String(opts.cursor))
+    else if (opts.from) q.set('from', opts.from)
+    if (opts.order) q.set('order', opts.order)
     q.set('size', String(opts.size ?? 100))
     return call<PostsPage>('GET', `/api/v1/admin/seeding/collections/${id}/posts?${q}`)
   },
