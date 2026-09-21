@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { api, ApiError, type Collection, type Density, type Episode, type NewSceneNote, type Post, type PostsPage, type SceneNote, type SourceKind, type Work } from './api'
+import { api, ApiError, type Collection, type Density, type Episode, type NewPlanItem, type NewSceneNote, type Plan, type PlanView, type Post, type PostsPage, type SceneNote, type SourceKind, type Work } from './api'
 import { canRead, canWrite, login, logout, useAuth } from './auth'
 import { ENV } from './env'
 
@@ -173,6 +173,7 @@ function EpisodePanel({ work, episodes, episodeId, setEpisodeId, writable, onCha
       {selected && <>
         <EpisodeMeta key={selected.id} episode={selected} writable={writable} onChanged={onChanged} onError={onError} />
         <SceneNotesPanel key={'scene-' + selected.id} episode={selected} writable={writable} onError={onError} />
+        <PlanPanel key={'plan-' + selected.id} episode={selected} writable={writable} onError={onError} />
       </>}
     </div>
   )
@@ -277,6 +278,129 @@ function SceneNotesPanel({ episode, writable, onError }: { episode: Episode; wri
               <span className="text-faint whitespace-nowrap">{[n.confidence, n.tag].filter(Boolean).join(' · ')}</span>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* 주입 계획 검수(HP-436 후속, 2026-09-21 조현빈 결정) — 로컬 파이프라인(Replix-research tools/seed-autopilot)이 만든
+   계획 JSON 을 올리고, 재생 시각과 함께 훑으며 거부만 한 뒤 "전체 주입". 시각 환산은 서버가 현재 기준점으로 미리 보여 준다. */
+function fmtSec(sec: number | null) {
+  if (sec == null || !Number.isFinite(sec)) return '--:--'
+  const s = Math.max(0, sec); const m = Math.floor(s / 60); const r = Math.floor(s % 60)
+  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
+}
+
+function PlanPanel({ episode, writable, onError }: { episode: Episode; writable: boolean; onError: (m: string) => void }) {
+  const [plans, setPlans] = useState<Plan[] | null>(null)
+  const [view, setView] = useState<PlanView | null>(null)
+  const [text, setText] = useState('')
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [filter, setFilter] = useState<'all' | 'accepted' | 'rejected' | 'failed'>('all')
+  const reloadPlans = useCallback(() => api.plans(episode.id).then(setPlans).catch((e) => onError(errText(e))), [episode.id, onError])
+  useEffect(() => { reloadPlans() }, [reloadPlans])
+  const openPlan = async (id: number) => { try { setView(await api.plan(id)) } catch (e) { onError(errText(e)) } }
+
+  const parsed = useMemo(() => {
+    if (!text.trim()) return null
+    try {
+      const j = JSON.parse(text)
+      const items: NewPlanItem[] = Array.isArray(j) ? j : j.items
+      if (!Array.isArray(items)) return null
+      return { label: (Array.isArray(j) ? null : j.label) ?? null, source: (Array.isArray(j) ? null : j.source) ?? null, items }
+    } catch { return null }
+  }, [text])
+  const upload = async () => {
+    if (!parsed) return
+    setBusy(true)
+    try { const v = await api.createPlan(episode.id, parsed); setText(''); setOpen(false); await reloadPlans(); setView(v) }
+    catch (e) { onError(errText(e)) } finally { setBusy(false) }
+  }
+  const toggle = async (itemId: number, accepted: boolean) => {
+    try { const it = await api.patchPlanItem(itemId, { accepted }); setView((v) => v && { ...v, items: v.items.map((x) => x.item.id === it.id ? { ...x, item: it } : x) }) }
+    catch (e) { onError(errText(e)) }
+  }
+  const execute = async () => {
+    if (!view) return
+    const n = view.items.filter((x) => x.item.accepted && !x.item.injectionId).length
+    if (!confirm(`수락된 ${n}건을 회차 채팅에 주입합니다. 되돌리려면 주입 대장에서 개별 취소해야 합니다.`)) return
+    setBusy(true)
+    try { setView(await api.executePlan(view.plan.id)); await reloadPlans() } catch (e) { onError(errText(e)) } finally { setBusy(false) }
+  }
+  const remove = async () => {
+    if (!view || !confirm('이 계획(초안)을 지웁니다.')) return
+    setBusy(true)
+    try { await api.deletePlan(view.plan.id); setView(null); await reloadPlans() } catch (e) { onError(errText(e)) } finally { setBusy(false) }
+  }
+
+  const rows = (view?.items ?? []).filter((x) => filter === 'all' ? true : filter === 'accepted' ? x.item.accepted && !x.item.error : filter === 'rejected' ? !x.item.accepted : !!x.item.error)
+  const stats = view ? { total: view.items.length, accepted: view.items.filter((x) => x.item.accepted).length, done: view.items.filter((x) => x.item.injectionId).length, failed: view.items.filter((x) => x.item.error).length } : null
+  const KIND: Record<string, string> = { VERBATIM: '그대로', VARIANT: '변형', MANUAL: '생성' }
+
+  return (
+    <div className="px-4 py-3 border-t border-line text-sm flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold tracking-widest text-muted">주입 계획</span>
+        <span className="text-xs text-faint">{plans ? `${plans.length}개` : '…'}</span>
+        <span className="flex-1" />
+        {writable && <button className="btn" onClick={() => setOpen((v) => !v)}>{open ? '닫기' : '계획 JSON 올리기'}</button>}
+      </div>
+      {open && (
+        <div className="flex flex-col gap-2">
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} spellCheck={false} className="input mono text-xs"
+            placeholder={'{"label":"9/16 자동 계획 v1","source":"seed-autopilot/1","items":[{"seedPostId":123,"wallclockAt":"2026-09-16T13:35:12Z","message":"…","kind":"VERBATIM"}, {"playbackSec":312.4,"ghostKey":"gen:7","message":"…","kind":"MANUAL","scene":"…","reason":"빈 구간"}]}'} />
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <span>{parsed ? <>인식된 행 <b className="text-ink">{parsed.items.length}</b>개</> : text.trim() ? <span className="text-bad">JSON 형식이 아닙니다</span> : '파이프라인 산출물(plan.json)을 붙여 넣으세요'}</span>
+            <span className="flex-1" />
+            <button className="btn-primary" disabled={busy || !parsed || parsed.items.length === 0} onClick={upload}>올리기</button>
+          </div>
+        </div>
+      )}
+      {plans && plans.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {plans.map((p) => (
+            <button key={p.id} className={`btn text-xs ${view?.plan.id === p.id ? 'ring-1 ring-accent' : ''}`} onClick={() => openPlan(p.id)}>
+              #{p.id} {p.label ?? p.source ?? ''} <span className={p.status === 'EXECUTED' ? 'text-ok' : 'text-faint'}>{p.status === 'EXECUTED' ? '실행됨' : '초안'}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {view && stats && (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+            <span>전체 <b className="text-ink">{stats.total}</b> · 수락 <b className="text-ink">{stats.accepted}</b> · 주입됨 <b className="text-ink">{stats.done}</b>{stats.failed > 0 && <> · <span className="text-bad">실패 {stats.failed}</span></>}</span>
+            <span className="text-faint">기준점 {view.anchorCount}개{view.anchorCount === 0 && ' (방영 시작 시각으로 환산 — 확장에서 기준점을 잡으면 더 정확)'}</span>
+            <span className="flex-1" />
+            <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} className="input text-xs py-0.5">
+              <option value="all">전체</option><option value="accepted">수락</option><option value="rejected">거부</option><option value="failed">실패</option>
+            </select>
+            {writable && view.plan.status === 'DRAFT' && <button className="btn text-bad" disabled={busy} onClick={remove}>계획 삭제</button>}
+            {writable && <button className="btn-primary" disabled={busy || stats.accepted - stats.done <= 0} onClick={execute}>수락분 전체 주입 ({stats.accepted - stats.done})</button>}
+          </div>
+          <div className="max-h-[560px] overflow-auto border border-line rounded">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-soft text-[11px] text-muted"><tr>
+                <th className="px-2 py-1 text-left">재생</th><th className="px-2 py-1 text-left">종류</th><th className="px-2 py-1 text-left">메시지</th><th className="px-2 py-1 text-left">장면 / 이유</th><th className="px-2 py-1 text-left">상태</th>
+              </tr></thead>
+              <tbody>
+                {rows.map(({ item, previewSec, gap }) => (
+                  <tr key={item.id} className={`border-t border-line align-top ${!item.accepted ? 'opacity-40' : ''} ${item.error ? 'bg-red-50/40' : ''}`}>
+                    <td className="px-2 py-1 mono whitespace-nowrap">{fmtSec(previewSec)}{gap && <span className="text-warn" title="광고 중 글 — 다음 기준점에 붙음"> ⚠</span>}</td>
+                    <td className="px-2 py-1 whitespace-nowrap">{KIND[item.kind]}{item.spoiler && <span className="text-warn"> 스포</span>}</td>
+                    <td className="px-2 py-1">{item.message}</td>
+                    <td className="px-2 py-1 text-faint">{item.scene}{item.reason && <div>{item.reason}</div>}</td>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      {item.injectionId ? <span className="text-ok">주입됨</span> : item.error ? <span className="text-bad" title={item.error}>실패</span>
+                        : writable ? <button className="btn h-6 px-2 text-[11px]" onClick={() => toggle(item.id, !item.accepted)}>{item.accepted ? '거부' : '복원'}</button> : (item.accepted ? '수락' : '거부')}
+                    </td>
+                  </tr>
+                ))}
+                {rows.length === 0 && <tr><td colSpan={5} className="px-2 py-3 text-muted">행이 없습니다</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

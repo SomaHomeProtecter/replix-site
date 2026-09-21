@@ -24,6 +24,12 @@ export type Post = {
 }
 export type SceneNote = { id: number; seedEpisodeId: number; minuteAt: string; note: string; confidence: string | null; tag: string | null }
 export type NewSceneNote = { minuteAt: string; note: string; confidence: string | null; tag: string | null }
+export type InjectionKind = 'VERBATIM' | 'VARIANT' | 'MANUAL'
+export type Plan = { id: number; seedEpisodeId: number; label: string | null; source: string | null; status: 'DRAFT' | 'EXECUTED'; createdBy: string | null; createdAt: string; executedAt: string | null }
+export type PlanItem = { id: number; planId: number; seq: number; seedPostId: number | null; ghostKey: string | null; wallclockAt: string | null; playbackSec: number | null; message: string; kind: InjectionKind; spoiler: boolean; scene: string | null; reason: string | null; accepted: boolean; injectionId: number | null; error: string | null }
+export type PlanItemView = { item: PlanItem; previewSec: number | null; gap: boolean }
+export type PlanView = { plan: Plan; items: PlanItemView[]; anchorCount: number }
+export type NewPlanItem = { seedPostId?: number | null; ghostKey?: string | null; wallclockAt?: string | null; playbackSec?: number | null; message: string; kind?: InjectionKind; spoiler?: boolean; scene?: string | null; reason?: string | null }
 export type DensityBucket = { at: string; count: number }
 export type Density = { from: string; to: string; bucketMinutes: number; buckets: DensityBucket[]; suggestedStartAt: string | null; suggestedEndAt: string | null; note: string }
 export type PostsPage = { items: Post[]; nextCursor: number | null; countBySource: Partial<Record<SourceKind, number>> }
@@ -60,6 +66,12 @@ export const api = {
     call<Episode>('POST', `/api/v1/admin/seeding/works/${workId}/episodes`, body),
   sceneNotes: (id: number) => call<SceneNote[]>('GET', `/api/v1/admin/seeding/episodes/${id}/scene-notes`),
   putSceneNotes: (id: number, notes: NewSceneNote[]) => call<SceneNote[]>('PUT', `/api/v1/admin/seeding/episodes/${id}/scene-notes`, { notes }),
+  plans: (episodeId: number) => call<Plan[]>('GET', `/api/v1/admin/seeding/episodes/${episodeId}/plans`),
+  createPlan: (episodeId: number, body: { label: string | null; source: string | null; items: NewPlanItem[] }) => call<PlanView>('POST', `/api/v1/admin/seeding/episodes/${episodeId}/plans`, body),
+  plan: (planId: number) => call<PlanView>('GET', `/api/v1/admin/seeding/plans/${planId}`),
+  patchPlanItem: (itemId: number, body: { accepted?: boolean; message?: string; spoiler?: boolean }) => call<PlanItem>('PATCH', `/api/v1/admin/seeding/plan-items/${itemId}`, body),
+  executePlan: (planId: number) => call<PlanView>('POST', `/api/v1/admin/seeding/plans/${planId}/execute`),
+  deletePlan: (planId: number) => call<void>('DELETE', `/api/v1/admin/seeding/plans/${planId}`),
   updateEpisode: (id: number, body: { label: string | null; airStartAt: string; airEndAt: string | null; runtimeSec: number | null; episodeId: number | null }) =>
     call<Episode>('PATCH', `/api/v1/admin/seeding/episodes/${id}`, body),
   collections: (episodeId: number) => call<Collection[]>('GET', `/api/v1/admin/seeding/episodes/${episodeId}/collections`),
