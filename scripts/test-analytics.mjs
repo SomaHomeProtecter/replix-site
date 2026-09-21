@@ -70,6 +70,40 @@ for (const loc of ['data-cta="nav"', 'data-cta="hero"', 'data-cta="close"', 'dat
   assert.ok(index.includes(loc), `index.html 에 ${loc}`);
 }
 assert.equal((index.match(/data-cta="/g) || []).length, 3, '랜딩 설치 CTA 는 세 곳');
+
+// 랜딩 링크(HP-437) — 설치 CTA 가 아닌 버튼·링크는 nav_link_clicked{target, location} 로 버튼마다 구분해 센다.
+// 열거값 밖은 보내지 않는다: 마크업 오타가 새 값으로 쌓이면 차트가 조용히 갈라진다.
+assert.deepEqual(a.linkProps('catalog', 'nav'), { target: 'catalog', location: 'nav' });
+assert.deepEqual(a.linkProps('tmdb', 'footer'), { target: 'tmdb', location: 'footer' });
+assert.equal(a.linkProps('catalog', 'hero'), null, 'location 은 nav | footer 뿐');
+assert.equal(a.linkProps('https://replix.tv/catalog/', 'nav'), null, 'URL 은 값이 아니다(§2 전체 URL 금지)');
+assert.equal(a.linkProps('analytics_settings', 'footer'), null, "'분석 설정'은 세지 않는다 — 동의를 철회하러 가는 클릭이다");
+assert.equal(a.linkProps(null, null), null);
+assert.match(src, /track\('nav_link_clicked', /, '문서 위임 클릭 핸들러가 data-link 를 처리한다');
+// 같은 탭으로 나가는 링크는 1초 배치 flush 전에 페이지가 사라진다 — pagehide 에서 beacon 으로 비우지 않으면
+// SDK 가 없는 /privacy·/terms 로 간 클릭이 다음 방문까지 밀린다(2026-09-21 실측).
+assert.match(src, /addEventListener\('pagehide'[\s\S]{0,200}a\.setTransport\('beacon'\); a\.flush\(\);/, '떠날 때 beacon flush');
+assert.match(src, /addEventListener\('pageshow'[\s\S]{0,200}ev\.persisted[\s\S]{0,80}a\.setTransport\('fetch'\)/, 'bfcache 복귀 시 fetch 로 되돌린다(beacon 은 재시도가 없다)');
+
+// 랜딩의 모든 <a> 는 계측 속성 셋(data-cta | data-link | data-analytics-settings) 중 **정확히 하나**를 가진다 —
+// 새 버튼을 붙이고 계측을 잊으면 여기서 깨진다. (location, target) 쌍이 겹치면 두 버튼을 구분할 수 없다.
+const anchors = index.match(/<a\s[^>]*>/g) || [];
+const linkPairs = [];
+for (const tag of anchors) {
+  const kinds = [/\sdata-cta="/, /\sdata-link="/, /\sdata-analytics-settings/].filter((re) => re.test(tag)).length;
+  assert.equal(kinds, 1, `계측 속성이 정확히 하나여야 한다: ${tag}`);
+  const m = /\sdata-link="([^"]+)"/.exec(tag);
+  if (!m) continue;
+  const loc = (/\sdata-link-loc="([^"]+)"/.exec(tag) || [])[1];
+  assert.ok(a.linkProps(m[1], loc), `열거값 밖의 data-link / data-link-loc: ${tag}`);
+  linkPairs.push(`${loc}:${m[1]}`);
+}
+assert.equal(new Set(linkPairs).size, linkPairs.length, '같은 (location, target) 이 두 번 나오면 버튼을 구분할 수 없다');
+assert.deepEqual(linkPairs.slice().sort(), [
+  'nav:top', 'nav:scenes', 'nav:rooms', 'nav:faq', 'nav:catalog',
+  'footer:top', 'footer:contact_email', 'footer:scenes', 'footer:catalog', 'footer:faq',
+  'footer:privacy', 'footer:terms', 'footer:tmdb',
+].sort(), '랜딩 링크 13곳 — 바꾸면 tracking-plan.md §6 의 표도 같이');
 assert.match(read('docs/js/faq.js'), /track\('faq_opened', \{ question_index:/);
 assert.match(read('docs/js/hero.js'), /track\('demo_interacted', \{ demo: 'hero_toggle', action: 'toggle' \}\)/);
 assert.match(read('docs/js/reveal.js'), /track\('section_viewed', \{ section: e\.target\.id \}\)/);
