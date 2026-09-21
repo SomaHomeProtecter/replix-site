@@ -65,7 +65,11 @@ export default function Notice({ noticeId }: { noticeId: number | null }) {
             <span className={`rounded px-1.5 py-0.5 font-mono text-[11px] ${cls}`}>{label}</span>
             <span className="text-[17px] font-bold text-ink">
               {n.title}
-              {n.endedAt && n.kind !== 'NOTICE' ? ' (해결됨)' : ''}
+              {/* 점검과 장애는 **다른 말을 쓴다** — 점검은 해결하는 대상이 아니라 끝내는 일이라
+                  "(완료)"이고, 장애는 해결하는 대상이라 "(해결됨)"이다. 한 조건으로 묶으면 점검이
+                  사고처럼 읽힌다(HP-439). 확장 공지함(Replix-extension features/notices.js)과
+                  **같은 문구여야** 한다 — 한쪽만 고치면 같은 공지가 둘에서 다르게 보인다. */}
+              {!n.endedAt || n.kind === 'NOTICE' ? '' : n.kind === 'MAINTENANCE' ? ' (완료)' : ' (해결됨)'}
               {isNew && <span className="ml-2 align-[2px] font-mono text-[10px] text-accent">NEW</span>}
             </span>
             <span className="num font-mono text-[12px] text-faint">{fmt(n.startsAt)}</span>
