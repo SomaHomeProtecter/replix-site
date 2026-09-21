@@ -22,6 +22,8 @@ export type Post = {
   id: number; source: SourceKind; sourcePostId: string; postedAt: string; precision: 'SECOND' | 'MINUTE'
   title: string; body: string | null; authorToken: string; sourceUrl: string | null
 }
+export type SceneNote = { id: number; seedEpisodeId: number; minuteAt: string; note: string; confidence: string | null; tag: string | null }
+export type NewSceneNote = { minuteAt: string; note: string; confidence: string | null; tag: string | null }
 export type DensityBucket = { at: string; count: number }
 export type Density = { from: string; to: string; bucketMinutes: number; buckets: DensityBucket[]; suggestedStartAt: string | null; suggestedEndAt: string | null; note: string }
 export type PostsPage = { items: Post[]; nextCursor: number | null; countBySource: Partial<Record<SourceKind, number>> }
@@ -56,6 +58,8 @@ export const api = {
   episodes: (workId: number) => call<Episode[]>('GET', `/api/v1/admin/seeding/works/${workId}/episodes`),
   createEpisode: (workId: number, body: { airDate: string; label?: string; airStartAt?: string; airEndAt?: string; runtimeSec?: number }) =>
     call<Episode>('POST', `/api/v1/admin/seeding/works/${workId}/episodes`, body),
+  sceneNotes: (id: number) => call<SceneNote[]>('GET', `/api/v1/admin/seeding/episodes/${id}/scene-notes`),
+  putSceneNotes: (id: number, notes: NewSceneNote[]) => call<SceneNote[]>('PUT', `/api/v1/admin/seeding/episodes/${id}/scene-notes`, { notes }),
   updateEpisode: (id: number, body: { label: string | null; airStartAt: string; airEndAt: string | null; runtimeSec: number | null; episodeId: number | null }) =>
     call<Episode>('PATCH', `/api/v1/admin/seeding/episodes/${id}`, body),
   collections: (episodeId: number) => call<Collection[]>('GET', `/api/v1/admin/seeding/episodes/${episodeId}/collections`),

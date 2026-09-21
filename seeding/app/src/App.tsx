@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { api, ApiError, type Collection, type Density, type Episode, type Post, type PostsPage, type SourceKind, type Work } from './api'
+import { api, ApiError, type Collection, type Density, type Episode, type NewSceneNote, type Post, type PostsPage, type SceneNote, type SourceKind, type Work } from './api'
 import { canRead, canWrite, login, logout, useAuth } from './auth'
 import { ENV } from './env'
 
@@ -170,7 +170,10 @@ function EpisodePanel({ work, episodes, episodeId, setEpisodeId, writable, onCha
           )}
         </div>
       )}
-      {selected && <EpisodeMeta key={selected.id} episode={selected} writable={writable} onChanged={onChanged} onError={onError} />}
+      {selected && <>
+        <EpisodeMeta key={selected.id} episode={selected} writable={writable} onChanged={onChanged} onError={onError} />
+        <SceneNotesPanel key={'scene-' + selected.id} episode={selected} writable={writable} onError={onError} />
+      </>}
     </div>
   )
 }
@@ -200,6 +203,82 @@ function EpisodeMeta({ episode, writable, onChanged, onError }: { episode: Episo
       <label className="grid grid-cols-[88px_1fr] items-center gap-2">본편(초)<input type="number" value={runtime} onChange={(e) => setRuntime(e.target.value)} disabled={!writable} className="input mono" /></label>
       <p className="text-xs text-faint">시작 = 커뮤니티 첫 반응 글 시각, 종료 = 분당 글 수가 급감하는 지점으로 실측해 적습니다(편성표를 믿지 않습니다). 수집 구간은 시작 −20분 ~ 종료 +30분.</p>
       {writable && dirty && <div><button className="btn-primary" disabled={busy} onClick={save}>저장</button></div>}
+    </div>
+  )
+}
+
+/* 1분 창 장면 메모(HP-436 후속) — 수집 글로 역산한 "그 분에 화면에서 벌어진 일". 자동화 전엔 사람이 표를 붙여넣어
+   저장한다(2026-09-21 조현빈 결정). 확장 패널이 현재 분의 메모를 보여 주고 변형 생성의 문맥으로 쓴다.
+   붙여넣기 형식: 마크다운 표 `| HH:MM | 추정 장면 | 근거 | 확신 | 특이 |` (근거 열은 저장하지 않는다). */
+function parseSceneTable(text: string, airDate: string, airStartAt: string): NewSceneNote[] {
+  const out: NewSceneNote[] = []
+  const start = new Date(airStartAt).getTime()
+  for (const raw of text.split('\n')) {
+    const line = raw.trim()
+    if (!line.startsWith('|')) continue
+    const cells = line.slice(1, line.endsWith('|') ? -1 : undefined).split('|').map((c) => c.trim())
+    const m = /^(\d{1,2}):(\d{2})$/.exec(cells[0] ?? '')
+    if (!m || !cells[1] || /^-+$/.test(cells[1])) continue
+    let t = new Date(`${airDate}T${m[1].padStart(2, '0')}:${m[2]}:00+09:00`).getTime()
+    if (t < start - 3 * 3600_000) t += 86400_000 // 자정을 넘긴 시각은 다음날
+    out.push({ minuteAt: new Date(t).toISOString(), note: cells[1], confidence: cells[3] || null, tag: cells[4] || null })
+  }
+  return out
+}
+
+function SceneNotesPanel({ episode, writable, onError }: { episode: Episode; writable: boolean; onError: (m: string) => void }) {
+  const [notes, setNotes] = useState<SceneNote[] | null>(null)
+  const [open, setOpen] = useState(false)
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    let alive = true
+    api.sceneNotes(episode.id).then((n) => { if (alive) setNotes(n) }).catch((e) => onError(errText(e)))
+    return () => { alive = false }
+  }, [episode.id, onError])
+  const parsed = useMemo(() => parseSceneTable(text, episode.airDate, episode.airStartAt), [text, episode.airDate, episode.airStartAt])
+  const save = async () => {
+    setBusy(true)
+    try { setNotes(await api.putSceneNotes(episode.id, parsed)); setText(''); setOpen(false) }
+    catch (e) { onError(errText(e)) } finally { setBusy(false) }
+  }
+  const clear = async () => {
+    if (!confirm('장면 메모를 모두 지웁니다.')) return
+    setBusy(true)
+    try { setNotes(await api.putSceneNotes(episode.id, [])) } catch (e) { onError(errText(e)) } finally { setBusy(false) }
+  }
+  const tagged = (notes ?? []).filter((n) => n.tag)
+  return (
+    <div className="px-4 py-3 border-t border-line text-sm flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold tracking-widest text-muted">1분 창 장면 메모</span>
+        <span className="text-xs text-faint">{notes ? `${notes.length}분` : '…'}{tagged.length > 0 && ` · ${tagged.map((n) => `${n.tag} ${fmtKst(n.minuteAt, { second: undefined })}`).join(' / ')}`}</span>
+        <span className="flex-1" />
+        {writable && <button className="btn" onClick={() => setOpen((v) => !v)}>{open ? '닫기' : '표 붙여넣기'}</button>}
+        {writable && notes && notes.length > 0 && <button className="btn text-bad" disabled={busy} onClick={clear}>비우기</button>}
+      </div>
+      {open && (
+        <div className="flex flex-col gap-2">
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} spellCheck={false} className="input mono text-xs"
+            placeholder={'| 22:35 | 영수가 눈 뜨자마자 컵라면… | 근거 | 높음 | |\n| 22:36 | … | … | 중간 | 광고 |'} />
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <span>인식된 행 <b className="text-ink">{parsed.length}</b>개 (시각은 방영일 {episode.airDate} KST, 자정 넘김은 다음날)</span>
+            <span className="flex-1" />
+            <button className="btn-primary" disabled={busy || parsed.length === 0} onClick={save}>저장 (전체 교체)</button>
+          </div>
+        </div>
+      )}
+      {notes && notes.length > 0 && (
+        <div className="max-h-40 overflow-auto text-xs flex flex-col gap-0.5">
+          {notes.map((n) => (
+            <div key={n.id} className="grid grid-cols-[44px_1fr_auto] gap-2">
+              <span className="mono text-faint">{fmtKst(n.minuteAt, { second: undefined })}</span>
+              <span className={n.note === '추정 불가' ? 'text-faint' : ''}>{n.note}</span>
+              <span className="text-faint whitespace-nowrap">{[n.confidence, n.tag].filter(Boolean).join(' · ')}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
