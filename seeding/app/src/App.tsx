@@ -337,7 +337,7 @@ function PlanPanel({ episode, writable, onError }: { episode: Episode; writable:
 
   const rows = (view?.items ?? []).filter((x) => filter === 'all' ? true : filter === 'accepted' ? x.item.accepted && !x.item.error : filter === 'rejected' ? !x.item.accepted : !!x.item.error)
   const stats = view ? { total: view.items.length, accepted: view.items.filter((x) => x.item.accepted).length, done: view.items.filter((x) => x.item.injectionId).length, failed: view.items.filter((x) => x.item.error).length } : null
-  const KIND: Record<string, string> = { VERBATIM: '그대로', VARIANT: '변형', MANUAL: '생성' }
+  const KIND: Record<string, string> = { VERBATIM: '그대로', LIGHT_EDIT: '국소 수정', VARIANT: '변형', MANUAL: '생성' }
 
   return (
     <div className="px-4 py-3 border-t border-line text-sm flex flex-col gap-2">
