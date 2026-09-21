@@ -322,13 +322,21 @@ function PlanPanel({ episode, writable, onError }: { episode: Episode; writable:
     try { const it = await api.patchPlanItem(itemId, { accepted }); setView((v) => v && { ...v, items: v.items.map((x) => x.item.id === it.id ? { ...x, item: it } : x) }) }
     catch (e) { onError(errText(e)) }
   }
+  // 실행은 서버 백그라운드(202) — 2초마다 다시 받아 진행률을 보이다가 끝나면 목록을 갱신한다
   const execute = async () => {
     if (!view) return
     const n = view.items.filter((x) => x.item.accepted && !x.item.injectionId).length
-    if (!confirm(`수락된 ${n}건을 회차 채팅에 주입합니다. 되돌리려면 주입 대장에서 개별 취소해야 합니다.`)) return
+    if (!confirm(`수락된 ${n}건을 회차 채팅에 주입합니다. 되돌리려면 "전체 되돌리기"나 확장 패널의 개별 취소를 쓰세요.`)) return
     setBusy(true)
-    try { setView(await api.executePlan(view.plan.id)); await reloadPlans() } catch (e) { onError(errText(e)) } finally { setBusy(false) }
+    try { setView(await api.executePlan(view.plan.id)) } catch (e) { onError(errText(e)); setBusy(false) }
   }
+  useEffect(() => {
+    if (!view || view.plan.status !== 'RUNNING') return
+    const t = setInterval(async () => {
+      try { const v = await api.plan(view.plan.id); setView(v); if (v.plan.status !== 'RUNNING') { setBusy(false); reloadPlans() } } catch { /* 다음 틱 */ }
+    }, 2000)
+    return () => clearInterval(t)
+  }, [view, reloadPlans])
   const remove = async () => {
     if (!view || !confirm('이 계획(초안)을 지웁니다.')) return
     setBusy(true)
@@ -362,7 +370,7 @@ function PlanPanel({ episode, writable, onError }: { episode: Episode; writable:
         <div className="flex flex-wrap gap-1">
           {plans.map((p) => (
             <button key={p.id} className={`btn text-xs ${view?.plan.id === p.id ? 'ring-1 ring-accent' : ''}`} onClick={() => openPlan(p.id)}>
-              #{p.id} {p.label ?? p.source ?? ''} <span className={p.status === 'EXECUTED' ? 'text-ok' : 'text-faint'}>{p.status === 'EXECUTED' ? '실행됨' : '초안'}</span>
+              #{p.id} {p.label ?? p.source ?? ''} <span className={p.status === 'EXECUTED' ? 'text-ok' : p.status === 'RUNNING' ? 'text-warn' : 'text-faint'}>{p.status === 'EXECUTED' ? '실행됨' : p.status === 'RUNNING' ? '주입 중' : '초안'}</span>
             </button>
           ))}
         </div>
@@ -370,14 +378,14 @@ function PlanPanel({ episode, writable, onError }: { episode: Episode; writable:
       {view && stats && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
-            <span>전체 <b className="text-ink">{stats.total}</b> · 수락 <b className="text-ink">{stats.accepted}</b> · 주입됨 <b className="text-ink">{stats.done}</b>{stats.failed > 0 && <> · <span className="text-bad">실패 {stats.failed}</span></>}</span>
+            <span>{view.plan.status === 'RUNNING' && <b className="text-warn">주입 중… </b>}전체 <b className="text-ink">{stats.total}</b> · 수락 <b className="text-ink">{stats.accepted}</b> · 주입됨 <b className="text-ink">{stats.done}</b>{stats.failed > 0 && <> · <span className="text-bad">실패 {stats.failed}</span></>}</span>
             <span className="text-faint">기준점 {view.anchorCount}개{view.anchorCount === 0 && ' (방영 시작 시각으로 환산 — 확장에서 기준점을 잡으면 더 정확)'}</span>
             <span className="flex-1" />
             <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} className="input text-xs py-0.5">
               <option value="all">전체</option><option value="accepted">수락</option><option value="rejected">거부</option><option value="failed">실패</option>
             </select>
             {writable && view.plan.status === 'DRAFT' && <button className="btn text-bad" disabled={busy} onClick={remove}>계획 삭제</button>}
-            {writable && <button className="btn-primary" disabled={busy || stats.accepted - stats.done <= 0} onClick={execute}>수락분 전체 주입 ({stats.accepted - stats.done})</button>}
+            {writable && <button className="btn-primary" disabled={busy || view.plan.status === 'RUNNING' || stats.accepted - stats.done <= 0} onClick={execute}>{view.plan.status === 'RUNNING' ? `주입 중 ${stats.done + stats.failed}/${stats.accepted}` : `수락분 전체 주입 (${stats.accepted - stats.done})`}</button>}
           </div>
           <div className="max-h-[560px] overflow-auto border border-line rounded">
             <table className="w-full text-xs">
