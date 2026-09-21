@@ -40,6 +40,15 @@ export function parseConsent(raw) {
     return v && v.version === CONSENT_VERSION && (v.decision === 'granted' || v.decision === 'denied') ? v.decision : null;
   } catch (_) { return null; }
 }
+/* 랜딩 링크(nav_link_clicked) 열거값 — 트래킹 플랜 §6 의 표와 같다. 목록 밖이면 보내지 않는다:
+   마크업 오타가 새 값으로 쌓이면 차트가 조용히 갈라지고, href 를 그대로 넣는 실수는 §2(전체 URL 금지)를 깬다.
+   '분석 설정'은 일부러 없다 — 동의를 철회하러 가는 클릭을 세지 않는다. */
+export var LINK_TARGETS = ['top', 'scenes', 'rooms', 'faq', 'catalog', 'privacy', 'terms', 'contact_email', 'tmdb'];
+export var LINK_LOCATIONS = ['nav', 'footer'];
+export function linkProps(target, location) {
+  return LINK_TARGETS.indexOf(target) >= 0 && LINK_LOCATIONS.indexOf(location) >= 0
+    ? { target: target, location: location } : null;
+}
 
 /* ═══ 런타임 상태 ════════════════════════════════════════════════ */
 var _consent = null;      /* 'granted' | 'denied' | null(미선택) */
@@ -167,14 +176,31 @@ function boot() {
   _consent = readConsent();
   if (_consent === 'granted') loadSdk();
   else if (_consent === null) showBanner();
-  /* 설치 CTA·분석 설정은 data 속성 하나로 전 표면 공통 계측 — 각 모듈이 CTA 위치를 알 필요가 없고,
+  /* 설치 CTA·랜딩 링크·분석 설정은 data 속성으로 전 표면 공통 계측 — 각 모듈이 버튼 위치를 알 필요가 없고,
      카탈로그(React)도 마크업에 속성만 붙이면 된다. capture 단계라 새 탭 이동 전에 잡힌다. */
   document.addEventListener('click', function (ev) {
-    var t = ev.target && ev.target.closest ? ev.target.closest('[data-cta]') : null;
+    var hit = function (sel) { return ev.target && ev.target.closest ? ev.target.closest(sel) : null; };
+    var t = hit('[data-cta]');
     if (t) track('install_cta_clicked', { location: t.getAttribute('data-cta') });
-    var s = ev.target && ev.target.closest ? ev.target.closest('[data-analytics-settings]') : null;
+    var l = hit('[data-link]');
+    var lp = l ? linkProps(l.getAttribute('data-link'), l.getAttribute('data-link-loc')) : null;
+    if (lp) track('nav_link_clicked', lp);
+    var s = hit('[data-analytics-settings]');
     if (s) { ev.preventDefault(); showBanner(); }
   }, true);
+  /* 떠나는 순간의 이벤트(같은 탭 링크 클릭·직전 section_viewed)는 SDK 의 1초 배치 flush 보다 페이지가 먼저 사라진다.
+     SDK 는 그것을 localStorage 큐에 남겨 다음 SDK 페이지가 보내게 하지만, /privacy·/terms 처럼 SDK 가 없는 곳으로 가면
+     다음 방문까지 밀린다(2026-09-21 실측: /terms 이동 뒤 AMP_unsent 에 그대로 남음) — pagehide 에서 beacon 으로 비운다.
+     beacon 은 응답을 못 받아 재시도가 없으므로 떠날 때만 쓰고, bfcache 로 되돌아오면 fetch 로 복귀한다.
+     철회 상태면 optOut 이 걸려 있어 flush 가 아무것도 보내지 않는다. */
+  window.addEventListener('pagehide', function () {
+    var a = amp();
+    if (_sdk === 'ready' && a && _consent === 'granted') { try { a.setTransport('beacon'); a.flush(); } catch (_) { /* fail-open */ } }
+  });
+  window.addEventListener('pageshow', function (ev) {
+    var a = amp();
+    if (ev.persisted && _sdk === 'ready' && a) { try { a.setTransport('fetch'); } catch (_) { /* fail-open */ } }
+  });
   window.ReplixAnalytics = {
     track: track, page: page, setConsent: setConsent, showBanner: showBanner,
     getConsent: function () { return _consent; },
