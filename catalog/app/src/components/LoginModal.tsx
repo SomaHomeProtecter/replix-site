@@ -92,7 +92,8 @@ function LoginCard() {
   return (
     <div
       className="fixed inset-0 z-[60] flex justify-center overflow-y-auto bg-black/40 py-4"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) closeLogin() }}
+      /* preventDefault: 닫힘 정리가 연 요소로 돌려준 포커스를 mousedown 의 기본 포커스 이동이 뒤이어 body 로 빼앗지 않게. */
+      onMouseDown={(e) => { if (e.target === e.currentTarget) { e.preventDefault(); closeLogin() } }}
     >
       <div
         ref={card}
