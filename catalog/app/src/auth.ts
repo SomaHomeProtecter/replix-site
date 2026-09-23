@@ -4,7 +4,7 @@
 
    해시 라우터(#/title/…)와 부딪히지 않도록 응답은 query 로 받는다(responseMode). 세션 확인은 사용자가 한 번이라도
    로그인한 적이 있을 때만(localStorage 표시) 조용히(iframe) 시도한다 — 처음 온 방문자에게 Keycloak 왕복을 시키지 않는다. */
-import Keycloak from 'keycloak-js'
+import Keycloak, { type KeycloakInitOptions } from 'keycloak-js'
 import { useEffect, useState } from 'react'
 
 const FLAG = 'replix_catalog_signed_in'
@@ -23,7 +23,6 @@ let kc: Keycloak | null = null
 let ready = false
 let user: AuthUser | null = null
 let initPromise: Promise<void> | null = null
-let initialized = false // k.init() 을 실제로 호출했는가 — initPromise 가 resolve 돼도 init 은 안 했을 수 있다
 
 function emit() { listeners.forEach((l) => l()) }
 
@@ -47,38 +46,32 @@ function readUser() {
 function hasFlag() { try { return localStorage.getItem(FLAG) === '1' } catch { return false } }
 function setFlag(on: boolean) { try { on ? localStorage.setItem(FLAG, '1') : localStorage.removeItem(FLAG) } catch { /* 저장 불가 환경 */ } }
 
-/** 앱 시작 시 한 번. 로그인 리다이렉트로 돌아온 경우(?code=…)와 이전에 로그인한 적이 있는 경우에만 Keycloak 을 초기화한다. */
+/** 앱 시작 시 한 번. Keycloak init() 자체는 누구에게나 한다 — url·realm 을 직접 주므로 onLoad 없는 init() 은 네트워크
+ *  요청이 없고, login() 이 쓰는 어댑터를 여기서 만든다(처음 온 방문자에게 init 까지 건너뛰었더니 login() 이
+ *  "Cannot read properties of undefined (reading 'login')" 로 터져 버튼이 먹통이었다 — HP-445, 2026-09-23).
+ *  처음 온 방문자에게 아끼는 것은 조용한 세션 확인(check-sso, Keycloak iframe 왕복)뿐이므로 그것만 로그인
+ *  리다이렉트로 돌아온 경우(?code=…)와 이전에 로그인한 적이 있는 경우로 한정한다. */
 export function initAuth(): Promise<void> {
   if (initPromise) return initPromise
   const k = instance()
+  if (!k) { ready = true; initPromise = Promise.resolve(); emit(); return initPromise }
   const returning = typeof location !== 'undefined' && /[?&](code|error)=/.test(location.search)
-  if (!k || (!returning && !hasFlag())) { ready = true; initPromise = Promise.resolve(); emit(); return initPromise }
-  initialized = true
+  const options: KeycloakInitOptions = { pkceMethod: 'S256', responseMode: 'query', checkLoginIframe: false }
+  if (returning || hasFlag()) {
+    options.onLoad = 'check-sso'
+    options.silentCheckSsoRedirectUri = new URL('silent-check-sso.html', location.href.split('#')[0]).href
+  }
   initPromise = k
-    .init({
-      pkceMethod: 'S256',
-      responseMode: 'query',
-      onLoad: 'check-sso',
-      silentCheckSsoRedirectUri: new URL('silent-check-sso.html', location.href.split('#')[0]).href,
-      checkLoginIframe: false,
-    })
+    .init(options)
     .then((ok) => { setFlag(!!ok); readUser() }, () => { setFlag(false); user = null })
     .finally(() => { ready = true; emit() })
   return initPromise
 }
 
-/** 처음 온 방문자는 initAuth() 가 Keycloak init() 을 건너뛰는데(왕복 절약), keycloak-js 는 init() 에서 어댑터를 만들므로
- *  그 상태로 k.login() 을 부르면 "Cannot read properties of undefined (reading 'login')" 로 터져 버튼이 먹통이 된다
- *  (2026-09-23 replix.tv 실측, HP-445 — 시딩 페이지 b2398b2 와 같은 결함). 그래서 initPromise 가 아니라
- *  **init() 을 실제로 했는지**를 보고, 안 했으면 여기서 한다. */
 export function login() {
   const k = instance()
   if (!k) return
-  const go = () => k.login({ redirectUri: location.href })
-  if (initialized && initPromise) { initPromise.then(go); return }
-  initialized = true
-  initPromise = k.init({ pkceMethod: 'S256', responseMode: 'query', checkLoginIframe: false }).then(() => {}, () => {})
-  initPromise.then(go)
+  initAuth().then(() => k.login({ redirectUri: location.href }))
 }
 
 export function logout() {
