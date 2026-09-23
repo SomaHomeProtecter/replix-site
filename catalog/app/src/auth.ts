@@ -23,6 +23,7 @@ let kc: Keycloak | null = null
 let ready = false
 let user: AuthUser | null = null
 let initPromise: Promise<void> | null = null
+let initialized = false // k.init() 을 실제로 호출했는가 — initPromise 가 resolve 돼도 init 은 안 했을 수 있다
 
 function emit() { listeners.forEach((l) => l()) }
 
@@ -52,6 +53,7 @@ export function initAuth(): Promise<void> {
   const k = instance()
   const returning = typeof location !== 'undefined' && /[?&](code|error)=/.test(location.search)
   if (!k || (!returning && !hasFlag())) { ready = true; initPromise = Promise.resolve(); emit(); return initPromise }
+  initialized = true
   initPromise = k
     .init({
       pkceMethod: 'S256',
@@ -65,12 +67,18 @@ export function initAuth(): Promise<void> {
   return initPromise
 }
 
+/** 처음 온 방문자는 initAuth() 가 Keycloak init() 을 건너뛰는데(왕복 절약), keycloak-js 는 init() 에서 어댑터를 만들므로
+ *  그 상태로 k.login() 을 부르면 "Cannot read properties of undefined (reading 'login')" 로 터져 버튼이 먹통이 된다
+ *  (2026-09-23 replix.tv 실측, HP-445 — 시딩 페이지 b2398b2 와 같은 결함). 그래서 initPromise 가 아니라
+ *  **init() 을 실제로 했는지**를 보고, 안 했으면 여기서 한다. */
 export function login() {
   const k = instance()
   if (!k) return
   const go = () => k.login({ redirectUri: location.href })
-  if (initPromise) initPromise.then(go)
-  else k.init({ pkceMethod: 'S256', responseMode: 'query', checkLoginIframe: false }).then(go, go)
+  if (initialized && initPromise) { initPromise.then(go); return }
+  initialized = true
+  initPromise = k.init({ pkceMethod: 'S256', responseMode: 'query', checkLoginIframe: false }).then(() => {}, () => {})
+  initPromise.then(go)
 }
 
 export function logout() {
