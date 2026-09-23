@@ -68,10 +68,47 @@ export function initAuth(): Promise<void> {
   return initPromise
 }
 
+/* 로그인 제공자(HP-447). 순서·문구는 확장(HP-71, Replix-extension config.js PROVIDERS)과 같다. id 는 Keycloak
+   IdP alias 와 **정확히** 같아야 한다 — kc_idp_hint 로 그대로 나가 그 IdP 로 직행한다. */
+export type Provider = 'google' | 'kakao' | 'naver'
+export const PROVIDERS: readonly { id: Provider; label: string }[] = [
+  { id: 'google', label: 'Google' },
+  { id: 'kakao', label: '카카오' },
+  { id: 'naver', label: '네이버' },
+]
+
+/* 제공자 선택 모달의 열림. 인증 상태와 따로 알린다 — 모달을 여닫을 때마다 useAuth 소비자 전부를 다시 그리지 않게. */
+const chooserListeners = new Set<Listener>()
+let chooserOpen = false
+function setChooser(open: boolean) {
+  if (chooserOpen === open) return
+  chooserOpen = open
+  chooserListeners.forEach((l) => l())
+}
+
+/** 로그인 진입점(헤더 '로그인', 댓글 '로그인하고 남기기', 비로그인 좋아요)은 곧장 IdP 로 가지 않고 제공자 선택 모달을 연다. */
 export function login() {
+  if (instance()) setChooser(true)
+}
+
+export function closeLogin() { setChooser(false) }
+
+/** 고른 제공자로 직행한다(keycloak-js idpHint = kc_idp_hint). 성공하면 페이지가 떠나므로 끝나지 않고,
+ *  리다이렉트를 시작하지 못했을 때만(비보안 출처의 Web Crypto 부재 등) 거부된다. */
+export function loginWith(provider: Provider): Promise<void> {
   const k = instance()
-  if (!k) return
-  initAuth().then(() => k.login({ redirectUri: location.href }))
+  if (!k) return Promise.reject(new Error('로그인 설정(auth-* 메타)이 없다'))
+  return initAuth().then(() => k.login({ redirectUri: location.href, idpHint: provider }))
+}
+
+export function useLoginChooser(): boolean {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const l = () => tick((n) => n + 1)
+    chooserListeners.add(l)
+    return () => { chooserListeners.delete(l) }
+  }, [])
+  return chooserOpen
 }
 
 export function logout() {
