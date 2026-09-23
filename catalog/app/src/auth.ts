@@ -55,7 +55,10 @@ function instance(): Keycloak | null {
   if (!url || !realm || !clientId) return null
   kc = new Keycloak({ url, realm, clientId })
   kc.onAuthSuccess = kc.onAuthRefreshSuccess = () => { readSub() }
-  kc.onAuthLogout = kc.onAuthRefreshError = () => { sub = null; accountGen++; setAccount({ kind: 'none' }) }
+  /* 갱신 실패(onAuthRefreshError)는 받지 않는다. keycloak-js 는 리프레시 토큰이 무효(400)일 때만 clearToken →
+     onAuthLogout 을 부르고, 일시 오류(5xx·네트워크)엔 토큰을 그대로 둔다 — 거기서 비로그인으로 떨어뜨리면 다음 요청의
+     재시도로 회복될 회원이 새로고침 전까지 로그아웃돼 보이고, 동의 중이면 모달이 사라진다. */
+  kc.onAuthLogout = () => { sub = null; accountGen++; setAccount({ kind: 'none' }) }
   return kc
 }
 
@@ -101,8 +104,14 @@ async function freshToken(): Promise<string | null> {
   return kc.token ?? null
 }
 
+/* 계정 확인이 끝나야 ready 가 선다 — 응답이 멈추면 헤더·댓글 작성·피드백 전송이 함께 잠기므로 기다림에 끝을 둔다. */
+const ACCOUNT_TIMEOUT_MS = 10_000
+
 async function getJson<T>(path: string, token: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } })
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(ACCOUNT_TIMEOUT_MS),
+  })
   if (!res.ok) throw new Error(`${path} ${res.status}`)
   return (await res.json()) as T
 }
@@ -148,6 +157,7 @@ export async function acceptConsent(): Promise<{ ok: boolean; code?: string }> {
       method: 'PUT',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(consentBody(versions)),
+      signal: AbortSignal.timeout(ACCOUNT_TIMEOUT_MS),
     })
   } catch { return { ok: false } }
   if (gen !== accountGen) return { ok: false }
@@ -158,19 +168,23 @@ export async function acceptConsent(): Promise<{ ok: boolean; code?: string }> {
     try {
       const current = await getJson<ConsentCurrent>(`${CONSENT_PATH}/current`, token)
       if (gen === accountGen) setAccount({ kind: 'consent', versions: versionsFrom(current) })
-    } catch { /* 번들 버전 그대로 — 다시 거절되면 같은 안내가 뜬다 */ }
+    } catch {
+      // 새 버전을 못 읽었다 — '갱신됐다'며 다시 체크시켜도 옛 버전이라 같은 거절이 되풀이된다. 연결 문제로 안내한다.
+      return { ok: false }
+    }
   }
   return { ok: false, code }
 }
 
-/** 동의하지 않으면 로그인 전으로 되돌린다 — 확장과 같이 OAuth 토큰만 폐기한다. 동의 전에는 계정 API 를 부르지 않으므로
- *  이 흐름으로 만들어진 계정은 없다. 로그인 표시도 지워 새로고침 때 조용한 세션 확인으로 되살아나지 않게 한다. */
+/** 동의하지 않으면 로그인 전으로 되돌린다. 동의 전에는 계정 API 를 부르지 않으므로 이 흐름으로 만들어진 계정은 없다.
+ *  토큰만 버리지 않고 Keycloak 세션까지 끝낸다(로그아웃과 같다) — 세션이 남으면 공용 브라우저에서 다음 사람의 '로그인'이
+ *  거부한 사람의 계정으로 조용히 들어간다. 로그인 표시도 지워 새로고침 때 되살아나지 않게 한다. */
 export function declineConsent() {
   setFlag(false)
   sub = null
   accountGen++
   setAccount({ kind: 'none' })
-  kc?.clearToken()
+  kc?.logout({ redirectUri: location.href.split('?')[0] })
 }
 
 /* 로그인 제공자(HP-447). 순서·문구는 확장(HP-71, Replix-extension config.js PROVIDERS)과 같다. id 는 Keycloak
@@ -210,6 +224,7 @@ export function loginWith(provider: Provider): Promise<void> {
   const gen = chooserGen
   return initAuth().then(() => {
     if (gen !== chooserGen) return // 기다리는 사이 모달을 닫았다 — 가지 않는다
+    track('login_started', { provider }) // 트래킹 플랜 v4 — 실제로 IdP 로 떠날 때만 센다(저절로 닫힌 선택은 빼고)
     return k.login({ redirectUri: location.href, idpHint: provider })
   })
 }

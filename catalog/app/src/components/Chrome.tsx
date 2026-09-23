@@ -156,7 +156,12 @@ function AccountMenu({ name }: { name: string }) {
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
   }, [open])
   return (
-    <div ref={box} className="relative hidden shrink-0 min-[761px]:block">
+    <div
+      ref={box}
+      // 포커스가 메뉴 밖으로 나가면(Tab) 닫는다 — 열린 채 남으면 다음 요소 위에 메뉴가 떠 있다.
+      onBlur={(e) => { if (open && !box.current?.contains(e.relatedTarget as Node | null)) setOpen(false) }}
+      className="relative hidden shrink-0 min-[761px]:block"
+    >
       <button
         ref={btn}
         type="button"
