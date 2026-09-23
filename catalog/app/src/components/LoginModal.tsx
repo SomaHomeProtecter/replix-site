@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { track } from '../analytics'
 import { PROVIDERS, closeLogin, loginWith, useLoginChooser, type Provider } from '../auth'
 import { GOOGLE_G, KAKAO_MARK, NAVER_MARK } from '../provider-marks'
 
@@ -86,6 +87,7 @@ function LoginCard() {
   const choose = (id: Provider) => {
     setFailed(false)
     setPending(id)
+    track('login_started', { provider: id }) // 트래킹 플랜 v4 — IdP 로 떠나기 직전. 완료는 auth.ts 가 센다
     loginWith(id).catch(() => { setPending(null); setFailed(true) })
   }
 

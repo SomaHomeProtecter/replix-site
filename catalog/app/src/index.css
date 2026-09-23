@@ -100,6 +100,9 @@
 .btn--ghost { background: transparent; color: var(--color-ink); border: 1px solid var(--color-line2); }
 .btn--ghost:hover { background: var(--color-soft); }
 .btn--sm { padding: 9px 17px; font-size: 14px; }
+/* 잠긴 버튼은 잠겨 보여야 한다 — 동의 두 항목을 다 체크하기 전의 '동의하고 시작'(HP-449)처럼 눌러도 안 되는 버튼이
+   손 모양·원래 색 그대로면 고장처럼 보인다. .btn 은 레이어 밖 규칙이라 disabled: 유틸리티로는 덮이지 않아 여기 둔다. */
+.btn:disabled { cursor: not-allowed; opacity: .45; filter: none; transform: none; box-shadow: none; }
 
 html {
   scroll-behavior: smooth;

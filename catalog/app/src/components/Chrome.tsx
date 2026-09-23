@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { MagnifyingGlassIcon } from '@phosphor-icons/react'
+import { CaretDownIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { api, type ContentSearchItem } from '../api'
 import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
 import { noticeHref, titleHref } from '../App'
@@ -124,7 +124,9 @@ export function NoticeBand() {
   )
 }
 
-/** 로그인 상태. 이름만 보이고 눌러 로그아웃 — 프로필·설정 화면은 두지 않는다(그건 확장의 몫). */
+/** 로그인 상태. 동의를 마친 회원은 닉네임(서버의 랜덤 닉네임)을 보이고, 누르면 작은 메뉴에서 로그아웃한다 —
+ *  누르자마자 로그아웃되던 것(HP-421)은 실수 한 번에 확인 없이 로그아웃됐다(2026-09-24 김지호, HP-449).
+ *  프로필·설정 화면은 두지 않는다(그건 확장의 몫). */
 function AuthButton() {
   const { ready, user } = useAuth()
   if (!ready) return null
@@ -135,10 +137,45 @@ function AuthButton() {
       </button>
     )
   }
+  return <AccountMenu name={user.name} />
+}
+
+function AccountMenu({ name }: { name: string }) {
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const btn = useRef<HTMLButtonElement>(null)
+  const item = useRef<HTMLButtonElement>(null)
+  /* 열면 메뉴 항목에 포커스. 바깥을 누르거나 Esc 면 닫는다(Esc 는 포커스를 닉네임 버튼으로 돌려준다). */
+  useEffect(() => {
+    if (!open) return
+    item.current?.focus()
+    const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); btn.current?.focus() } }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
+  }, [open])
   return (
-    <button type="button" onClick={logout} title="로그아웃" className="hidden max-w-[140px] shrink-0 truncate text-[14px] font-bold text-ink min-[761px]:inline-flex">
-      {user.name}
-    </button>
+    <div ref={box} className="relative hidden shrink-0 min-[761px]:block">
+      <button
+        ref={btn}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex max-w-[160px] items-center gap-1 text-[14px] font-bold text-ink"
+      >
+        <span className="truncate">{name}</span>
+        <CaretDownIcon size={12} weight="bold" aria-hidden className={`flex-none transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div role="menu" aria-label="내 계정" className="absolute right-0 top-[calc(100%+10px)] z-50 min-w-[132px] rounded-md border border-line bg-raise p-1 shadow-[0_12px_32px_rgba(16,16,24,0.14)]">
+          <button ref={item} type="button" role="menuitem" onClick={logout} className="block w-full rounded-sm px-3 py-2 text-left text-[13.5px] text-ink hover:bg-soft">
+            로그아웃
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
