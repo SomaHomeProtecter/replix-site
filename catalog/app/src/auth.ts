@@ -143,6 +143,15 @@ async function becomeMember(gen: number, token: string, isNewUser: boolean | nul
   if (isNewUser !== null) track('login_completed', { is_new_user: isNewUser }) // 트래킹 플랜 v4
 }
 
+/* 동의로 회원이 된 직후 한 번, 헤더의 계정 메뉴가 나타나며 포커스를 받는다 — 동의 모달이 사라지면 포커스가 body 로
+   떨어지므로. 새로고침으로 세션을 되살릴 때는 포커스를 가져가지 않는다. */
+let focusAccountOnce = false
+export function takeAccountFocus(): boolean {
+  const take = focusAccountOnce
+  focusAccountOnce = false
+  return take
+}
+
 /** 동의 저장 = 계정 생성. 실패하면 서버 오류 코드를 돌려준다 — 문서가 갱신됐으면(OUTDATED_LEGAL_DOCUMENTS) 서버의
  *  새 버전을 다시 읽어 두므로, 화면은 체크를 풀고 새 문서에 다시 동의받는다(확장과 같다). */
 export async function acceptConsent(): Promise<{ ok: boolean; code?: string }> {
@@ -161,7 +170,7 @@ export async function acceptConsent(): Promise<{ ok: boolean; code?: string }> {
     })
   } catch { return { ok: false } }
   if (gen !== accountGen) return { ok: false }
-  if (res.ok) { await becomeMember(gen, token, true); return { ok: true } }
+  if (res.ok) { focusAccountOnce = true; await becomeMember(gen, token, true); return { ok: true } }
   let code: string | undefined
   try { code = ((await res.json()) as { code?: string }).code } catch { /* 본문 없음 */ }
   if (code === 'OUTDATED_LEGAL_DOCUMENTS') {
