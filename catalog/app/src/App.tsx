@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Footer, Nav, NoticeBand } from './components/Chrome'
+import { LoginModal } from './components/LoginModal'
 import Home from './pages/Home'
 import Notice from './pages/Notice'
 import Title from './pages/Title'
@@ -94,6 +95,8 @@ export default function App() {
         )}
       </main>
       <Footer />
+      {/* 로그인 진입점(헤더·댓글 쓰기·좋아요)이 모두 여는 제공자 선택 모달 — 한 곳에만 둔다(HP-447). */}
+      <LoginModal />
     </>
   )
 }

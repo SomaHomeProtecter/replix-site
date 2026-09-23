@@ -41,6 +41,9 @@ function instance(): Keycloak | null {
 function readUser() {
   const t = kc?.tokenParsed as { preferred_username?: string; name?: string; sub?: string } | undefined
   user = kc?.authenticated && t?.sub ? { name: t.name || t.preferred_username || '사용자', sub: t.sub } : null
+  /* 로그인이 끝났으면 제공자 선택은 더 물을 게 없다 — 재방문자는 조용한 세션 확인 중에도 (ready 를 기다리지 않는)
+     좋아요로 모달을 열 수 있다. closeLogin 이 세대도 올리므로 그 사이 고른 제공자로의 이동도 거둔다. */
+  if (user) closeLogin()
 }
 
 function hasFlag() { try { return localStorage.getItem(FLAG) === '1' } catch { return false } }
@@ -68,10 +71,55 @@ export function initAuth(): Promise<void> {
   return initPromise
 }
 
+/* 로그인 제공자(HP-447). 순서·문구는 확장(HP-71, Replix-extension config.js PROVIDERS)과 같다. id 는 Keycloak
+   IdP alias 와 **정확히** 같아야 한다 — kc_idp_hint 로 그대로 나가 그 IdP 로 직행한다. */
+export type Provider = 'google' | 'kakao' | 'naver'
+export const PROVIDERS: readonly { id: Provider; label: string }[] = [
+  { id: 'google', label: 'Google' },
+  { id: 'kakao', label: '카카오' },
+  { id: 'naver', label: '네이버' },
+]
+
+/* 제공자 선택 모달의 열림. 인증 상태와 따로 알린다 — 모달을 여닫을 때마다 useAuth 소비자 전부를 다시 그리지 않게. */
+const chooserListeners = new Set<Listener>()
+let chooserOpen = false
+function setChooser(open: boolean) {
+  if (chooserOpen === open) return
+  chooserOpen = open
+  chooserListeners.forEach((l) => l())
+}
+
+/** 로그인 진입점(헤더 '로그인', 댓글 '로그인하고 남기기', 비로그인 좋아요)은 곧장 IdP 로 가지 않고 제공자 선택 모달을 연다. */
 export function login() {
+  if (instance()) setChooser(true)
+}
+
+/* 모달을 닫을 때마다 올라가는 세대. 재방문자는 조용한 세션 확인이 끝나야 init 이 끝나는데(최대 10초), 그 사이
+   제공자를 고르고 닫으면 늦게 끝난 init 이 그래도 IdP 로 보내 버린다 — 고를 때의 세대가 그대로일 때만 간다. */
+let chooserGen = 0
+
+export function closeLogin() { chooserGen++; setChooser(false) }
+
+/** 고른 제공자로 직행한다(keycloak-js idpHint = kc_idp_hint). 성공하면 페이지가 떠나므로 끝나지 않고,
+ *  리다이렉트를 시작하지 못했을 때만(비보안 출처의 Web Crypto 부재 등) 거부된다. */
+export function loginWith(provider: Provider): Promise<void> {
   const k = instance()
-  if (!k) return
-  initAuth().then(() => k.login({ redirectUri: location.href }))
+  if (!k) return Promise.reject(new Error('로그인 설정(auth-* 메타)이 없다'))
+  const gen = chooserGen
+  return initAuth().then(() => {
+    if (gen !== chooserGen) return // 기다리는 사이 모달을 닫았다 — 가지 않는다
+    return k.login({ redirectUri: location.href, idpHint: provider })
+  })
+}
+
+export function useLoginChooser(): boolean {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const l = () => tick((n) => n + 1)
+    chooserListeners.add(l)
+    return () => { chooserListeners.delete(l) }
+  }, [])
+  return chooserOpen
 }
 
 export function logout() {
