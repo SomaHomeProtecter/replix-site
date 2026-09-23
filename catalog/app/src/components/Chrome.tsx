@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { MagnifyingGlassIcon } from '@phosphor-icons/react'
+import { CaretDownIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { api, type ContentSearchItem } from '../api'
 import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
 import { noticeHref, titleHref } from '../App'
 import { engaged } from '../analytics'
-import { login, logout, useAuth } from '../auth'
+import { login, logout, takeAccountFocus, useAuth } from '../auth'
 import { dismissBand, pickBand, unreadCount, useNotices } from '../notices'
 import { FeedbackModal } from './FeedbackModal'
 
@@ -124,7 +124,9 @@ export function NoticeBand() {
   )
 }
 
-/** 로그인 상태. 이름만 보이고 눌러 로그아웃 — 프로필·설정 화면은 두지 않는다(그건 확장의 몫). */
+/** 로그인 상태. 동의를 마친 회원은 닉네임(서버의 랜덤 닉네임)을 보이고, 누르면 작은 메뉴에서 로그아웃한다 —
+ *  누르자마자 로그아웃되던 것(HP-421)은 실수 한 번에 확인 없이 로그아웃됐다(2026-09-24 김지호, HP-449).
+ *  프로필·설정 화면은 두지 않는다(그건 확장의 몫). */
 function AuthButton() {
   const { ready, user } = useAuth()
   if (!ready) return null
@@ -135,10 +137,56 @@ function AuthButton() {
       </button>
     )
   }
+  return <AccountMenu name={user.name} />
+}
+
+function AccountMenu({ name }: { name: string }) {
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const btn = useRef<HTMLButtonElement>(null)
+  const item = useRef<HTMLButtonElement>(null)
+  /* 동의로 막 회원이 됐으면 이 버튼이 포커스를 받는다(동의 모달이 사라지며 body 로 떨어지지 않게). */
+  useEffect(() => { if (takeAccountFocus()) btn.current?.focus() }, [])
+  /* 열면 메뉴 항목에 포커스. 바깥을 누르거나, 포커스가 메뉴 밖 요소로 들어오거나(Tab), Esc 면 닫는다(Esc 는 포커스를
+     닉네임 버튼으로 돌려준다). 'blur 로 닫기'를 쓰지 않는 이유: Safari 는 버튼을 눌러도 포커스를 주지 않고 mousedown 에서
+     포커스를 비우므로, 로그아웃을 누르는 순간 메뉴가 먼저 사라져 클릭이 닿지 않는다. focusin 은 실제로 포커스가 옮겨 간
+     요소가 있을 때만 온다. */
+  useEffect(() => {
+    if (!open) return
+    item.current?.focus()
+    const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const onFocusIn = (e: FocusEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); btn.current?.focus() } }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('focusin', onFocusIn)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('focusin', onFocusIn)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
   return (
-    <button type="button" onClick={logout} title="로그아웃" className="hidden max-w-[140px] shrink-0 truncate text-[14px] font-bold text-ink min-[761px]:inline-flex">
-      {user.name}
-    </button>
+    <div ref={box} className="relative hidden shrink-0 min-[761px]:block">
+      <button
+        ref={btn}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex max-w-[160px] items-center gap-1 text-[14px] font-bold text-ink"
+      >
+        <span className="truncate">{name}</span>
+        <CaretDownIcon size={12} weight="bold" aria-hidden className={`flex-none transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div role="menu" aria-label="내 계정" className="absolute right-0 top-[calc(100%+10px)] z-50 min-w-[132px] rounded-md border border-line bg-raise p-1 shadow-[0_12px_32px_rgba(16,16,24,0.14)]">
+          <button ref={item} type="button" role="menuitem" onClick={logout} className="block w-full rounded-sm px-3 py-2 text-left text-[13.5px] text-ink hover:bg-soft">
+            로그아웃
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 

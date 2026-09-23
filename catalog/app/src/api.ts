@@ -1,19 +1,10 @@
 import { accessToken } from './auth'
+import { API_BASE } from './config'
 
 /* 작품 탐색(catalog) 페이지가 쓰는 Replix 공개 API (읽기는 전부 비로그인, HP-77; 댓글 쓰기만 JWT).
-   기본 대상은 개발 서버다. 빌드 시 VITE_API_BASE 로 바꾼다(운영 = https://api.replix.tv).
+   기본 대상은 개발 서버다. 빌드 시 VITE_API_BASE 로 바꾼다(운영 = https://api.replix.tv) — 대상 결정은 config.ts.
    HP-390(함께 본 작품)·HP-391(작품 상세·순간·검색)은 develop 머지·dev 롤아웃 뒤에 응답한다 —
    그 전에는 404 가 오고, 화면은 그 섹션을 비운다(지어내지 않는다). */
-
-/* 대상 서버는 랜딩과 같은 규칙으로 정한다 — HTML 의 <meta name="api-base"> 한 곳(index.html).
-   메타가 없으면 VITE_API_BASE, 그것도 없으면 개발 서버. */
-function resolveApiBase(): string {
-  const meta = typeof document !== 'undefined' ? document.querySelector('meta[name="api-base"]') : null
-  const fromMeta = meta?.getAttribute('content')?.trim()
-  const fromEnv = (import.meta.env.VITE_API_BASE as string | undefined)?.trim()
-  return (fromMeta || fromEnv || 'https://api.replix-dev.site').replace(/\/$/, '')
-}
-export const API_BASE: string = resolveApiBase()
 
 /* ── 응답 타입 (BE DTO 와 1:1) ─────────────────────────────── */
 

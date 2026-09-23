@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Footer, Nav, NoticeBand } from './components/Chrome'
+import { ConsentModal } from './components/ConsentModal'
 import { LoginModal } from './components/LoginModal'
 import Home from './pages/Home'
 import Notice from './pages/Notice'
@@ -97,6 +98,8 @@ export default function App() {
       <Footer />
       {/* 로그인 진입점(헤더·댓글 쓰기·좋아요)이 모두 여는 제공자 선택 모달 — 한 곳에만 둔다(HP-447). */}
       <LoginModal />
+      {/* 로그인 뒤 약관·처리방침 동의 — 동의해야 Replix 계정이 생긴다(HP-449). */}
+      <ConsentModal />
     </>
   )
 }

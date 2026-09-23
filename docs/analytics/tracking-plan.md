@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v3 (Amplitude)
+# replix.tv 웹 — 트래킹 플랜 v4 (Amplitude)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -25,6 +25,7 @@
 | W4 | 데모·FAQ를 **만지나**? | 만지지 않는 인터랙션은 유지비만 든다 |
 | W5 | 작품 탐색에서 검색→작품→회차/순간→**"넷플릭스에서 보기"** 로 이어지나? | 작품 탐색이 설치 전 "맛보기"로 기능하는지 |
 | W6 | 랜딩에서 설치 말고 **어느 버튼·링크를 누르나**? (작품 탐색·섹션 메뉴·약관) | 버튼마다 목적지가 다르다 — 설치로 안 간 방문자가 어디로 가는지 알아야 메뉴·푸터 구성을 정한다 |
+| W7 | 작품 탐색에서 로그인을 시작한 사람 중 **동의까지 마쳐 회원이 되는** 비율은? 어느 제공자로? | 로그인·동의 흐름(HP-447·HP-449)의 이탈 지점. 가입은 동의 저장 시점이라 웹 가입이 여기서 처음 잡힌다 |
 
 ⚠️ 베타 규모에서 비율은 노이즈다(확장 문서 §1 과 같은 경고). W1·W5 의 퍼센트보다 "어느 CTA 가 0건인가" 같은 유무가 먼저 값을 한다.
 
@@ -62,7 +63,7 @@
 | 필드 | 값 | 저장 |
 | --- | --- | --- |
 | `device_id` | SDK 가 만드는 UUID | SDK 쿠키(`AMP_<키 앞 10자>`), `replix.tv` 도메인 — 랜딩·카탈로그가 같은 기기로 묶인다 |
-| `user_id` | **없음** | 웹에 로그인이 없다 |
+| `user_id` | **없음** | 작품 탐색에 로그인이 있지만(HP-421·HP-447·HP-449) 회원 식별값은 싣지 않는다 — 동의 배너(§3)가 기기 식별값만 고지한다 |
 
 - ⚠️ **웹↔확장 기기 연결은 아직 없다.** 랜딩의 device_id 와 확장의 device_id(`chrome.storage`)는 다른 값이라
   "랜딩 → 설치 → 첫 채팅" 퍼널은 한 사람으로 이어지지 않는다. 확장이 `replix.tv` 쿠키를 읽어 승계하는 것은 후속 결정.
@@ -93,6 +94,8 @@
 | `faq_opened` | landing | `faq.js` 아코디언을 **열 때만** | `question_index`(0~7) | W4 |
 | `catalog_engaged` | catalog | 아래 표 | `feature`, `action`(+`has_results`·`sort`·`source`·`kind`·`score`·`category`) | W5 |
 | `watch_link_clicked` | catalog | 재생 딥링크 `<a>` 클릭(`analytics.ts` `trackWatch`) | `platform`(`netflix`), `from`: `title_hero` \| `moment` \| `home_billboard` \| `home_hot` \| `home_live`, `has_timestamp`(bool — `?t=` 유무) | **W5** |
+| `login_started` | catalog | `LoginModal.tsx` 제공자 버튼 클릭 — IdP 로 떠나기 직전 | `provider`: `google` \| `kakao` \| `naver` | **W7** |
+| `login_completed` | catalog | `auth.ts` — 로그인 왕복 뒤 이미 동의한 회원으로 확인됐을 때(`is_new_user: false`), 동의 저장으로 계정이 생겼을 때(`is_new_user: true` — 문서 개정 재동의 포함, 확장 §5.5 와 같은 뜻). 새로고침으로 세션을 되살린 것은 세지 않는다 | `is_new_user`(bool) | **W7** |
 
 `nav_link_clicked` 발화 지점 — 랜딩(`docs/index.html`) 13곳. 마크업의 `data-link`(=`target`) · `data-link-loc`(=`location`):
 
@@ -182,3 +185,4 @@
 | v1 | 2026-09-13 | 초안·구현 — 이벤트 7종, 동의 배너, 금지 목록 3항 추가, `/invite` 제외(HP-415) — 고경우 |
 | v2 | 2026-09-16 | `catalog_engaged` 에 `feature: feedback`(`opened`·`submitted`·`store_review_clicked`) 추가 — 새 이벤트 없이 기존 이벤트 확장, 본문은 계측 금지(HP-426) — 김지호 |
 | v3 | 2026-09-21 | 랜딩 버튼·링크를 버튼별로 계측 — `nav_link_clicked{target, location}` 13곳(W6). 설치 CTA 3곳은 `install_cta_clicked` 유지. `pagehide` beacon flush 추가(같은 탭 이동 직전 이벤트가 밀리던 것, 실측)(HP-437) — 고경우 |
+| v4 | 2026-09-24 | 로그인·가입 계측 — `login_started{provider}`·`login_completed{is_new_user}`(W7). 가입은 약관 동의 저장 시점(HP-449). §4 `user_id` 설명 정정(로그인은 있으나 회원 식별값은 싣지 않는다) — 김지호 |
