@@ -487,28 +487,23 @@ function PostBrowser({ collection: c, episode, onError }: { collection: Collecti
 
 /* ─── 2단계: 싱크와 장면 ────────────────────────────────────────────── */
 function SyncStep({ episode, anchors, notes, writable, reload, onError }: { episode: Episode; anchors: SyncAnchor[]; notes: SceneNote[]; writable: boolean; reload: () => void; onError: (m: string) => void }) {
-  const [showNotes, setShowNotes] = useState(false)
-  const [paste, setPaste] = useState(false)
-  const [text, setText] = useState('')
-  const [busy, setBusy] = useState(false)
-  const parsed = useMemo(() => parseSceneTable(text, episode.airDate, episode.airStartAt), [text, episode.airDate, episode.airStartAt])
   const removeAnchor = async (a: SyncAnchor) => { if (!confirm(`재생 ${fmtSec(a.playbackSec)} 기준점을 지웁니다.`)) return; try { await api.deleteAnchor(a.id); reload() } catch (e) { onError(errText(e)) } }
-  const saveNotes = async () => { setBusy(true); try { await api.putSceneNotes(episode.id, parsed); setText(''); setPaste(false); reload() } catch (e) { onError(errText(e)) } finally { setBusy(false) } }
-  const clearNotes = async () => { if (!confirm('장면 메모를 모두 지웁니다.')) return; setBusy(true); try { await api.putSceneNotes(episode.id, []); reload() } catch (e) { onError(errText(e)) } finally { setBusy(false) } }
-  const tagged = notes.filter((n) => n.tag)
   return (
     <div className="card">
       <div className="card-head">
         <h2 className="font-bold flex items-center"><span className="step-no">2</span>싱크와 장면</h2>
-        <p className="lead mt-2">수집한 글은 방송 시각을 갖고, 넷플릭스는 재생 시각으로 돕니다. 둘을 잇는 것이 <b>기준점</b>입니다. 기준점 하나는 "재생 몇 초가 방송 몇 시 몇 분이었다"는 쌍이고, 방송에는 광고가 있어 기준점을 구간마다 둡니다. <b>장면 메모</b>는 방송 1분마다 화면에서 무슨 일이 있었는지 적은 것으로, AI가 채팅을 고르고 다듬을 때 문맥으로 씁니다. 둘 다 확장 패널의 "AI 채팅 작업 시작"이 자막과 글을 읽어 자동으로 만들고, 기준점은 패널에서 재생하며 손으로 다듬을 수 있습니다.</p>
+        <p className="lead mt-2">수집한 글은 방송 시각을 갖고 넷플릭스는 재생 시각으로 돕니다. 이 단계는 그 둘을 잇는 <b>기준점</b>과, 방송 1분마다 화면에서 무슨 일이 있었는지 적은 <b>장면 메모</b>를 다룹니다. 둘 다 확장 패널의 "AI 채팅 작업 시작"이 자막과 글을 읽어 자동으로 만듭니다.</p>
       </div>
-      <div className="card-body grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-8">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between"><h3 className="font-semibold text-sm">기준점 {anchors.length}개</h3></div>
-          {anchors.length === 0 ? <p className="text-sm text-muted">아직 기준점이 없습니다. 기준점이 없으면 방영 시작 시각을 재생 0초로 보고 환산합니다. 광고가 있는 방송에서는 뒤로 갈수록 어긋나므로 AI 작업으로 기준점을 만든 뒤 주입하세요.</p> : (
-            <div className="overflow-auto rounded-lg border border-line max-h-72">
+      <div className="card-body flex flex-col gap-8">
+        <section className="flex flex-col gap-3">
+          <div>
+            <h3 className="font-semibold">기준점 {anchors.length}개</h3>
+            <p className="note mt-1">기준점 하나는 "재생 몇 초가 방송 몇 시 몇 분이었다"는 쌍입니다. 방송에는 광고가 있어서 한 쌍으로는 뒤로 갈수록 어긋나므로 광고 뒤마다 기준점을 둡니다. 주입할 때 글의 방송 시각을 이 표로 재생 시각으로 바꿉니다. 재생하며 어긋남이 보이면 확장 패널에서 초 단위로 다듬을 수 있습니다.</p>
+          </div>
+          {anchors.length === 0 ? <p className="text-sm text-muted">아직 기준점이 없습니다. 없으면 방영 시작 시각을 재생 0초로 보고 환산하는데, 광고가 있는 방송에서는 뒤로 갈수록 어긋납니다. AI 작업을 먼저 돌리세요.</p> : (
+            <div className="overflow-auto rounded-lg border border-line max-h-80 max-w-3xl">
               <table className="table">
-                <thead><tr><th>재생 시각</th><th>방송 시각</th><th>무엇으로 맞췄나</th><th></th></tr></thead>
+                <thead><tr><th className="w-28">재생 시각</th><th className="w-28">방송 시각</th><th>무엇으로 맞췄나</th><th className="w-20"></th></tr></thead>
                 <tbody>
                   {anchors.map((a) => (
                     <tr key={a.id}>
@@ -522,38 +517,103 @@ function SyncStep({ episode, anchors, notes, writable, reload, onError }: { epis
               </table>
             </div>
           )}
-        </div>
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="font-semibold text-sm">장면 메모 {notes.length}분{tagged.length > 0 && <span className="font-normal text-muted"> · {tagged.map((n) => `${n.tag} ${fmtTime(n.minuteAt).slice(0, 5)}`).join(', ')}</span>}</h3>
-            <div className="flex gap-1">
-              {notes.length > 0 && <button className="btn btn-sm" onClick={() => setShowNotes((v) => !v)}>{showNotes ? '접기' : '펼치기'}</button>}
-              {writable && <button className="btn btn-sm" onClick={() => setPaste((v) => !v)}>{paste ? '닫기' : '직접 붙여넣기'}</button>}
-              {writable && notes.length > 0 && <button className="btn btn-sm text-bad" disabled={busy} onClick={clearNotes}>모두 지우기</button>}
-            </div>
-          </div>
-          {notes.length === 0 && !paste && <p className="text-sm text-muted">아직 장면 메모가 없습니다. AI 작업이 만들어 줍니다.</p>}
-          {paste && (
-            <div className="flex flex-col gap-2">
-              <p className="note">AI가 만든 표를 그대로 붙여 넣으면 됩니다. 한 줄이 방송 1분입니다. 형식은 <span className="mono">| 22:35 | 장면 | 근거 | 확신 | 특이 |</span> 이고 근거 열은 저장하지 않습니다. 저장하면 기존 메모를 전부 바꿉니다.</p>
-              <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} spellCheck={false} className="input mono text-xs py-2 h-auto" />
-              <div className="flex items-center gap-2 text-xs text-muted"><span>인식된 줄 {parsed.length}개</span><span className="flex-1" /><button className="btn-primary" disabled={busy || parsed.length === 0} onClick={saveNotes}>저장</button></div>
-            </div>
-          )}
-          {showNotes && notes.length > 0 && (
-            <div className="max-h-72 overflow-auto rounded-lg border border-line text-xs">
-              {notes.map((n) => (
-                <div key={n.id} className="grid grid-cols-[48px_1fr_auto] gap-2 px-3 py-1.5 border-t border-line first:border-t-0">
-                  <span className="mono text-faint">{fmtTime(n.minuteAt).slice(0, 5)}</span>
-                  <span className={n.note === '추정 불가' ? 'text-faint' : ''}>{n.note}</span>
-                  <span className="text-faint whitespace-nowrap">{[n.confidence, n.tag].filter(Boolean).join(' · ')}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        </section>
+        <SceneNotesBlock episode={episode} notes={notes} writable={writable} reload={reload} onError={onError} />
       </div>
     </div>
+  )
+}
+
+/* 장면 메모 — 태그(시작·광고·종료)를 연속 구간으로 묶어 "방송 구조"로 요약하고, 목록은 본편부터 보이게 한다.
+   방송 전 대기 구간은 접어 두고, 검색으로 장면을 찾는다. */
+function groupTagged(notes: SceneNote[]) {
+  const out: { tag: string; from: string; to: string }[] = []
+  for (const n of notes) {
+    if (!n.tag) continue
+    const last = out[out.length - 1]
+    if (last && last.tag === n.tag && new Date(n.minuteAt).getTime() - new Date(last.to).getTime() <= 60_000) last.to = n.minuteAt
+    else out.push({ tag: n.tag, from: n.minuteAt, to: n.minuteAt })
+  }
+  return out
+}
+const TAG_LABEL: Record<string, string> = { '시작': '본편 시작', '광고': '중간광고', '종료': '종료·예고' }
+const CONF_DOT: Record<string, string> = { '높음': 'bg-ok', '중간': 'bg-warn', '낮음': 'bg-faint' }
+
+function SceneNotesBlock({ episode, notes, writable, reload, onError }: { episode: Episode; notes: SceneNote[]; writable: boolean; reload: () => void; onError: (m: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [showPre, setShowPre] = useState(false)
+  const [q, setQ] = useState('')
+  const [paste, setPaste] = useState(false)
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const parsed = useMemo(() => parseSceneTable(text, episode.airDate, episode.airStartAt), [text, episode.airDate, episode.airStartAt])
+  const groups = useMemo(() => groupTagged(notes), [notes])
+  const startAt = groups.find((g) => g.tag === '시작')?.from ?? episode.airStartAt
+  const endAt = groups.find((g) => g.tag === '종료')?.from ?? null
+  const pre = notes.filter((n) => new Date(n.minuteAt) < new Date(startAt))
+  const main = notes.filter((n) => new Date(n.minuteAt) >= new Date(startAt) && (!endAt || new Date(n.minuteAt) <= new Date(endAt)))
+  const post = notes.filter((n) => endAt && new Date(n.minuteAt) > new Date(endAt))
+  const visible = (q ? notes.filter((n) => n.note.includes(q)) : [...(showPre ? pre : []), ...main])
+  const saveNotes = async () => { setBusy(true); try { await api.putSceneNotes(episode.id, parsed); setText(''); setPaste(false); reload() } catch (e) { onError(errText(e)) } finally { setBusy(false) } }
+  const clearNotes = async () => { if (!confirm('장면 메모를 모두 지웁니다. AI 작업을 다시 돌리면 새로 만들어집니다.')) return; setBusy(true); try { await api.putSceneNotes(episode.id, []); reload() } catch (e) { onError(errText(e)) } finally { setBusy(false) } }
+  const row = (n: SceneNote) => {
+    const unknown = n.note.startsWith('추정 불가')
+    return (
+      <div key={n.id} className={`grid grid-cols-[56px_14px_1fr_auto] items-start gap-3 px-3 py-2 border-t border-line first:border-t-0 ${unknown ? 'text-faint' : ''}`}>
+        <span className="mono text-xs text-muted pt-0.5">{fmtTime(n.minuteAt).slice(0, 5)}</span>
+        <span className={`mt-1.5 w-2 h-2 rounded-full ${CONF_DOT[n.confidence ?? ''] ?? 'bg-soft'}`} title={n.confidence ? `확신 ${n.confidence}` : ''} />
+        <span className="text-sm leading-relaxed">{n.note}</span>
+        <span className="text-[11px] whitespace-nowrap">{n.tag && <span className="pill bg-warnw text-warn">{TAG_LABEL[n.tag] ?? n.tag}</span>}</span>
+      </div>
+    )
+  }
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-semibold">장면 메모 {notes.length > 0 && <span className="font-normal text-muted">{main.length}분 (방송 전 {pre.length}분, 종료 후 {post.length}분 별도)</span>}</h3>
+          <p className="note mt-1">AI가 자막과 글을 읽고 방송 1분마다 "이때 화면에서 무슨 일이 있었나"를 복원한 기록입니다. 세 곳에 쓰입니다. AI 계획을 만들 때 채팅을 고르고 다듬는 문맥이 되고, 확장 패널에서 재생 중인 분의 장면을 보여 주며, 방송 시작·광고·종료 시각을 알려 줍니다. 앞의 점은 확신(초록 높음, 노랑 중간, 회색 낮음)입니다.</p>
+        </div>
+        <div className="flex gap-1 shrink-0">
+          {notes.length > 0 && <button className="btn" onClick={() => setOpen((v) => !v)}>{open ? '목록 접기' : '목록 보기'}</button>}
+          {writable && <button className="btn" onClick={() => setPaste((v) => !v)}>{paste ? '닫기' : '표로 바꿔 넣기'}</button>}
+          {writable && notes.length > 0 && <button className="btn text-bad" disabled={busy} onClick={clearNotes}>모두 지우기</button>}
+        </div>
+      </div>
+      {notes.length === 0 && !paste && <p className="text-sm text-muted">아직 장면 메모가 없습니다. 확장 패널에서 "AI 채팅 작업 시작"을 누르면 만들어집니다.</p>}
+      {groups.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm rounded-lg bg-soft/60 px-4 py-3">
+          <span className="text-muted mr-1">방송 구조</span>
+          {groups.map((g, i) => (
+            <span key={i} className="inline-flex items-center gap-1.5">
+              <span className={`pill ${g.tag === '광고' ? 'bg-warnw text-warn' : g.tag === '종료' ? 'bg-badw text-bad' : 'bg-okw text-ok'}`}>{TAG_LABEL[g.tag] ?? g.tag}</span>
+              <span className="mono">{fmtTime(g.from).slice(0, 5)}{g.to !== g.from ? `~${fmtTime(g.to).slice(0, 5)}` : ''}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {paste && (
+        <div className="flex flex-col gap-2 max-w-3xl">
+          <p className="note">AI가 만든 마크다운 표를 그대로 붙여 넣습니다. 한 줄이 방송 1분이고 형식은 <span className="mono">| 22:35 | 장면 | 근거 | 확신 | 특이 |</span> 입니다. 근거 열은 저장하지 않으며, 저장하면 기존 메모를 전부 바꿉니다. 보통은 AI 작업이 자동으로 올리므로 손으로 할 일은 없습니다.</p>
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} spellCheck={false} className="input mono text-xs py-2 h-auto" />
+          <div className="flex items-center gap-2 text-xs text-muted"><span>인식된 줄 {parsed.length}개</span><span className="flex-1" /><button className="btn-primary" disabled={busy || parsed.length === 0} onClick={saveNotes}>저장 (전체 교체)</button></div>
+        </div>
+      )}
+      {open && notes.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="장면 검색 (예: 컵라면, 고백)" className="input w-72" />
+            {!q && pre.length > 0 && <button className="btn btn-sm" onClick={() => setShowPre((v) => !v)}>{showPre ? '방송 전 접기' : `방송 전 ${pre.length}분 보기`}</button>}
+            <span className="text-xs text-muted">{q ? `${visible.length}분 일치` : `${visible.length}분 표시`}</span>
+          </div>
+          <div className="max-h-[560px] overflow-auto rounded-lg border border-line">
+            {visible.map(row)}
+            {visible.length === 0 && <p className="px-3 py-4 text-sm text-muted">일치하는 장면이 없습니다.</p>}
+            {!q && post.length > 0 && <div className="px-3 py-2 text-xs text-muted border-t border-line">종료 후 {post.length}분은 예고와 총평이라 표시하지 않습니다.</div>}
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
 
