@@ -13,19 +13,19 @@ const KST = 'Asia/Seoul'
 const WEEKDAYS = ['', '월', '화', '수', '목', '금', '토', '일']
 const SOURCE_LABEL: Record<SourceKind, string> = { DCINSIDE: '디시인사이드', THEQOO: '더쿠' }
 const SOURCE_SHORT: Record<SourceKind, string> = { DCINSIDE: '디시', THEQOO: '더쿠' }
-const KIND_LABEL: Record<InjectionKind, string> = { VERBATIM: '그대로', LIGHT_EDIT: '국소 수정', VARIANT: '변형', MANUAL: '생성' }
+const KIND_LABEL: Record<InjectionKind, string> = { VERBATIM: '그대로', LIGHT_EDIT: '살짝 고침', VARIANT: '다시 씀', MANUAL: '새로 씀' }
 const KIND_DESC: Record<InjectionKind, string> = {
-  VERBATIM: '원문 그대로 넣습니다. 누구나 똑같이 쓸 만한 짧은 반응에만 씁니다.',
-  LIGHT_EDIT: '원문에서 한두 조각만 바꿉니다. 어미나 조사, ㅋ 개수 정도를 손보고 원문의 말투와 띄어쓰기는 그대로 둡니다.',
-  VARIANT: '뜻과 감정은 지키고 문장을 다시 씁니다. 욕설이 뼈대인 글을 순화할 때 씁니다.',
-  MANUAL: '수집 글이 부족한 구간에 자막과 장면 메모를 근거로 새로 씁니다.',
+  VERBATIM: '수집한 글을 한 글자도 바꾸지 않고 넣습니다. "ㅋㅋㅋㅋ", "미쳤다"처럼 누구나 똑같이 쓸 만한 짧은 반응에만 씁니다.',
+  LIGHT_EDIT: '수집한 글에서 한두 군데만 고칩니다. 어미나 조사, ㅋ 개수 정도를 손보고 말투와 띄어쓰기는 그대로 두어, 남의 글을 그대로 옮기지 않으면서 원래 느낌을 지킵니다. 대부분의 글이 여기에 해당합니다.',
+  VARIANT: '뜻과 감정은 지키고 문장을 다시 씁니다. 욕설이 문장의 뼈대라 한두 군데 고쳐서는 안 되는 글에 씁니다.',
+  MANUAL: '수집한 글이 적은 구간에 AI가 자막과 장면 메모에 있는 사실만 근거로 새로 씁니다.',
 }
 const COLL_STATUS: Record<Collection['status'], { label: string; cls: string }> = {
   QUEUED: { label: '대기 중', cls: 'bg-soft text-muted' }, RUNNING: { label: '수집 중', cls: 'bg-warnw text-warn' },
   DONE: { label: '완료', cls: 'bg-okw text-ok' }, FAILED: { label: '실패', cls: 'bg-badw text-bad' }, CANCELLED: { label: '취소됨', cls: 'bg-soft text-muted' },
 }
 const PLAN_STATUS: Record<Plan['status'], { label: string; cls: string }> = {
-  DRAFT: { label: '검수 대기', cls: 'bg-infow text-info' }, RUNNING: { label: '주입 중', cls: 'bg-warnw text-warn' }, EXECUTED: { label: '주입 완료', cls: 'bg-okw text-ok' },
+  DRAFT: { label: '검수 대기', cls: 'bg-infow text-info' }, RUNNING: { label: '넣는 중', cls: 'bg-warnw text-warn' }, EXECUTED: { label: '넣기 완료', cls: 'bg-okw text-ok' },
 }
 
 function fmtKst(iso: string | null | undefined, opts: Intl.DateTimeFormatOptions = {}) {
@@ -73,7 +73,7 @@ function Shell({ user, children }: { user?: string; children: ReactNode }) {
         <span className="inline-block w-2.5 h-2.5 rounded-sm bg-accent" />
         <span className="font-bold tracking-wide text-[15px]">Replix 시딩 도구</span>
         <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wider ${ENV === 'prod' ? 'bg-accent text-white' : 'bg-warn text-white'}`}>{ENV === 'prod' ? '운영 서버' : '개발 서버'}</span>
-        <span className="text-white/55 text-xs">{ENV === 'prod' ? '여기서 주입하면 실제 사용자에게 보입니다.' : '개발 서버에만 반영됩니다. 실제 사용자에게는 보이지 않습니다.'}</span>
+        <span className="text-white/55 text-xs">{ENV === 'prod' ? '여기서 넣은 채팅은 실제 사용자에게 보입니다.' : '개발 서버에만 반영됩니다. 실제 사용자에게는 보이지 않습니다.'}</span>
         <span className="flex-1" />
         {user && <><span className="text-sm text-white/80">{user}</span><button className="text-xs text-white/60 hover:text-white" onClick={logout}>로그아웃</button></>}
       </header>
@@ -129,7 +129,7 @@ function Workspace({ writable }: { writable: boolean }) {
             <p className="note mt-2">
               {work.airWeekday ? `${WEEKDAYS[work.airWeekday]}요일 ${work.airTime ?? ''} 방영` : '정기 편성 없음'}
               {work.defaultRuntimeSec ? ` · 본편 약 ${Math.round(work.defaultRuntimeSec / 60)}분` : ''}
-              <br />수집 대상: {work.sources.map((s) => `${SOURCE_LABEL[s.kind]} ${s.boardId}`).join(', ') || '없음'}
+              <br />글을 모으는 곳: {work.sources.map((s) => `${SOURCE_LABEL[s.kind]} ${s.kind === 'DCINSIDE' ? '갤러리' : '게시판'} ${s.boardId}`).join(', ') || '없음'}
             </p>
           )}
         </div>
@@ -197,9 +197,9 @@ function EpisodeWorkspace({ work, episode, writable, onEpisodeChanged, onError }
   const latestDone = done[0] ?? null
   const steps = [
     { label: '수집', state: latestDone ? `완료 · ${latestDone.postCount.toLocaleString()}건` : collections.some((c) => c.status === 'RUNNING' || c.status === 'QUEUED') ? '진행 중' : '아직 없음', ok: !!latestDone },
-    { label: '싱크와 장면', state: anchors.length ? `기준점 ${anchors.length}개 · 장면 메모 ${notes.length}분` : '아직 없음', ok: anchors.length > 0 },
+    { label: '시각 맞추기', state: anchors.length ? `기준점 ${anchors.length}개 · 장면 메모 ${notes.length}분` : '아직 없음', ok: anchors.length > 0 },
     { label: 'AI 계획', state: plans.length ? `${plans.length}개 (검수 대기 ${plans.filter((p) => p.status === 'DRAFT').length})` : '아직 없음', ok: plans.length > 0 },
-    { label: '주입', state: injections.length ? `${injections.length.toLocaleString()}건 주입됨` : '아직 없음', ok: injections.length > 0 },
+    { label: '채팅 넣기', state: injections.length ? `${injections.length.toLocaleString()}건 넣음` : '아직 없음', ok: injections.length > 0 },
   ]
 
   return (
@@ -251,7 +251,7 @@ function EpisodeInfo({ episode, work, writable, onChanged, onError }: { episode:
       <div className="card-head flex items-start justify-between gap-4">
         <div>
           <h2 className="font-bold">회차 정보</h2>
-          <p className="lead mt-1">방영 시각은 수집 범위와 채팅 시각 환산의 기준이 됩니다. 편성표 시각이 아니라 실제 방송 시각을 적으세요. 정확한 값은 수집 뒤 글 밀도 그래프와 AI 장면 복원이 알려 줍니다.</p>
+          <p className="lead mt-1">방영 시각은 글을 모을 범위와 채팅 시각 계산의 기준입니다. 편성표 시각이 아니라 실제로 본편이 시작하고 끝난 시각을 적으세요. 정확한 값은 수집 뒤 분당 글 수 그래프와 AI 장면 복원이 알려 줍니다.</p>
         </div>
         {writable && !edit && <button className="btn" onClick={() => setEdit(true)}>고치기</button>}
       </div>
@@ -262,13 +262,13 @@ function EpisodeInfo({ episode, work, writable, onChanged, onError }: { episode:
               <span className="text-muted">이름</span><span>{episode.label ?? '없음'}</span>
               <span className="text-muted">방영 시작</span><span className="mono">{fmtKst(episode.airStartAt)}</span>
               <span className="text-muted">방영 종료</span><span className="mono">{episode.airEndAt ? fmtKst(episode.airEndAt) : <span className="text-muted">아직 모름 (시작 후 3시간까지 수집)</span>}</span>
-              <span className="text-muted">넷플릭스 본편</span><span>{episode.runtimeSec ? `${Math.round(episode.runtimeSec / 60)}분` : work.defaultRuntimeSec ? `작품 기본값 ${Math.round(work.defaultRuntimeSec / 60)}분` : '모름'}</span>
+              <span className="text-muted">넷플릭스 본편 길이</span><span>{episode.runtimeSec ? `${Math.round(episode.runtimeSec / 60)}분` : work.defaultRuntimeSec ? `작품 기본값 ${Math.round(work.defaultRuntimeSec / 60)}분` : '모름'}</span>
             </div>
             <div className="kv">
-              <span className="text-muted">넷플릭스 연결</span>
+              <span className="text-muted">넷플릭스 회차 연결</span>
               <span>{episode.episodeId
                 ? <span className="flex items-center gap-2"><span className="pill bg-okw text-ok">연결됨</span><span className="text-xs text-muted">회차 id {episode.episodeId}</span>{writable && <button className="btn btn-sm" onClick={unlink}>연결 끊기</button>}</span>
-                : <span className="text-muted">아직 연결되지 않았습니다. 넷플릭스에서 이 회차를 열고 확장 시딩 패널의 "이 회차에 연결"을 누르면 연결됩니다. 주입은 연결된 뒤에만 할 수 있습니다.</span>}</span>
+                : <span className="text-muted">아직 연결되지 않았습니다. 넷플릭스에서 이 회차를 재생하고 확장의 시딩 도구에서 "이 회차에 연결"을 누르면 연결됩니다. 채팅은 연결된 뒤에만 넣을 수 있습니다.</span>}</span>
             </div>
           </>
         ) : (
@@ -308,7 +308,7 @@ function CollectStep({ episode, collections, writable, reload, onEpisodeChanged,
       <div className="card-head flex items-start justify-between gap-4">
         <div>
           <h2 className="font-bold flex items-center"><span className="step-no">1</span>수집</h2>
-          <p className="lead mt-2">방송 시간대에 디시인사이드와 더쿠에 올라온 글을 모아 서버에 저장합니다. 이 글이 뒤의 모든 단계의 재료입니다. 수집 범위는 방영 시작 20분 전부터 종료 30분 뒤까지이고, 종료 시각을 모르면 시작 후 3시간까지 모은 뒤 글 밀도로 종료를 찾습니다. 한 회차에 보통 5분쯤 걸립니다.</p>
+          <p className="lead mt-2">방송 시간대에 디시인사이드와 더쿠에 올라온 글을 모아 서버에 저장합니다. 이 글이 뒤의 모든 단계의 재료입니다. 모으는 범위는 방영 시작 20분 전부터 종료 30분 뒤까지이고, 종료 시각을 모르면 시작 후 3시간까지 모은 뒤 분당 글 수를 보고 종료를 찾습니다. 한 회차에 보통 5분쯤 걸립니다.</p>
         </div>
         {writable && <button className="btn-primary" disabled={busy || active} onClick={start}>{active ? '수집 중' : collections.length ? '다시 수집' : '수집 시작'}</button>}
       </div>
@@ -317,7 +317,7 @@ function CollectStep({ episode, collections, writable, reload, onEpisodeChanged,
         {collections.length > 0 && (
           <div className="overflow-auto rounded-lg border border-line">
             <table className="table">
-              <thead><tr><th>번호</th><th>상태</th><th>글 수</th><th>수집 범위 (방송 시각)</th><th>걸린 시간</th><th>진행 · 오류</th><th></th></tr></thead>
+              <thead><tr><th>번호</th><th>상태</th><th>모은 글</th><th>모은 범위 (방송 시각)</th><th>걸린 시간</th><th>진행 상황 또는 오류</th><th></th></tr></thead>
               <tbody>
                 {collections.map((c) => (
                   <tr key={c.id} className={`cursor-pointer ${selected?.id === c.id ? 'bg-infow' : 'hover:bg-soft'}`} onClick={() => setSelectedId(c.id)}>
@@ -370,7 +370,7 @@ function DensityChart({ collection: c, episode, writable, onEpisodeChanged, onEr
     <div className="flex flex-col gap-3">
       <div>
         <h3 className="font-semibold text-sm">분당 글 수</h3>
-        <p className="note mt-1">글이 갑자기 늘어나는 곳이 방송 시작, 확 줄어드는 곳이 방송 종료입니다. 점선은 회차 정보에 저장된 시각(파랑)과 그래프로 계산한 제안(빨강)입니다. 막대를 누르면 아래 글 목록이 그 분으로 이동합니다.</p>
+        <p className="note mt-1">글이 갑자기 늘어나는 곳이 방송 시작, 확 줄어드는 곳이 방송 종료입니다. 파란 점선은 회차 정보에 저장된 시각, 빨간 점선은 이 그래프로 추정한 시각입니다. 막대를 누르면 아래 글 목록이 그 분으로 이동합니다.</p>
       </div>
       <div className="rounded-lg border border-line bg-soft/60 p-3">
         <svg viewBox={`0 0 ${W} ${H + 18}`} className="w-full h-44">
@@ -379,16 +379,16 @@ function DensityChart({ collection: c, episode, writable, onEpisodeChanged, onEr
           {ticks.map((b, i) => <text key={`t${i}`} x={x(b.at)} y={H + 14} fontSize={10} fill="#666672">{fmtTime(b.at).slice(0, 5)}</text>)}
           <Marker iso={episode.airStartAt} color="#2b66a3" label="저장된 시작" dy={14} />
           <Marker iso={episode.airEndAt} color="#2b66a3" label="저장된 종료" dy={14} />
-          <Marker iso={d.suggestedStartAt} color="#a82a2a" label="제안 시작" dy={30} />
-          <Marker iso={d.suggestedEndAt} color="#a82a2a" label="제안 종료" dy={30} />
+          <Marker iso={d.suggestedStartAt} color="#a82a2a" label="추정 시작" dy={30} />
+          <Marker iso={d.suggestedEndAt} color="#a82a2a" label="추정 종료" dy={30} />
         </svg>
       </div>
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <span className="text-muted">최대 {max}건/분</span>
-        {d.suggestedStartAt && <span className="flex items-center gap-2">제안 시작 <b className="mono">{fmtTime(d.suggestedStartAt).slice(0, 5)}</b>{writable && d.suggestedStartAt !== episode.airStartAt && <button className="btn btn-sm" disabled={busy} onClick={() => apply('airStartAt', d.suggestedStartAt!)}>회차 정보에 적용</button>}</span>}
+        {d.suggestedStartAt && <span className="flex items-center gap-2">추정 시작 <b className="mono">{fmtTime(d.suggestedStartAt).slice(0, 5)}</b>{writable && d.suggestedStartAt !== episode.airStartAt && <button className="btn btn-sm" disabled={busy} onClick={() => apply('airStartAt', d.suggestedStartAt!)}>회차 정보에 적용</button>}</span>}
         {d.suggestedEndAt
-          ? <span className="flex items-center gap-2">제안 종료 <b className="mono">{fmtTime(d.suggestedEndAt).slice(0, 5)}</b>{writable && d.suggestedEndAt !== episode.airEndAt && <button className="btn btn-sm" disabled={busy} onClick={() => apply('airEndAt', d.suggestedEndAt!)}>회차 정보에 적용</button>}</span>
-          : <span className="text-muted">종료 제안 없음. 글 밀도가 끝까지 유지되어 종료를 찾지 못했습니다. AI 장면 복원이 예고·총평 글로 더 정확한 종료를 찾습니다.</span>}
+          ? <span className="flex items-center gap-2">추정 종료 <b className="mono">{fmtTime(d.suggestedEndAt).slice(0, 5)}</b>{writable && d.suggestedEndAt !== episode.airEndAt && <button className="btn btn-sm" disabled={busy} onClick={() => apply('airEndAt', d.suggestedEndAt!)}>회차 정보에 적용</button>}</span>
+          : <span className="text-muted">종료를 추정하지 못했습니다. 글 수가 끝까지 줄지 않았기 때문입니다. AI 장면 복원이 예고와 총평 글을 근거로 더 정확한 종료를 찾아 줍니다.</span>}
       </div>
       {jump && <PostJumpContext at={jump} onClear={() => setJump(null)} />}
     </div>
@@ -452,7 +452,7 @@ function PostBrowser({ collection: c, episode, onError }: { collection: Collecti
         <>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <button className="btn btn-sm" disabled={anchor.from === null && anchor.order === 'asc'} onClick={() => setAnchor({ from: null, order: 'asc' })}>처음부터</button>
-            <button className="btn btn-sm" disabled={anchor.order === 'desc'} onClick={() => setAnchor({ from: null, order: 'desc' })}>끝부터 (최신순)</button>
+            <button className="btn btn-sm" disabled={anchor.order === 'desc'} onClick={() => setAnchor({ from: null, order: 'desc' })}>마지막 글부터 (역순)</button>
             <span className="text-muted ml-2">시각으로 이동</span>
             <input type="time" value={timeText} onChange={(e) => setTimeText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') jumpToTime() }} className="input h-8 text-xs w-28" />
             <button className="btn btn-sm" disabled={!timeText} onClick={jumpToTime}>이동</button>
@@ -491,14 +491,14 @@ function SyncStep({ episode, anchors, notes, writable, reload, onError }: { epis
   return (
     <div className="card">
       <div className="card-head">
-        <h2 className="font-bold flex items-center"><span className="step-no">2</span>싱크와 장면</h2>
-        <p className="lead mt-2">수집한 글은 방송 시각을 갖고 넷플릭스는 재생 시각으로 돕니다. 이 단계는 그 둘을 잇는 <b>기준점</b>과, 방송 1분마다 화면에서 무슨 일이 있었는지 적은 <b>장면 메모</b>를 다룹니다. 둘 다 확장 패널의 "AI 채팅 작업 시작"이 자막과 글을 읽어 자동으로 만듭니다.</p>
+        <h2 className="font-bold flex items-center"><span className="step-no">2</span>시각 맞추기와 장면 메모</h2>
+        <p className="lead mt-2">수집한 글에는 방송 시각이 적혀 있고, 넷플릭스는 재생 시각으로 돕니다. 이 단계는 그 둘을 잇는 <b>기준점</b>과, 방송 1분마다 화면에서 무슨 일이 있었는지 적은 <b>장면 메모</b>를 다룹니다. 둘 다 확장의 시딩 도구에서 "AI 채팅 작업 시작"을 누르면 자막과 글을 읽어 자동으로 만들어집니다.</p>
       </div>
       <div className="card-body flex flex-col gap-8">
         <section className="flex flex-col gap-3">
           <div>
             <h3 className="font-semibold">기준점 {anchors.length}개</h3>
-            <p className="note mt-1">기준점 하나는 "재생 몇 초가 방송 몇 시 몇 분이었다"는 쌍입니다. 방송에는 광고가 있어서 한 쌍으로는 뒤로 갈수록 어긋나므로 광고 뒤마다 기준점을 둡니다. 주입할 때 글의 방송 시각을 이 표로 재생 시각으로 바꿉니다. 재생하며 어긋남이 보이면 확장 패널에서 초 단위로 다듬을 수 있습니다.</p>
+            <p className="note mt-1">기준점 하나는 "재생 몇 초가 방송 몇 시 몇 분이었다"는 쌍입니다. 방송에는 광고가 있어서 한 쌍으로는 뒤로 갈수록 어긋나므로 광고 뒤마다 기준점을 둡니다. 채팅을 넣을 때 글의 방송 시각을 이 표로 재생 시각으로 바꿉니다. 재생하며 어긋남이 보이면 확장의 시딩 도구에서 초 단위로 다듬을 수 있습니다.</p>
           </div>
           {anchors.length === 0 ? <p className="text-sm text-muted">아직 기준점이 없습니다. 없으면 방영 시작 시각을 재생 0초로 보고 환산하는데, 광고가 있는 방송에서는 뒤로 갈수록 어긋납니다. AI 작업을 먼저 돌리세요.</p> : (
             <div className="overflow-auto rounded-lg border border-line max-h-80 max-w-3xl">
@@ -572,7 +572,7 @@ function SceneNotesBlock({ episode, notes, writable, reload, onError }: { episod
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="font-semibold">장면 메모 {notes.length > 0 && <span className="font-normal text-muted">{main.length}분 (방송 전 {pre.length}분, 종료 후 {post.length}분 별도)</span>}</h3>
-          <p className="note mt-1">AI가 자막과 글을 읽고 방송 1분마다 "이때 화면에서 무슨 일이 있었나"를 복원한 기록입니다. 세 곳에 쓰입니다. AI 계획을 만들 때 채팅을 고르고 다듬는 문맥이 되고, 확장 패널에서 재생 중인 분의 장면을 보여 주며, 방송 시작·광고·종료 시각을 알려 줍니다. 앞의 점은 확신(초록 높음, 노랑 중간, 회색 낮음)입니다.</p>
+          <p className="note mt-1">AI가 자막과 글을 읽고 방송 1분마다 "이때 화면에서 무슨 일이 있었나"를 복원한 기록입니다. 세 곳에 쓰입니다. AI 채팅 계획을 만들 때 채팅을 고르고 다듬는 근거가 되고, 확장의 시딩 도구에서 재생 중인 분의 장면을 보여 주며, 방송 시작·광고·종료 시각을 알려 줍니다. 각 줄 앞의 점은 AI의 확신 정도입니다(초록 높음, 노랑 중간, 회색 낮음).</p>
         </div>
         <div className="flex gap-1 shrink-0">
           {notes.length > 0 && <button className="btn" onClick={() => setOpen((v) => !v)}>{open ? '목록 접기' : '목록 보기'}</button>}
@@ -660,11 +660,11 @@ function PlanStep({ episode, plans, injections, writable, reload, onError }: { e
   const execute = async () => {
     if (!view) return
     const n = view.items.filter((x) => x.item.accepted && !x.item.injectionId).length
-    if (!confirm(`수락한 ${n.toLocaleString()}건을 이 회차의 채팅으로 넣습니다. 넣은 뒤에는 "전체 되돌리기"나 확장 패널의 개별 취소로 지울 수 있습니다.`)) return
+    if (!confirm(`수락한 ${n.toLocaleString()}건을 이 회차의 채팅으로 넣습니다. 넣은 뒤에는 "넣은 채팅 모두 지우기"나 확장의 시딩 도구에서 한 건씩 지울 수 있습니다.`)) return
     setBusy(true); try { setView(await api.executePlan(view.plan.id)) } catch (e) { onError(errText(e)); setBusy(false) }
   }
-  const rollback = async () => { if (!view || !confirm('이 계획이 넣은 채팅을 전부 지우고 검수 대기로 되돌립니다.')) return; setBusy(true); try { setView(await api.rollbackPlan(view.plan.id)); reload() } catch (e) { onError(errText(e)) } finally { setBusy(false) } }
-  const remove = async () => { if (!view || !confirm('이 계획을 지웁니다. 아직 주입하지 않은 계획만 지울 수 있습니다.')) return; setBusy(true); try { await api.deletePlan(view.plan.id); setPlanId(null); reload() } catch (e) { onError(errText(e)) } finally { setBusy(false) } }
+  const rollback = async () => { if (!view || !confirm('이 계획이 넣은 채팅을 모두 지우고 검수 대기 상태로 되돌립니다.')) return; setBusy(true); try { setView(await api.rollbackPlan(view.plan.id)); reload() } catch (e) { onError(errText(e)) } finally { setBusy(false) } }
+  const remove = async () => { if (!view || !confirm('이 계획을 지웁니다. 아직 채팅에 넣지 않은 계획만 지울 수 있습니다.')) return; setBusy(true); try { await api.deletePlan(view.plan.id); setPlanId(null); reload() } catch (e) { onError(errText(e)) } finally { setBusy(false) } }
 
   const stats = view ? { total: view.items.length, accepted: view.items.filter((x) => x.item.accepted).length, done: view.items.filter((x) => x.item.injectionId).length, failed: view.items.filter((x) => x.item.error).length,
     kinds: (Object.keys(KIND_LABEL) as InjectionKind[]).map((k) => [k, view.items.filter((x) => x.item.kind === k).length] as const) } : null
@@ -677,22 +677,22 @@ function PlanStep({ episode, plans, injections, writable, reload, onError }: { e
         <div className="card-head flex items-start justify-between gap-4">
           <div>
             <h2 className="font-bold flex items-center"><span className="step-no">3</span>AI 채팅 계획</h2>
-            <p className="lead mt-2">AI가 수집한 글 가운데 화면 반응이 아닌 글(광고 불평, 다른 기수 이야기, 비하와 욕설)을 빼고, 남은 글을 네 종류로 정리한 목록입니다. 확장 패널의 "AI 채팅 작업 시작"이 만들어 여기로 보냅니다. 여기서는 훑어보며 뺄 행만 거부하면 됩니다. 재생 시각은 지금 저장된 기준점으로 환산한 미리보기이고, 실제 주입 때 다시 계산합니다.</p>
+            <p className="lead mt-2">AI가 수집한 글 가운데 화면 반응이 아닌 글(광고 불평, 다른 기수 이야기, 비하와 욕설)을 빼고, 남은 글을 아래 네 종류로 정리한 목록입니다. 확장의 시딩 도구에서 "AI 채팅 작업 시작"을 누르면 만들어져 여기로 옵니다. 여기서는 훑어보며 뺄 행만 거부하면 됩니다. 표의 재생 시각은 지금 저장된 기준점으로 계산한 값이고, 실제로 넣을 때 다시 계산합니다.</p>
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 mt-3 text-xs max-w-3xl">
               {(Object.keys(KIND_LABEL) as InjectionKind[]).map((k) => <div key={k} className="contents"><dt className="font-semibold text-ink2 whitespace-nowrap">{KIND_LABEL[k]}</dt><dd className="text-muted">{KIND_DESC[k]}</dd></div>)}
             </dl>
           </div>
-          {writable && <button className="btn" onClick={() => setUpload((v) => !v)}>{upload ? '닫기' : '계획 파일 직접 올리기'}</button>}
+          {writable && <button className="btn" onClick={() => setUpload((v) => !v)}>{upload ? '닫기' : '계획 파일을 손으로 올리기'}</button>}
         </div>
         <div className="card-body flex flex-col gap-4">
           {upload && (
             <div className="flex flex-col gap-2">
-              <p className="note">로컬 파이프라인이 만든 plan.json 내용을 붙여 넣습니다. 보통은 확장 패널이 자동으로 올리므로 쓸 일이 없습니다.</p>
+              <p className="note">관리자 PC의 파이프라인이 만든 plan.json 내용을 붙여 넣습니다. 보통은 AI 작업이 끝나면 자동으로 올라오므로 쓸 일이 없습니다.</p>
               <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5} spellCheck={false} className="input mono text-xs py-2 h-auto" />
               <div className="flex items-center gap-2 text-xs text-muted"><span>{parsed ? `인식된 행 ${parsed.items.length}개` : text.trim() ? 'JSON 형식이 아닙니다' : ''}</span><span className="flex-1" /><button className="btn-primary" disabled={busy || !parsed || parsed.items.length === 0} onClick={doUpload}>올리기</button></div>
             </div>
           )}
-          {plans.length === 0 && <p className="text-sm text-muted">아직 계획이 없습니다. 수집이 끝났다면 넷플릭스에서 이 회차를 열고 확장 패널의 "AI 채팅 작업 시작"을 누르세요. 한 시간쯤 뒤 계획이 여기에 나타납니다.</p>}
+          {plans.length === 0 && <p className="text-sm text-muted">아직 계획이 없습니다. 수집이 끝났다면 넷플릭스에서 이 회차를 재생하고 확장의 시딩 도구에서 "AI 채팅 작업 시작"을 누르세요. 한 시간쯤 뒤 계획이 여기에 나타납니다.</p>}
           {plans.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {plans.map((p) => (
@@ -709,16 +709,16 @@ function PlanStep({ episode, plans, injections, writable, reload, onError }: { e
                 <div className="stat"><b>{stats.total.toLocaleString()}</b><span>전체 행</span></div>
                 <div className="stat"><b>{stats.accepted.toLocaleString()}</b><span>수락</span></div>
                 <div className="stat"><b>{(stats.total - stats.accepted).toLocaleString()}</b><span>거부</span></div>
-                <div className="stat"><b className={stats.done ? 'text-ok' : ''}>{stats.done.toLocaleString()}</b><span>주입됨</span></div>
+                <div className="stat"><b className={stats.done ? 'text-ok' : ''}>{stats.done.toLocaleString()}</b><span>채팅에 넣음</span></div>
                 {stats.failed > 0 && <div className="stat"><b className="text-bad">{stats.failed}</b><span>실패</span></div>}
                 <div className="w-px h-8 bg-line" />
                 {stats.kinds.map(([k, n]) => <div key={k} className="stat min-w-[72px]"><b>{n.toLocaleString()}</b><span>{KIND_LABEL[k]}</span></div>)}
                 <span className="flex-1" />
-                <span className="text-xs text-muted">기준점 {view.anchorCount}개로 환산{view.anchorCount === 0 && ' (기준점이 없어 방영 시작 시각 기준)'}</span>
+                <span className="text-xs text-muted">재생 시각은 기준점 {view.anchorCount}개로 계산{view.anchorCount === 0 && ' (기준점이 없어 방영 시작 시각만으로 계산)'}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} className="input h-8 text-xs">
-                  <option value="all">모든 행</option><option value="accepted">수락 (아직 주입 전)</option><option value="rejected">거부</option><option value="done">주입됨</option><option value="failed">실패</option>
+                  <option value="all">모든 행</option><option value="accepted">수락했고 아직 넣지 않음</option><option value="rejected">거부함</option><option value="done">채팅에 넣음</option><option value="failed">넣기 실패</option>
                 </select>
                 <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value as InjectionKind | '')} className="input h-8 text-xs">
                   <option value="">모든 종류</option>{(Object.keys(KIND_LABEL) as InjectionKind[]).map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}
@@ -727,7 +727,7 @@ function PlanStep({ episode, plans, injections, writable, reload, onError }: { e
               </div>
               <div className="max-h-[720px] overflow-auto rounded-lg border border-line">
                 <table className="table">
-                  <thead><tr><th className="w-20">재생 시각</th><th className="w-24">종류</th><th>채팅</th><th className="w-64">근거 장면 · 이유</th><th className="w-28 text-right">검수</th></tr></thead>
+                  <thead><tr><th className="w-20">재생 시각</th><th className="w-24">종류</th><th>채팅</th><th className="w-64">근거 장면과 고른 이유</th><th className="w-28 text-right">검수</th></tr></thead>
                   <tbody>
                     {rows.map(({ item, previewSec, gap }) => (
                       <tr key={item.id} className={`${!item.accepted ? 'opacity-40' : ''} ${item.error ? 'bg-badw/40' : item.injectionId ? 'bg-okw/40' : ''}`}>
@@ -736,7 +736,7 @@ function PlanStep({ episode, plans, injections, writable, reload, onError }: { e
                         <td>{item.message}</td>
                         <td className="text-xs text-muted">{item.scene}{item.reason && <div className="text-faint">{item.reason}</div>}{item.error && <div className="text-bad">{item.error}</div>}</td>
                         <td className="text-right whitespace-nowrap">
-                          {item.injectionId ? <span className="text-xs text-ok">주입됨</span> : item.error ? <span className="text-xs text-bad">실패</span>
+                          {item.injectionId ? <span className="text-xs text-ok">넣음</span> : item.error ? <span className="text-xs text-bad">실패</span>
                             : writable && !running ? <button className="btn btn-sm" onClick={() => toggle(item.id, !item.accepted)}>{item.accepted ? '거부' : '다시 수락'}</button> : <span className="text-xs text-muted">{item.accepted ? '수락' : '거부'}</span>}
                         </td>
                       </tr>
@@ -753,20 +753,20 @@ function PlanStep({ episode, plans, injections, writable, reload, onError }: { e
       <div className="card">
         <div className="card-head flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-bold flex items-center"><span className="step-no">4</span>주입</h2>
-            <p className="lead mt-2">검수를 마친 계획의 수락 행을 이 회차의 채팅으로 넣습니다. 각 행은 유령 계정 이름으로 저장되어 다른 사용자 채팅과 똑같이 보이고, 접속자 수나 활동 통계에는 잡히지 않습니다. 넷플릭스 회차 연결이 되어 있어야 하며, 서버가 뒤에서 처리하므로 진행률이 여기와 확장 패널에 표시됩니다. 잘못 넣었으면 계획 단위로 전부 되돌리거나 확장 패널에서 한 건씩 지울 수 있습니다.</p>
+            <h2 className="font-bold flex items-center"><span className="step-no">4</span>채팅 넣기</h2>
+            <p className="lead mt-2">검수를 마친 계획의 수락 행을 이 회차의 채팅으로 넣습니다. 각 행은 시딩 전용 계정(유령 계정) 이름으로 저장되어 다른 사용자 채팅과 똑같이 보이고, 접속자 수나 활동 통계에는 잡히지 않습니다. 넷플릭스 회차가 연결되어 있어야 하며, 서버가 뒤에서 처리하므로 진행률이 여기와 확장의 시딩 도구에 표시됩니다. 잘못 넣었으면 계획 단위로 모두 지우거나 확장의 시딩 도구에서 한 건씩 지울 수 있습니다.</p>
           </div>
         </div>
         <div className="card-body flex flex-wrap items-center gap-4">
-          <div className="stat"><b>{injections.length.toLocaleString()}</b><span>이 회차에 주입된 채팅</span></div>
+          <div className="stat"><b>{injections.length.toLocaleString()}</b><span>이 회차에 넣은 채팅</span></div>
           <span className="flex-1" />
-          {!episode.episodeId && <span className="text-sm text-warn">넷플릭스 회차가 연결되지 않아 주입할 수 없습니다.</span>}
+          {!episode.episodeId && <span className="text-sm text-warn">넷플릭스 회차가 연결되지 않아 채팅을 넣을 수 없습니다.</span>}
           {view && writable && stats && (
             <>
               {view.plan.status === 'DRAFT' && <button className="btn-danger" disabled={busy} onClick={remove}>계획 #{view.plan.id} 지우기</button>}
-              {stats.done > 0 && !running && <button className="btn-danger" disabled={busy} onClick={rollback}>계획 #{view.plan.id} 전체 되돌리기</button>}
+              {stats.done > 0 && !running && <button className="btn-danger" disabled={busy} onClick={rollback}>계획 #{view.plan.id}이 넣은 채팅 모두 지우기</button>}
               <button className="btn-primary" disabled={busy || running || !episode.episodeId || stats.accepted - stats.done <= 0} onClick={execute}>
-                {running ? `주입 중 ${(stats.done + stats.failed).toLocaleString()} / ${stats.accepted.toLocaleString()}` : `계획 #${view.plan.id}의 수락 ${(stats.accepted - stats.done).toLocaleString()}건 주입`}
+                {running ? `넣는 중 ${(stats.done + stats.failed).toLocaleString()} / ${stats.accepted.toLocaleString()}` : `계획 #${view.plan.id}의 수락 ${(stats.accepted - stats.done).toLocaleString()}건을 채팅에 넣기`}
               </button>
             </>
           )}
