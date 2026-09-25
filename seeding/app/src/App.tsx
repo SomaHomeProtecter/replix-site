@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { api, ApiError, type Collection, type Density, type Episode, type Injection, type InjectionKind, type NewPlanItem, type NewSceneNote, type Plan, type PlanView, type Post, type PostsPage, type SceneNote, type SourceKind, type SyncAnchor, type Work } from './api'
+import { api, ApiError, type Collection, type Density, type Episode, type Injection, type InjectionKind, type NewPlanItem, type NewSceneNote, type Plan, type PlanView, type Post, type PostsPage, type Prompt, type PromptVersion, type SceneNote, type SourceKind, type SyncAnchor, type Work } from './api'
 import { canRead, canWrite, login, logout, useAuth } from './auth'
 import { ENV } from './env'
 
@@ -63,10 +63,25 @@ export default function App() {
   if (!ready) return <Shell><p className="text-muted p-6">로그인 상태를 확인하고 있습니다.</p></Shell>
   if (!user) return <Shell><Gate title="관리자 로그인이 필요합니다" body="이 도구는 운영 데이터를 다룹니다. 팀 Keycloak 계정으로 로그인하세요."><button className="btn-primary" onClick={login}>로그인</button></Gate></Shell>
   if (!canRead(user)) return <Shell user={user.name}><Gate title="이 계정에는 권한이 없습니다" body={`${user.name} 계정에 관리자 역할(admin, moderation_operator, admin_console_viewer 중 하나)이 없습니다. 팀 관리자에게 역할을 요청하세요.`}><button className="btn" onClick={logout}>로그아웃</button></Gate></Shell>
-  return <Shell user={user.name}><Workspace writable={canWrite(user)} /></Shell>
+  return <Shell user={user.name} nav><Main writable={canWrite(user)} /></Shell>
 }
 
-function Shell({ user, children }: { user?: string; children: ReactNode }) {
+/* 상단 이동: 회차 작업(기본) ↔ AI 프롬프트. 라우팅 없이 상태로 바꾼다. */
+function Main({ writable }: { writable: boolean }) {
+  const [view, setView] = useState<'work' | 'prompts'>('work')
+  return (
+    <>
+      <nav className="h-11 border-b border-line bg-raise flex items-center gap-1 px-6">
+        {([['work', '회차 작업'], ['prompts', 'AI 프롬프트']] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setView(k)} className={`h-11 px-3 text-sm border-b-2 ${view === k ? 'border-accent font-semibold' : 'border-transparent text-muted hover:text-ink'}`}>{label}</button>
+        ))}
+      </nav>
+      {view === 'work' ? <Workspace writable={writable} /> : <PromptsView writable={writable} />}
+    </>
+  )
+}
+
+function Shell({ user, children }: { user?: string; nav?: boolean; children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="h-14 bg-ink text-white flex items-center gap-4 px-6">
@@ -614,6 +629,104 @@ function SceneNotesBlock({ episode, notes, writable, reload, onError }: { episod
         </div>
       )}
     </section>
+  )
+}
+
+/* AI 프롬프트 편집(HP-436) — 시딩 도구가 쓰는 모든 프롬프트의 정본. 로컬 파이프라인은 실행할 때마다 여기서 받아 쓰고,
+   서버의 "다시 써서 넣기"도 여기 것을 쓴다. 저장마다 버전이 올라가고 이력에서 되돌릴 수 있다. */
+function PromptsView({ writable }: { writable: boolean }) {
+  const [list, setList] = useState<Prompt[] | null>(null)
+  const [key, setKey] = useState<string | null>(null)
+  const [draft, setDraft] = useState('')
+  const [note, setNote] = useState('')
+  const [versions, setVersions] = useState<PromptVersion[] | null>(null)
+  const [showVersions, setShowVersions] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState<string | null>(null)
+  const current = list?.find((p) => p.key === key) ?? null
+  const reload = useCallback(() => api.prompts().then((ps) => { setList(ps); setKey((k) => k ?? ps[0]?.key ?? null) }).catch((e) => setError(errText(e))), [])
+  useEffect(() => { reload() }, [reload])
+  useEffect(() => { if (current) { setDraft(current.content); setNote(''); setShowVersions(false); setVersions(null) } }, [current?.key, current?.version]) // eslint-disable-line react-hooks/exhaustive-deps
+  const dirty = !!current && draft !== current.content
+  const save = async () => {
+    if (!current) return
+    setBusy(true)
+    try { await api.savePrompt(current.key, draft, note || null); await reload(); setSaved(`${current.title} 저장됨. 다음 실행부터 적용됩니다.`); setTimeout(() => setSaved(null), 4000) }
+    catch (e) { setError(errText(e)) } finally { setBusy(false) }
+  }
+  const openVersions = async () => { if (!current) return; try { setVersions(await api.promptVersions(current.key)); setShowVersions(true) } catch (e) { setError(errText(e)) } }
+  const revert = async (v: PromptVersion) => {
+    if (!current || !confirm(`버전 ${v.version}의 내용으로 되돌립니다. 지금 내용은 이력에 남습니다.`)) return
+    setBusy(true); try { await api.revertPrompt(current.key, v.version); await reload() } catch (e) { setError(errText(e)) } finally { setBusy(false) }
+  }
+  const reset = async () => {
+    if (!current || !confirm('저장소에 들어 있는 기본 프롬프트로 되돌립니다. 지금 내용은 이력에 남습니다.')) return
+    setBusy(true); try { await api.resetPrompt(current.key); await reload() } catch (e) { setError(errText(e)) } finally { setBusy(false) }
+  }
+  return (
+    <div className="grid grid-cols-[300px_minmax(0,1fr)] min-h-[calc(100vh-100px)]">
+      <aside className="border-r border-line bg-raise flex flex-col">
+        <div className="px-5 pt-5 pb-3 text-[11px] font-semibold text-muted">프롬프트</div>
+        <ul className="px-3 flex flex-col gap-1">
+          {list == null && <li className="px-2 py-2 text-sm text-muted">불러오는 중</li>}
+          {list?.map((p) => (
+            <li key={p.key}>
+              <button onClick={() => setKey(p.key)} className={`w-full text-left rounded-lg px-3 py-2.5 border ${p.key === key ? 'border-info bg-infow' : 'border-transparent hover:bg-soft'}`}>
+                <div className="font-semibold">{p.title}</div>
+                <div className="text-xs text-muted mt-0.5">버전 {p.version} · {fmtKst(p.updatedAt, { second: undefined })}{p.updatedBy && p.updatedBy !== 'default' ? '' : ' · 기본값'}</div>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <p className="note px-5 py-4 mt-auto border-t border-line">여기 저장한 내용이 정본입니다. 관리자 PC의 AI 작업은 시작할 때마다 최신 내용을 받아 쓰고, 서버의 "다시 써서 넣기"도 같은 내용을 씁니다. 파일 경로와 담당 구간 같은 실행 정보는 실행할 때 뒤에 자동으로 붙으므로 여기에 적지 않습니다.</p>
+      </aside>
+      <section className="p-6 flex flex-col gap-4 max-w-[1400px]">
+        {error && <Banner kind="bad" onClose={() => setError(null)}>{error}</Banner>}
+        {saved && <Banner kind="info">{saved}</Banner>}
+        {!current && <div className="card card-body text-sm text-muted">왼쪽에서 프롬프트를 고르세요.</div>}
+        {current && (
+          <div className="card">
+            <div className="card-head flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-bold">{current.title}</h2>
+                <p className="lead mt-1">{current.description}</p>
+                <p className="note mt-2">버전 {current.version} · 마지막 저장 {fmtKst(current.updatedAt)}{current.updatedBy && current.updatedBy !== 'default' ? ` · ${current.updatedBy}` : ' · 기본값'}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button className="btn" onClick={openVersions}>이력 보기</button>
+                {writable && <button className="btn" disabled={busy} onClick={reset}>기본값으로 되돌리기</button>}
+              </div>
+            </div>
+            <div className="card-body flex flex-col gap-3">
+              <textarea value={draft} onChange={(e) => setDraft(e.target.value)} spellCheck={false} disabled={!writable} rows={28}
+                className="input mono text-[13px] leading-relaxed py-3 h-auto w-full" />
+              <div className="flex items-center gap-3">
+                <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="무엇을 바꿨는지 한 줄 (이력에 남습니다)" className="input flex-1" disabled={!writable} />
+                <span className="text-xs text-muted">{draft.length.toLocaleString()}자{dirty ? ' · 저장하지 않은 변경' : ''}</span>
+                {writable && <button className="btn" disabled={!dirty} onClick={() => setDraft(current.content)}>변경 취소</button>}
+                {writable && <button className="btn-primary" disabled={busy || !dirty} onClick={save}>저장</button>}
+              </div>
+              {showVersions && versions && (
+                <div className="rounded-lg border border-line overflow-hidden">
+                  <table className="table">
+                    <thead><tr><th className="w-16">버전</th><th className="w-40">저장 시각</th><th className="w-32">저장한 사람</th><th>메모</th><th className="w-40"></th></tr></thead>
+                    <tbody>
+                      {versions.map((v) => (
+                        <tr key={v.id}>
+                          <td className="mono">{v.version}</td><td className="mono">{fmtKst(v.createdAt)}</td><td className="text-xs">{v.createdBy ?? ''}</td><td className="text-xs">{v.note ?? ''}</td>
+                          <td className="text-right"><button className="btn btn-sm" onClick={() => setDraft(v.content)}>편집칸에 불러오기</button>{writable && v.version !== current.version && <button className="btn btn-sm ml-1" disabled={busy} onClick={() => revert(v)}>이 버전으로 되돌리기</button>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
   )
 }
 
