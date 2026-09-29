@@ -7,6 +7,7 @@ Replix의 정적 웹 표면. GitHub Pages로 `https://replix.tv`에 서빙된다
 | `/catalog/` | **작품 탐색 페이지(HP-124, 내부 명칭 catalog — 2026-09-07 '큐레이션'에서 개명, 옛 경로 `/curation/`은 폐기)** — 실제 시청·채팅 기록을 작품 → 회차 → 순간으로 펼치는 참조 카탈로그. 소스 = `catalog/app`(Vite+React), 산출물 = `docs/catalog/index.html` 한 장(빌드해서 커밋). 대상 API 는 `catalog/app/index.html` 의 `<meta name="api-base">` |
 | `/` | 자리 지킴(워드마크) | **HP-87 랜딩 페이지**(소개·설치 CTA — 문구는 담당자 직접 작성 규칙). 작업본은 `docs/`에 있다 — 확정되면 아래 '배포 구조'대로 전환만 하면 된다 |
 | `/invite` | **HP-186 초대 스텁**(C안) — `?w=<넷플릭스 watch id>&t=<초대 토큰>`을 받아 `netflix.com/watch/<w>#replix-invite=<t>`로 이동 | 랜딩형 초대 페이지로 교체(설치 CTA + "넷플릭스에서 열기") — **URL·파라미터 계약 불변** |
+| `/bye` | **HP-458 삭제 설문** — 확장을 지우면 크롬이 여는 페이지(`chrome.runtime.setUninstallURL`). 사유 9개·후속 선택·한마디를 익명으로 운영 BE(`POST /api/v1/feedback`, `trigger=UNINSTALL`)에 보낸다. 규칙·서버 계약 = `docs/js/bye.js`, 검사 = `scripts/test-bye.mjs` | 계측(조회·제출)은 분석 동의 방식이 정해지면 붙인다 |
 
 ## 계약 (변경 금지)
 
@@ -14,6 +15,7 @@ Replix의 정적 웹 표면. GitHub Pages로 `https://replix.tv`에 서빙된다
 - 토큰은 넷플릭스 URL의 **해시(#)** 로만 나른다 — fragment는 서버·리퍼러로 전송되지 않는다.
 - `/invite`는 `noindex` 유지, 토큰을 로그·분석 도구로 보내지 않는다.
 - 설치자는 확장 background가 `replix.tv/invite` 진입을 가로채므로 이 페이지 도달 전에 처리된다 — 이 저장소는 **미설치자용 표면**이다.
+- 삭제 설문 주소: `https://replix.tv/bye?v=<확장 버전>&d=<설치 후 경과일>` — 설치된 확장이 이 주소를 들고 있다가 삭제될 때 연다. 옛 버전 확장도 계속 이 주소를 쓰므로 **경로·파라미터 이름을 바꾸지 않는다**(HP-458). 붙는 값은 비식별 둘뿐이다 — 기기·계정 식별값을 더하지 않는다(익명 설문이라는 약속).
 
 ## 배포 구조 (2026-08-06 결정 · 2026-09-20 미리보기 제거, HP-433)
 
