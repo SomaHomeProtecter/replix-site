@@ -5,13 +5,34 @@
    ③ 자동수집(pageViews·pageUrlEnrichment·form)은 끈다 — 전체 URL 이 실리면 /catalog 해시의 작품 ID 나
       쿼리가 새 나간다. page_path 는 cleanPath 로 직접 정제한다(라우트 이름까지만).
    ④ IP 는 끈다 — 처리방침 수집 항목에 없다. 확장(HTTP API, ip 미전송)과 같은 수준으로 맞춘다.
+   ⑤ 세션 리플레이(HP-457)는 **랜딩에서만**, 시행일부터, 같은 동의 뒤에만 붙인다 — 아래 REPLAY_FROM 참조.
    카탈로그(React)는 이 파일을 /js/analytics.js 로 따로 로드해 window.ReplixAnalytics 로만 부른다.
    node 에서 import 하면 부트하지 않는다(scripts/test-analytics.mjs 가 순수 함수를 검사한다). */
 export var CONSENT_KEY = 'replix_web_analytics_consent_v1';
-export var CONSENT_VERSION = 1;
+/* 동의 버전 — 수집 범위가 바뀌면 올려 다시 묻는다. 2 = 랜딩 세션 리플레이 추가(HP-457).
+   운영에서는 시행일(REPLAY_FROM) 전까지 1 이 유효하다 — consentVersion() 이 가른다. */
+export var CONSENT_VERSION = 2;
 export var SDK_URL = 'https://cdn.amplitude.com/libs/analytics-browser-2.45.8-min.js.gz';
 /* 확장 config.js 와 같은 두 프로젝트(쓰기 전용 클라이언트 키 — 읽기·삭제 불가). 표면은 surface 속성으로 가른다. */
 export var API_KEYS = { prod: '6f7bcf8fc37e9f93d442f943c23b6861', dev: 'fa98652a9c62152eaab56eb423b707ab' };
+/* ─── 세션 리플레이(HP-457) ───────────────────────────────────────
+   화면 조작(스크롤·클릭·화면 구성 변화)을 재생 가능한 형태로 기록한다. 세 가지를 고정한다:
+   · **랜딩에서만.** 작품 탐색은 검색창 입력(=작품명)과 작품 화면이 그대로 찍혀 트래킹 플랜 §2 금지 목록에 걸린다.
+   · **시행일부터.** 처리방침 11항이 개정 7일 전 공지를 약속한다 — 새 수집 항목이라 공고(2026-09-29) 뒤 7일을 채워 켠다.
+     운영(replix.tv)만 날짜를 본다. 로컬·미리보기는 검증할 수 있어야 하므로 항상 켠다(dev 프로젝트로 간다).
+     ⚠️ 공고(=이 변경의 배포·공지 게시)가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
+   · **입력값은 가린다**(medium). 랜딩에는 입력 필드·이용자 생성 콘텐츠가 없지만, 생겨도 새 나가지 않게.
+   플러그인은 자기 원격 설정(sr-client-cfg.amplitude.com)을 받는다 — 끌 수 없다. 대시보드의 Session Replay
+   설정에서 마스킹을 낮추면 이 값보다 느슨해질 수 있으므로 거기는 건드리지 않는다(트래킹 플랜 §7). */
+export var REPLAY_FROM = Date.parse('2026-10-07T00:00:00+09:00');
+export var SR_URL = 'https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.35.4-min.js.gz';
+/* storeType 'memory' — 아직 안 보낸 녹화 조각을 브라우저 저장소(IndexedDB)에 남기지 않는다. 철회하면 그 즉시 사라져야
+   한다는 약속(처리방침 6항)을 저장소 청소에 기대지 않고 지키려는 것이다.
+   ⚠️ 전송은 플러그인의 **웹 워커**가 1~10초 간격으로 한다 — 페이지의 fetch 후킹·리소스 타이밍에는 안 보인다.
+   확인은 SDK logLevel 을 Debug(4)로 올려 'Session replay event batch tracked successfully' 로그로 한다(2026-09-29 실측).
+   떠나는 순간의 마지막 조각은 sendBeacon 으로 나가는데 크롬에서 CORS 로 막힌다(플러그인 1.35.4 의 동작) — 마지막
+   몇 초가 빠질 수 있다. */
+export var SR_CONFIG = { sampleRate: 1, storeType: 'memory', privacyConfig: { defaultMaskLevel: 'medium' } };
 export var SDK_CONFIG = {
   autocapture: { attribution: true, sessions: true, pageViews: false, formInteractions: false,
     fileDownloads: false, elementInteractions: false, pageUrlEnrichment: false },
@@ -34,11 +55,27 @@ export function cleanPath(pathname, hash) {
   return '/catalog/' + (m ? '#/' + m[1] : '');
 }
 export function deviceClass(width) { return width < 768 ? 'mobile' : (width < 1024 ? 'tablet' : 'desktop'); }
-export function parseConsent(raw) {
+/* 리플레이 조항이 시행 중인가 — 운영은 시행일부터, 그 밖은 항상. */
+export function replayInForce(hostname, nowMs) { return envOf(hostname) !== 'prod' || nowMs >= REPLAY_FROM; }
+export function replayOn(hostname, pathname, nowMs) {
+  return replayInForce(hostname, nowMs) && surfaceOf(pathname) === 'web_landing';
+}
+/* 지금 유효한 동의 버전. 시행일이 되면 1 로 받은 동의는 무효가 되어 새 문구로 다시 묻는다. */
+export function consentVersion(hostname, nowMs) { return replayInForce(hostname, nowMs) ? CONSENT_VERSION : 1; }
+export function parseConsent(raw, version) {
   try {
     var v = JSON.parse(raw);
-    return v && v.version === CONSENT_VERSION && (v.decision === 'granted' || v.decision === 'denied') ? v.decision : null;
+    return v && v.version === (version || CONSENT_VERSION) && (v.decision === 'granted' || v.decision === 'denied') ? v.decision : null;
   } catch (_) { return null; }
+}
+/* 배너 문구 — 동의가 덮는 범위를 그대로 적는다. 2 는 화면 조작 기록을 밝힌다(랜딩·카탈로그가 같은 배너를 쓰므로
+   '첫 화면에서'라고 범위를 적는다). */
+export function bannerText(version) {
+  return version >= 2
+    ? 'Replix는 사이트 개선을 위해 방문 통계를 익명으로 수집합니다. 허용하면 기기 식별값과 사용 이벤트, ' +
+      '그리고 첫 화면에서의 화면 조작 기록(스크롤·클릭)이 Amplitude(미국)로 전송됩니다. 입력한 내용은 기록하지 않습니다.'
+    : 'Replix는 사이트 개선을 위해 방문 통계를 익명으로 수집합니다. 허용하면 기기 식별값과 사용 이벤트가 ' +
+      'Amplitude(미국)로 전송됩니다.';
 }
 /* 랜딩 링크(nav_link_clicked) 열거값 — 트래킹 플랜 §6 의 표와 같다. 목록 밖이면 보내지 않는다:
    마크업 오타가 새 값으로 쌓이면 차트가 조용히 갈라지고, href 를 그대로 넣는 실수는 §2(전체 URL 금지)를 깬다.
@@ -56,10 +93,12 @@ var _sdk = 'idle';        /* 'idle' | 'loading' | 'ready' */
 var _queue = [];          /* SDK 로드 전 호출 */
 var _lastPage = null;     /* 마지막 page() 인자 — 허용 직후 현재 페이지의 page_viewed 를 1회 보내기 위해 */
 var _banner = null;
+var _replay = null;      /* 붙어 있는 세션 리플레이 플러그인 — 철회 때 떼어 내려고 쥐고 있는다 */
 
-function readConsent() { try { return parseConsent(localStorage.getItem(CONSENT_KEY)); } catch (_) { return null; } }
+function nowVersion() { return consentVersion(location.hostname, Date.now()); }
+function readConsent() { try { return parseConsent(localStorage.getItem(CONSENT_KEY), nowVersion()); } catch (_) { return null; } }
 function writeConsent(d) {
-  try { localStorage.setItem(CONSENT_KEY, JSON.stringify({ decision: d, decidedAt: Date.now(), version: CONSENT_VERSION })); }
+  try { localStorage.setItem(CONSENT_KEY, JSON.stringify({ decision: d, decidedAt: Date.now(), version: nowVersion() })); }
   catch (_) { /* 저장 불가(프라이빗 모드 등) — 이번 방문에만 적용된다 */ }
 }
 function amp() { return window.amplitude; }
@@ -71,6 +110,19 @@ function commonProps() {
     page_path: cleanPath(location.pathname, location.hash),
     device_class: deviceClass(window.innerWidth),
   };
+}
+/* 리플레이 플러그인을 SDK 에 붙인다. 스크립트가 안 실렸으면(차단·랜딩 아님) 아무 일도 하지 않는다. */
+function attachReplay(a) {
+  if (_replay || !replayOn(location.hostname, location.pathname, Date.now())) return;
+  try {
+    var sr = window.sessionReplay;
+    if (sr && sr.plugin) { _replay = sr.plugin(SR_CONFIG); a.add(_replay); }
+  } catch (_) { _replay = null; /* fail-open — 이벤트 계측은 그대로 간다 */ }
+}
+function detachReplay(a) {
+  if (!_replay) return;
+  try { a.remove(_replay.name); } catch (_) { /* 이미 떨어졌거나 SDK 내부 오류 */ }
+  _replay = null;
 }
 function loadSdk() {
   if (_sdk !== 'idle') return;
@@ -84,10 +136,19 @@ function loadSdk() {
     var cfg = Object.assign({}, SDK_CONFIG, {
       cookieOptions: Object.assign({}, SDK_CONFIG.cookieOptions, { secure: location.protocol === 'https:' }),
     });
-    a.init(API_KEYS[envOf(location.hostname)], cfg);
-    a.setOptOut(false);
-    _sdk = 'ready';
-    _queue.splice(0).forEach(function (f) { f(a); });
+    var start = function () {
+      a.init(API_KEYS[envOf(location.hostname)], cfg);
+      a.setOptOut(false);
+      _sdk = 'ready';
+      _queue.splice(0).forEach(function (f) { f(a); });
+    };
+    if (!replayOn(location.hostname, location.pathname, Date.now())) { start(); return; }
+    /* 리플레이 플러그인은 init **앞에** 붙여야 첫 화면부터 찍힌다. 막히거나 실패해도 이벤트 계측은 그대로 간다. */
+    var r = document.createElement('script');
+    r.src = SR_URL; r.async = true;
+    r.onload = function () { attachReplay(a); start(); };
+    r.onerror = start;
+    document.head.appendChild(r);
   };
   /* 차단·오프라인 — 계측은 조용히 포기한다(fail-open). 다음 방문에 다시 시도한다. */
   s.onerror = function () { _sdk = 'idle'; _queue.length = 0; };
@@ -116,13 +177,24 @@ function expireCookie(name) {
    처리방침 §6 "철회하면 아직 전송되지 않은 기록과 분석용 식별값이 즉시 삭제됩니다"가 이 코드다. */
 function revoke() {
   var a = amp();
-  if (a) { try { a.setOptOut(true); } catch (_) { /* SDK 내부 오류는 무시 — 아래에서 직접 지운다 */ } }
+  if (a) {
+    detachReplay(a);   /* 녹화를 멈추고 메모리의 미전송 조각을 버린다 */
+    try { a.setOptOut(true); } catch (_) { /* SDK 내부 오류는 무시 — 아래에서 직접 지운다 */ }
+  }
   _queue.length = 0;
   document.cookie.split(';').forEach(function (c) {
     var n = c.split('=')[0].trim();
     if (/^AMP_/i.test(n)) expireCookie(n);
   });
   try { Object.keys(localStorage).forEach(function (k) { if (/^AMP_/i.test(k)) localStorage.removeItem(k); }); } catch (_) {}
+  /* SDK·플러그인이 만든 IndexedDB(AMP_diagnostics_* 등)도 지운다. databases() 가 없는 브라우저는 건너뛴다. */
+  try {
+    if (window.indexedDB && indexedDB.databases) {
+      indexedDB.databases().then(function (dbs) {
+        dbs.forEach(function (d) { if (d && /^AMP_|amp_session_replay/i.test(d.name || '')) indexedDB.deleteDatabase(d.name); });
+      }).catch(function () {});
+    }
+  } catch (_) {}
 }
 export function setConsent(decision) {
   if (decision !== 'granted' && decision !== 'denied') return;
@@ -134,6 +206,7 @@ export function setConsent(decision) {
          옛 값을 다시 쓰면 철회 전후가 한 기기로 이어져 "철회하면 식별값을 지운다"는 약속이 빈말이 된다.
          (2026-09-13 검증에서 잡힌 버그: 재허용 뒤 optOut 이 남아 이벤트가 조용히 버려졌다.) */
       try { a.setOptOut(false); a.reset(); } catch (_) { /* SDK 내부 오류 — 아래 loadSdk 경로와 같이 fail-open */ }
+      attachReplay(a);   /* 철회 때 떼어 낸 녹화를 새 식별자로 다시 시작한다 */
     } else {
       loadSdk();
     }
@@ -160,8 +233,7 @@ export function showBanner() {
   var st = document.createElement('style'); st.textContent = BANNER_CSS; document.head.appendChild(st);
   var el = document.createElement('div');
   el.id = 'rx-consent'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '방문 통계 수집 동의');
-  el.innerHTML = '<p>Replix는 사이트 개선을 위해 방문 통계를 익명으로 수집합니다. 허용하면 기기 식별값과 사용 이벤트가 ' +
-    'Amplitude(미국)로 전송됩니다. <a href="/privacy">개인정보처리방침</a></p>' +
+  el.innerHTML = '<p>' + bannerText(nowVersion()) + ' <a href="/privacy">개인정보처리방침</a></p>' +
     '<div class="rx-consent-actions"><button type="button" class="rx-deny">거부</button>' +
     '<button type="button" class="rx-allow">허용</button></div>';
   el.querySelector('.rx-allow').addEventListener('click', function () { setConsent('granted'); });

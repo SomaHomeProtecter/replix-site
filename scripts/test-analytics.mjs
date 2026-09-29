@@ -34,10 +34,13 @@ assert.equal(a.deviceClass(390), 'mobile');
 assert.equal(a.deviceClass(800), 'tablet');
 assert.equal(a.deviceClass(1440), 'desktop');
 
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 })), 'granted');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 1 })), 'denied');
+assert.equal(a.CONSENT_VERSION, 2, '2 = 랜딩 세션 리플레이 추가(HP-457)');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 2 })), 'granted');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 2 })), 'denied');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 })), null, '범위가 늘었다 — 1 로 받은 동의는 다시 묻는다');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 }), 1), 'granted', '시행일 전 운영에서는 1 이 유효하다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 0 })), null, '버전이 다르면 다시 묻는다');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'maybe', version: 1 })), null);
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'maybe', version: 2 })), null);
 assert.equal(a.parseConsent('garbage'), null);
 assert.equal(a.parseConsent(null), null);
 
@@ -54,6 +57,27 @@ assert.equal(a.SDK_CONFIG.trackingOptions.ipAddress, false, '처리방침 수집
 assert.equal(a.SDK_CONFIG.remoteConfig.fetchRemoteConfig, false, '대시보드 원격 설정이 autocapture 를 되살리지 못하게');
 assert.match(a.SDK_URL, /^https:\/\/cdn\.amplitude\.com\/libs\/analytics-browser-2\.\d+\.\d+-min\.js\.gz$/);
 
+// 세션 리플레이(HP-457) — 랜딩에서만, 운영은 시행일부터, 입력값은 가리고, 브라우저 저장소에 남기지 않는다.
+const BEFORE = Date.parse('2026-10-06T23:59:59+09:00');
+const AFTER = Date.parse('2026-10-07T00:00:00+09:00');
+assert.equal(a.REPLAY_FROM, AFTER, '시행일 — 바꾸면 privacy.html 의 시행일도 같이(아래에서 대조한다)');
+assert.equal(a.replayOn('replix.tv', '/', BEFORE), false, '처리방침 11항: 공고 7일 뒤에 켠다');
+assert.equal(a.replayOn('replix.tv', '/', AFTER), true);
+assert.equal(a.replayOn('replix.tv', '/index.html', AFTER), true);
+assert.equal(a.replayOn('replix.tv', '/catalog/', AFTER), false, '작품 탐색은 찍지 않는다 — 검색어·작품 화면(§2)');
+assert.equal(a.replayOn('localhost', '/', 0), true, '로컬은 검증할 수 있게 항상 켠다(dev 프로젝트)');
+assert.equal(a.replayOn('localhost', '/catalog/', 0), false);
+assert.equal(a.consentVersion('replix.tv', BEFORE), 1);
+assert.equal(a.consentVersion('replix.tv', AFTER), 2, '시행일부터 새 문구로 다시 묻는다');
+assert.equal(a.consentVersion('localhost', 0), 2);
+assert.match(a.bannerText(2), /화면 조작 기록/, '동의 문구가 녹화를 밝힌다');
+assert.match(a.bannerText(2), /첫 화면/, '배너는 두 표면이 같이 쓴다 — 범위를 적는다');
+assert.doesNotMatch(a.bannerText(1), /화면 조작/, '시행 전 문구에는 아직 없는 수집을 적지 않는다');
+assert.match(a.SR_URL, /^https:\/\/cdn\.amplitude\.com\/libs\/plugin-session-replay-browser-1\.\d+\.\d+-min\.js\.gz$/);
+assert.equal(a.SR_CONFIG.sampleRate, 1);
+assert.equal(a.SR_CONFIG.storeType, 'memory', '미전송 녹화 조각을 IndexedDB 에 남기지 않는다(철회 즉시 소멸)');
+assert.equal(a.SR_CONFIG.privacyConfig.defaultMaskLevel, 'medium', '입력값은 전부 가린다');
+
 // 소스 규칙
 const src = read('docs/js/analytics.js');
 const index = read('docs/index.html');
@@ -63,6 +87,19 @@ assert.match(src, /_banner\.style\.display = 'none'/, '[hidden] 은 display:flex
 assert.doesNotMatch(src, /\.hidden = true/, '배너를 [hidden] 으로 숨기면 display:flex 가 이긴다');
 assert.match(src, /a\.setOptOut\(false\); a\.reset\(\);/, '같은 페이지에서 거부→허용이면 optOut 해제 + 새 device_id (검증에서 잡힌 버그)');
 assert.match(src, /a\.setOptOut\(true\)/, '거부·철회 시 SDK optOut');
+assert.doesNotMatch(index, /plugin-session-replay/, '리플레이 플러그인도 동의 뒤 스크립트로만 로드한다(정적 태그 금지)');
+assert.doesNotMatch(read('docs/catalog/index.html'), /plugin-session-replay/, '카탈로그 산출물에 리플레이가 섞이면 안 된다');
+assert.match(src, /if \(!replayOn\(location\.hostname, location\.pathname, Date\.now\(\)\)\) \{ start\(\); return; \}/, '랜딩·시행일 조건이 아니면 플러그인 스크립트를 받지도 않는다');
+assert.match(src, /r\.onerror = start;/, '플러그인이 막혀도 이벤트 계측은 간다');
+assert.match(src, /function revoke\(\) \{[\s\S]{0,120}detachReplay\(a\);/, '철회하면 녹화부터 뗀다');
+assert.match(src, /a\.setOptOut\(false\); a\.reset\(\);[\s\S]{0,120}attachReplay\(a\);/, '재허용하면 새 식별자로 다시 붙인다');
+assert.match(src, /indexedDB\.deleteDatabase\(d\.name\)/, '철회 시 SDK 가 만든 IndexedDB 도 지운다');
+// 처리방침과 코드의 시행일이 갈라지면 방침이 거짓말이 된다 — 한쪽만 고치면 여기서 깨진다.
+const privacy = read('docs/privacy.html');
+const effective = new Date(a.REPLAY_FROM + 9 * 3600 * 1000).toISOString().slice(0, 10);
+assert.ok(privacy.includes('시행일 ' + effective), `privacy.html 시행일이 ${effective} 여야 한다`);
+assert.match(privacy, /화면 조작 기록/, '처리방침이 리플레이 수집을 밝힌다');
+assert.match(privacy, /30일/, '리플레이 보유 기간');
 assert.match(src, /typeof window !== 'undefined' && typeof document !== 'undefined'\) boot\(\)/, 'node import 가 부트하면 안 된다');
 assert.match(read('docs/js/main.js'), /import \{ page \} from '\.\/analytics\.js'/);
 assert.match(read('docs/js/main.js'), /^page\(\);/m, '랜딩 page_viewed 는 main.js 가 1회 부른다');

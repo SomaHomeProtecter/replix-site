@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v4 (Amplitude)
+# replix.tv 웹 — 트래킹 플랜 v5 (Amplitude)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -25,6 +25,7 @@
 | W4 | 데모·FAQ를 **만지나**? | 만지지 않는 인터랙션은 유지비만 든다 |
 | W5 | 작품 탐색에서 검색→작품→회차/순간→**"넷플릭스에서 보기"** 로 이어지나? | 작품 탐색이 설치 전 "맛보기"로 기능하는지 |
 | W6 | 랜딩에서 설치 말고 **어느 버튼·링크를 누르나**? (작품 탐색·섹션 메뉴·약관) | 버튼마다 목적지가 다르다 — 설치로 안 간 방문자가 어디로 가는지 알아야 메뉴·푸터 구성을 정한다 |
+| W8 | 랜딩 방문자가 **화면을 실제로 어떻게 쓰나**? (어디서 멈추고, 무엇을 누르려다 마는가) | 이벤트는 '무엇을 했나'만 말한다. 왜 CTA 앞에서 떠나는지는 화면을 봐야 보인다 — 세션 리플레이(§9) |
 | W7 | 작품 탐색에서 로그인을 시작한 사람 중 **동의까지 마쳐 회원이 되는** 비율은? 어느 제공자로? | 로그인·동의 흐름(HP-447·HP-449)의 이탈 지점. 가입은 동의 저장 시점이라 웹 가입이 여기서 처음 잡힌다 |
 
 ⚠️ 베타 규모에서 비율은 노이즈다(확장 문서 §1 과 같은 경고). W1·W5 의 퍼센트보다 "어느 CTA 가 0건인가" 같은 유무가 먼저 값을 한다.
@@ -48,13 +49,13 @@
 | 항목 | 값 |
 | --- | --- |
 | UI | 하단 고정 배너(`docs/js/analytics.js` `showBanner`). 랜딩·카탈로그 공통 — 스타일을 JS 가 들고 다닌다(두 표면의 CSS 체계가 다르다) |
-| 저장 | `localStorage.replix_web_analytics_consent_v1 = { decision: 'granted'|'denied', decidedAt, version: 1 }` |
+| 저장 | `localStorage.replix_web_analytics_consent_v1 = { decision: 'granted'|'denied', decidedAt, version }` — 지금 유효한 버전은 `consentVersion()`(운영은 시행일 전 1, 그 뒤 2 · 로컬은 항상 2) |
 | 미선택 | 배너 표시. SDK·쿠키·요청 0건 |
 | 거부 | 배너 숨김. SDK·쿠키·요청 0건 |
-| 허용 | SDK 스크립트 주입 → `init` → 큐 flush → 현재 페이지 `page_viewed` 1회 |
-| 철회 | 푸터 '분석 설정'(`[data-analytics-settings]`) → 배너 재표시 → 거부 시 `setOptOut(true)` + `AMP_*` 쿠키·`AMP_*` localStorage 삭제 |
-| 재허용 | 같은 페이지에서 거부 뒤 다시 허용하면 `setOptOut(false)` + `reset()` — **새 device_id**. 철회 전 식별값과 이어지지 않는다 |
-| 버전 | `version` 이 바뀌면 다시 묻는다(문안·범위가 바뀌었을 때 올린다) |
+| 허용 | SDK 스크립트 주입 → (랜딩이면 리플레이 플러그인 주입·부착, §9) → `init` → 큐 flush → 현재 페이지 `page_viewed` 1회 |
+| 철회 | 푸터 '분석 설정'(`[data-analytics-settings]`) → 배너 재표시 → 거부 시 리플레이 플러그인 제거 + `setOptOut(true)` + `AMP_*` 쿠키·`AMP_*` localStorage·`AMP_*` IndexedDB 삭제(IndexedDB 는 SDK 가 연결을 쥐고 있어 페이지를 떠날 때 실제로 지워진다) |
+| 재허용 | 같은 페이지에서 거부 뒤 다시 허용하면 `setOptOut(false)` + `reset()` — **새 device_id**. 철회 전 식별값과 이어지지 않는다. 리플레이도 새 식별자로 다시 붙는다 |
+| 버전 | `version` 이 바뀌면 다시 묻는다(문안·범위가 바뀌었을 때 올린다). **2 = 랜딩 세션 리플레이**(HP-457) — 배너 문구가 화면 조작 기록을 밝힌다(`bannerText`) |
 
 처리방침 §6 문안이 이 동작을 약속한다: "확장 프로그램 **또는 웹사이트(replix.tv)** 에서 명시적으로 동의한 경우에만 … 웹사이트 하단의 '분석 설정'에서 변경".
 
@@ -172,11 +173,38 @@
 ## 8. 검증 (구현 후 필수)
 
 1. 미선택 상태: 네트워크에 `amplitude.com` 요청 0건, `AMP_*` 쿠키 없음
+   (리플레이: 허용 뒤 랜딩 이벤트에 `[Amplitude] Session Replay ID` 가 붙고 떠날 때 `api-sr.amplitude.com` 으로 beacon ·
+   카탈로그에서는 플러그인 스크립트 요청 0건 · 철회 뒤 떠나도 beacon 0건)
 2. 허용 뒤 이벤트 8종을 각 1회 발생시키고 **요청 본문에 금지 항목이 없음**을 눈으로 확인 ← 가장 중요
 3. 랜딩 → 카탈로그 이동 시 같은 `device_id`
 4. 철회 뒤 요청 중단·쿠키 삭제
 5. Amplitude dev 프로젝트 User Look-Up 에 도착 확인
 6. `node scripts/test-analytics.mjs` 통과
+
+## 9. 세션 리플레이 — 랜딩 전용 (HP-457)
+
+이벤트가 아니라 **화면 조작 기록**이다(스크롤·클릭·화면 구성의 변화를 재생 가능한 형태로). W8 에 답한다.
+
+| 항목 | 값 | 왜 |
+| --- | --- | --- |
+| 범위 | **랜딩(`/`)만** — `replayOn()` | 작품 탐색은 검색창 입력(=작품명)과 작품 화면이 그대로 찍힌다 — §2 금지 목록. 확장은 넷플릭스 화면·채팅 본문이 찍혀 아예 불가 |
+| 시행 | 운영은 **2026-10-07 00:00 KST 부터**(`REPLAY_FROM`) · 로컬은 항상 | 처리방침 11항이 개정 7일 전 공지를 약속한다. 새 수집 항목이라 공고(2026-09-29) 뒤 7일을 채운 날. ⚠️ 공고가 밀리면 코드 상수와 `privacy.html` 시행일을 **같이** 민다(테스트가 둘을 대조) |
+| 동의 | 기존 배너, 버전 2 | 범위가 늘었으므로 1 로 받은 동의는 시행일부터 무효 — 새 문구로 다시 묻는다 |
+| 플러그인 | `plugin-session-replay-browser-1.35.4`(CDN), 동의 뒤 동적 주입, `init` **앞에** `add` | 정적 태그 금지(§7 과 같은 이유). 막히거나 실패하면 이벤트 계측만 간다(fail-open) |
+| 표집 | `sampleRate: 1` | 방문이 적다. Starter 요금제 월 1,000건 한도에 닿으면 낮춘다 |
+| 가림 | `defaultMaskLevel: 'medium'`(입력값 전부 가림) | 랜딩에 입력 필드·이용자 생성 콘텐츠는 없지만, 생겨도 새지 않게. 가릴 요소가 생기면 `amp-mask`·`amp-block` 클래스 |
+| 저장 | `storeType: 'memory'` | 미전송 녹화 조각을 IndexedDB 에 남기지 않는다 — 철회하면 그 즉시 사라진다. 떠날 때는 플러그인이 beacon 으로 비운다 |
+| 전송처 | `api-sr.amplitude.com/sessions/v2/track` · 설정 `sr-client-cfg.amplitude.com` | 이벤트(`api2.amplitude.com`)와 다른 호스트. **플러그인의 웹 워커가 1~10초 간격으로 보낸다** — 페이지의 fetch 후킹·리소스 타이밍에 안 잡힌다. 확인은 SDK `logLevel: 4` 로 올려 `Session replay event batch tracked successfully` 로그로(2026-09-29 실측: 첫 묶음 196KB) |
+| 보관 | Amplitude 에서 30일 | 처리방침 3·6항에 적은 값 |
+| 알려진 한계 | 떠나는 순간의 마지막 조각은 `sendBeacon` 으로 나가는데 크롬에서 CORS 로 막힌다(플러그인 1.35.4) | 마지막 몇 초가 빠질 수 있다. 그 앞은 워커가 이미 보냈다 |
+| 부수 효과 | 랜딩 이벤트에 `[Amplitude] Session Replay ID`(`<device_id>/<session_id>`) 속성이 붙는다 | 이벤트에서 해당 녹화로 건너가는 열쇠. 새 식별 정보는 아니다 |
+
+> ⚠️ **플러그인의 원격 설정은 끌 수 없다.** SDK 는 `fetchRemoteConfig: false` 로 막았지만(§7), 리플레이 플러그인은 자기 설정(표집·가림)을
+> `sr-client-cfg` 에서 따로 받는다. **Amplitude 대시보드 Settings → Session Replay 에서 가림 수준을 낮추거나 카탈로그용 규칙을 넣지 말 것** —
+> 코드의 `medium` 보다 느슨해질 수 있다. 범위(랜딩만)는 플러그인을 아예 싣지 않는 방식이라 원격 설정으로 넓힐 수 없다.
+>
+> ⚠️ **회원 약관 동의 버전(BE `requiredPrivacyVersion`)은 건드리지 않았다.** 리플레이는 웹 방문자의 배너 동의(버전 2)로 받는다.
+> 회원 재동의가 필요한지는 HP-243 담당 판단.
 
 ## 변경 이력
 
@@ -186,3 +214,4 @@
 | v2 | 2026-09-16 | `catalog_engaged` 에 `feature: feedback`(`opened`·`submitted`·`store_review_clicked`) 추가 — 새 이벤트 없이 기존 이벤트 확장, 본문은 계측 금지(HP-426) — 김지호 |
 | v3 | 2026-09-21 | 랜딩 버튼·링크를 버튼별로 계측 — `nav_link_clicked{target, location}` 13곳(W6). 설치 CTA 3곳은 `install_cta_clicked` 유지. `pagehide` beacon flush 추가(같은 탭 이동 직전 이벤트가 밀리던 것, 실측)(HP-437) — 고경우 |
 | v4 | 2026-09-24 | 로그인·가입 계측 — `login_started{provider}`·`login_completed{is_new_user}`(W7). 가입은 약관 동의 저장 시점(HP-449). §4 `user_id` 설명 정정(로그인은 있으나 회원 식별값은 싣지 않는다) — 김지호 |
+| v5 | 2026-09-29 | 랜딩 세션 리플레이(W8, §9) — 랜딩 전용·운영 시행 2026-10-07·동의 버전 2·입력 가림 `medium`·`storeType: memory`. 처리방침 1·3·5·6항 반영(HP-457) — 고경우 |
