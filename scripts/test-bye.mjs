@@ -26,9 +26,10 @@ assert.deepEqual(b.COVERED.map((o) => o.label),
   ['오른쪽 채팅창', '흐르는 채팅(탄막)', '전체화면 채팅 상자', '반응 이모지', '재생바 봉우리']);
 assert.deepEqual(b.SERVICES.map((o) => o.code), ['TVING', 'WAVVE', 'COUPANG_PLAY', 'WATCHA', 'YOUTUBE', 'OTHER']);
 assert.deepEqual(b.SERVICES.map((o) => o.label), ['티빙', '웨이브', '쿠팡플레이', '왓챠', '유튜브', '그 밖에']);
-// 후속 질문이 달린 사유
-assert.equal(b.FOLLOW_UPS.BLOCKS_SCREEN, 'coveredBy');
-assert.equal(b.FOLLOW_UPS.NO_MY_OTT, 'wantedServices');
+// 후속 질문을 보일지 — 화면(render)과 요청(buildPayload)이 같은 규칙을 쓴다
+assert.deepEqual(b.followUpsShown(['BLOCKS_SCREEN']), { coveredBy: true, wantedServices: false });
+assert.deepEqual(b.followUpsShown(['FEW_CHATS', 'NO_MY_OTT']), { coveredBy: false, wantedServices: true });
+assert.deepEqual(b.followUpsShown([]), { coveredBy: false, wantedServices: false });
 
 // ── 주소 값: 확장이 삭제 주소에 붙인 버전(v)·설치 후 경과일(d). 형식이 틀리면 버린다 —
 //    그대로 보내면 서버가 400 VALIDATION_FAILED로 설문 전체를 거절해, 고른 사유까지 잃는다.
@@ -78,6 +79,28 @@ assert.equal(b.buildPayload({ reasons: [], covered: [], wanted: [], body: '가'.
 const cut = b.buildPayload({ reasons: [], covered: [], wanted: [], body: '가'.repeat(999) + '😀' }, none).body;
 assert.equal(cut, '가'.repeat(999));
 
+// ── 보내기: fetch 를 바꿔 끼워 요청 모양·결과·시간 초과를 검사한다
+const payload = b.buildPayload({ reasons: ['JUST_TRYING'], covered: [], wanted: [], body: '' }, none);
+let seen;
+assert.deepEqual(
+  await b.send('https://api.example', payload, async (url, init) => { seen = { url, init }; return { ok: true, status: 201 }; }, 1000),
+  { ok: true, status: 201 });
+assert.equal(seen.url, 'https://api.example/api/v1/feedback');
+assert.equal(seen.init.method, 'POST');
+assert.deepEqual(seen.init.headers, { 'Content-Type': 'application/json' }, '익명 — Authorization 없음');
+assert.deepEqual(JSON.parse(seen.init.body), payload, '보낸 것 = 서버 계약 모양의 요청 본문');
+assert.equal('credentials' in seen.init, false, '쿠키를 싣지 않는다(기본값 same-origin → 교차 출처에는 안 실림)');
+assert.ok(seen.init.signal instanceof AbortSignal, '시간 초과로 끊을 수 있어야 한다');
+assert.deepEqual(await b.send('https://api.example', payload, async () => ({ ok: false, status: 429 }), 1000),
+  { ok: false, status: 429 });
+assert.deepEqual(await b.send('https://api.example', payload, async () => { throw new TypeError('offline'); }, 1000),
+  { ok: false, status: 0 }, '네트워크 실패');
+// 응답이 끝내 오지 않으면 시간을 넘겨 끊고 실패로 알린다 — 버튼이 "보내는 중"에 갇히지 않게
+const hang = (url, init) => new Promise((resolve, reject) => {
+  init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+});
+assert.deepEqual(await b.send('https://api.example', payload, hang, 20), { ok: false, status: 0 }, '시간 초과');
+
 // ── 문구: HP-426 웹 피드백과 같은 글자(catalog/app/src/feedback-pure.js가 정본)
 assert.equal(b.errorMessage(429), fp.errorMessage(429));
 assert.equal(b.errorMessage(500), fp.errorMessage(500));
@@ -107,5 +130,12 @@ const js = read('docs/js/bye.js');
 assert.doesNotMatch(js, /Authorization|credentials:/, '익명 — 토큰·쿠키를 싣지 않는다');
 assert.doesNotMatch(js, /innerHTML|insertAdjacentHTML/, '사용자 입력·문구를 HTML로 해석하지 않는다');
 assert.doesNotMatch(js, /netflix\.com|disneyplus\.com/, '넷플릭스·디즈니+ 서버로 요청하지 않는다');
+// 화면 연결(boot)은 DOM 이 없어 node 에서 돌릴 수 없다 — 깨지면 설문을 통째로 잃는 연결만 글자로 못박는다
+assert.match(js, /var payload = buildPayload\(state, params\);\s*send\(api, payload,/, '보내는 것은 계약 모양의 요청 본문');
+assert.match(js, /if \(result\.ok\) done\(payload\.reasons\);/, '요약은 실제로 보낸 사유로');
+assert.match(js, /if \(sending \|\| !canSend\(state\)\) return;/, '두 번 보내지 않는다');
+assert.match(js, /if \(sending\) return;/, '보내는 동안 고른 것을 바꾸지 않는다');
+assert.match(js, /byId\('bye-covered'\)\.hidden = !shown\.coveredBy;/);
+assert.match(js, /byId\('bye-services'\)\.hidden = !shown\.wantedServices;/);
 
 console.log('scripts/test-bye.mjs: 통과');

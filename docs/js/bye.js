@@ -39,9 +39,6 @@ export var SERVICES = [
   { code: 'YOUTUBE', label: '유튜브' },
   { code: 'OTHER', label: '그 밖에' },
 ];
-/* 후속 질문이 달린 사유 → 그 답이 실리는 요청 칸 */
-export var FOLLOW_UPS = { BLOCKS_SCREEN: 'coveredBy', NO_MY_OTT: 'wantedServices' };
-
 /* 한마디 상한 — 서버 @Size(max = 1000)와 같다. 자바 String 길이처럼 UTF-16 단위로 센다. */
 export var MAX_BODY = 1000;
 /* 문구는 HP-426 웹 피드백과 같은 글자다(catalog/app/src/feedback-pure.js — scripts/test-bye.mjs 가 대조). */
@@ -78,6 +75,18 @@ function clip(text, max) {
   return last >= 0xd800 && last <= 0xdbff ? cut.slice(0, -1) : cut;
 }
 
+/**
+ * 후속 질문을 보일지 — "화면을 가려요"면 무엇이 가렸는지, "쓰는 OTT가 없어요"면 원하는 서비스. 화면(render)과
+ * 요청(buildPayload)이 이 한 규칙을 쓴다. 서버도 후속 답은 해당 사유가 있을 때만 받는다.
+ */
+export function followUpsShown(reasons) {
+  var picked = reasons || [];
+  return {
+    coveredBy: picked.indexOf('BLOCKS_SCREEN') >= 0,
+    wantedServices: picked.indexOf('NO_MY_OTT') >= 0,
+  };
+}
+
 /** 보내기 조건: 사유 하나 또는 공백 아닌 한마디 — 서버의 FEEDBACK_EMPTY 와 같은 조건이다. */
 export function canSend(state) {
   return pick(REASONS, state.reasons).length > 0 || (state.body || '').trim().length > 0;
@@ -89,6 +98,7 @@ export function canSend(state) {
  */
 export function buildPayload(state, params) {
   var reasons = pick(REASONS, state.reasons);
+  var shown = followUpsShown(reasons);
   var body = clip((state.body || '').trim(), MAX_BODY).trim();
   return {
     surface: 'WEB',
@@ -101,10 +111,34 @@ export function buildPayload(state, params) {
     contentId: null,
     episodeId: null,
     reasons: reasons,
-    coveredBy: reasons.indexOf('BLOCKS_SCREEN') >= 0 ? pick(COVERED, state.covered) : [],
-    wantedServices: reasons.indexOf('NO_MY_OTT') >= 0 ? pick(SERVICES, state.wanted) : [],
+    coveredBy: shown.coveredBy ? pick(COVERED, state.covered) : [],
+    wantedServices: shown.wantedServices ? pick(SERVICES, state.wanted) : [],
     installDays: params.installDays,
   };
+}
+
+/**
+ * 설문 한 건을 보낸다 → {ok, status}. 네트워크 실패·시간 초과는 status 0 이다.
+ * fetch 를 인자로 받는 것은 node 검사에서 바꿔 끼우기 위해서다(scripts/test-bye.mjs).
+ */
+export function send(api, payload, fetchImpl, timeoutMs) {
+  // 응답이 끝내 안 오면 버튼이 "보내는 중"에 갇힌다 — 시간을 넘기면 끊고 실패로 알린다.
+  var controller = new AbortController();
+  var timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+  return Promise.resolve()
+    .then(function () {
+      return fetchImpl(api + '/api/v1/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    })
+    .then(
+      function (res) { return { ok: res.ok, status: res.status }; },
+      function () { return { ok: false, status: 0 }; },
+    )
+    .finally(function () { clearTimeout(timer); });
 }
 
 /** 제출 실패 안내 — 상한 초과(429)만 따로, 나머지(네트워크 포함)는 일반 실패 문구. */
@@ -157,6 +191,8 @@ function boot() {
       btn.textContent = option.label;
       btn.setAttribute('aria-pressed', 'false');
       btn.addEventListener('click', function () {
+        // 보내는 동안에는 고른 것을 바꾸지 않는다 — 이미 보낸 것과 화면이 어긋난다.
+        if (sending) return;
         var at = selected.indexOf(option.code);
         if (at >= 0) selected.splice(at, 1);
         else selected.push(option.code);
@@ -171,8 +207,9 @@ function boot() {
   chips(byId('bye-services-options'), SERVICES, state.wanted, 'by-pill');
 
   function render() {
-    byId('bye-covered').hidden = state.reasons.indexOf('BLOCKS_SCREEN') < 0;
-    byId('bye-services').hidden = state.reasons.indexOf('NO_MY_OTT') < 0;
+    var shown = followUpsShown(state.reasons);
+    byId('bye-covered').hidden = !shown.coveredBy;
+    byId('bye-services').hidden = !shown.wantedServices;
     noteInput.placeholder = placeholderFor(state.reasons);
     sendBtn.disabled = sending || !canSend(state);
   }
@@ -204,9 +241,9 @@ function boot() {
     sendLabel.textContent = '다시 보내기';
   }
 
-  function done() {
+  function done(sentReasons) {
     byId('bye-ask').hidden = true;
-    byId('bye-summary').textContent = summaryOf(state.reasons);
+    byId('bye-summary').textContent = summaryOf(sentReasons);
     byId('bye-done').hidden = false;
     // 화면이 통째로 바뀌어 포커스가 body 로 떨어진다 — 결과 제목으로 옮겨 읽어 주게 한다.
     byId('bye-done-title').focus();
@@ -217,21 +254,13 @@ function boot() {
     if (sending || !canSend(state)) return;
     errorEl.hidden = true;
     setSending(true);
-    // 응답이 끝내 안 오면 버튼이 "보내는 중"에 갇힌다 — 시간을 넘기면 끊고 실패로 알린다.
-    var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, SEND_TIMEOUT_MS);
-    fetch(api + '/api/v1/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildPayload(state, params)),
-      signal: controller.signal,
-    })
-      .then(function (res) {
-        if (res.ok) done();
-        else fail(res.status);
-      })
-      .catch(function () { fail(0); })
-      .finally(function () { clearTimeout(timer); });
+    // 보낸 것을 붙잡아 둔다 — 요약은 화면의 지금 상태가 아니라 실제로 보낸 사유를 말해야 한다.
+    var payload = buildPayload(state, params);
+    send(api, payload, function (url, init) { return fetch(url, init); }, SEND_TIMEOUT_MS)
+      .then(function (result) {
+        if (result.ok) done(payload.reasons);
+        else fail(result.status);
+      });
   });
 
   render();
