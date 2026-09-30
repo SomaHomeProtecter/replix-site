@@ -1,0 +1,80 @@
+<!doctype html>
+<!-- 삭제 설문(HP-458) — https://replix.tv/bye?v=<확장 버전>&d=<설치 후 경과일>
+     확장 background 가 chrome.runtime.setUninstallURL 로 거는 주소다. 붙는 값은 비식별 둘뿐이고(기기·계정
+     식별값 없음) 설문도 익명으로 보낸다. 규칙·서버 계약 = /js/bye.js, 시안 = HP-458 「제거 권장 · 간결」. -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<!-- 설문을 보내는 곳 — 운영 BE. 운영 콘솔(PROD 피드백 탭)이 읽는다. 로컬에서 개발 서버로 시험할 때만 이 한 줄을 바꾼다. -->
+<meta name="api-base" content="https://api.replix.tv">
+<title>Replix를 삭제했어요 · Replix</title>
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/bye.css">
+<script type="module" src="/js/bye.js"></script>
+</head>
+<body>
+
+<header class="by-top">
+  <a href="/"><img src="/assets/logo/replix-horizontal-light.png" alt="Replix" height="28"></a>
+</header>
+
+<main class="by-main">
+  <section class="by-card" aria-labelledby="bye-title">
+    <div id="bye-ask">
+      <h1 id="bye-title">Replix를 삭제했어요</h1>
+      <p id="bye-lead" class="by-lead">그동안 써 주셔서 고마워요. 아쉬웠던 점을 골라 주시면 고치는 데 쓸게요. 여러 개 골라도 돼요.</p>
+
+      <form id="bye-form" novalidate>
+        <div id="bye-reasons" class="by-grid" role="group" aria-labelledby="bye-lead"></div>
+
+        <div id="bye-covered" class="by-follow" hidden>
+          <p id="bye-covered-q" class="by-q">무엇이 가렸나요? <span>(선택)</span></p>
+          <div id="bye-covered-options" class="by-pills" role="group" aria-labelledby="bye-covered-q"></div>
+        </div>
+
+        <div id="bye-services" class="by-follow" hidden>
+          <p id="bye-services-q" class="by-q">어떤 서비스에서 쓰고 싶으세요? <span>(선택)</span></p>
+          <div id="bye-services-options" class="by-pills" role="group" aria-labelledby="bye-services-q"></div>
+        </div>
+
+        <button type="button" id="bye-note-toggle" class="by-more">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          한마디 더 남기기 <span>(선택)</span>
+        </button>
+        <div id="bye-note" class="by-note" hidden>
+          <label for="bye-body">한마디 더 <span>(선택)</span></label>
+          <textarea id="bye-body" rows="3" maxlength="1000"></textarea>
+          <div class="by-count"><span id="bye-count">0 / 1000</span></div>
+        </div>
+
+        <p id="bye-error" class="by-error" role="alert" hidden></p>
+
+        <button type="submit" id="bye-send" class="by-send" disabled>
+          <span id="bye-spin" class="by-spin" aria-hidden="true" hidden></span>
+          <span id="bye-send-label">보내기</span>
+        </button>
+        <p class="by-anon">익명으로 보내져요 · 이메일은 받지 않고 답장도 드리지 않아요</p>
+      </form>
+    </div>
+
+    <div id="bye-done" class="by-done" hidden>
+      <span class="by-done-mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      <h2 id="bye-done-title" tabindex="-1"><span>의견 감사합니다.</span> <span>리플릭스를 더 낫게 고쳐 볼게요.</span></h2>
+      <p id="bye-summary"></p>
+    </div>
+  </section>
+
+  <p class="by-reinstall">실수로 삭제했나요?
+    <a href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener"><img src="/assets/icons/chrome-logo.png" alt="" width="16" height="16">다시 설치하기</a>
+  </p>
+</main>
+
+<footer class="by-foot">
+  <a href="/privacy.html">개인정보 처리방침</a>
+  <a href="/terms.html">이용약관</a>
+</footer>
+
+</body>
+</html>
