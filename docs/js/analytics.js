@@ -6,12 +6,14 @@
       쿼리가 새 나간다. page_path 는 cleanPath 로 직접 정제한다(라우트 이름까지만).
    ④ IP 는 끈다 — 처리방침 수집 항목에 없다. 확장(HTTP API, ip 미전송)과 같은 수준으로 맞춘다.
    ⑤ 세션 리플레이(HP-457)는 **랜딩에서만**, 시행일부터, 같은 동의 뒤에만 붙인다 — 아래 REPLAY_FROM 참조.
+   ⑥ Google Analytics(HP-465)도 **같은 동의 뒤에만**, 처리방침 시행일부터 붙인다 — 아래 GA_FROM 참조. 자동 수집 값
+      (전체 URL·문서 제목·전체 리퍼러)을 정리된 값으로 덮어 Amplitude 와 같은 금지 목록(트래킹 플랜 §2)을 지킨다.
    카탈로그(React)는 이 파일을 /js/analytics.js 로 따로 로드해 window.ReplixAnalytics 로만 부른다.
    node 에서 import 하면 부트하지 않는다(scripts/test-analytics.mjs 가 순수 함수를 검사한다). */
 export var CONSENT_KEY = 'replix_web_analytics_consent_v1';
-/* 동의 버전 — 수집 범위가 바뀌면 올려 다시 묻는다. 2 = 랜딩 세션 리플레이 추가(HP-457).
-   운영에서는 시행일(REPLAY_FROM) 전까지 1 이 유효하다 — consentVersion() 이 가른다. */
-export var CONSENT_VERSION = 2;
+/* 동의 버전 — 수집 범위나 받는 곳이 바뀌면 올려 다시 묻는다. 2 = 랜딩 세션 리플레이(HP-457), 3 = Google Analytics(HP-465).
+   운영에서는 각 시행일(REPLAY_FROM·GA_FROM) 전까지 앞 버전이 유효하다 — consentVersion() 이 가른다. */
+export var CONSENT_VERSION = 3;
 export var SDK_URL = 'https://cdn.amplitude.com/libs/analytics-browser-2.45.8-min.js.gz';
 /* 확장 config.js 와 같은 두 프로젝트(쓰기 전용 클라이언트 키 — 읽기·삭제 불가). 표면은 surface 속성으로 가른다. */
 export var API_KEYS = { prod: '6f7bcf8fc37e9f93d442f943c23b6861', dev: 'fa98652a9c62152eaab56eb423b707ab' };
@@ -33,6 +35,19 @@ export var SR_URL = 'https://cdn.amplitude.com/libs/plugin-session-replay-browse
    떠나는 순간의 마지막 조각은 sendBeacon 으로 나가는데 크롬에서 CORS 로 막힌다(플러그인 1.35.4 의 동작) — 마지막
    몇 초가 빠질 수 있다. */
 export var SR_CONFIG = { sampleRate: 1, storeType: 'memory', privacyConfig: { defaultMaskLevel: 'medium' } };
+/* ─── Google Analytics(HP-465) ────────────────────────────────────
+   · **같은 동의 뒤에만.** 처리방침 6항이 "동의한 경우에만 분석 도구로 보낸다"고 약속한다 — 배너 문구(버전 3)가 Google 을 밝힌다.
+   · **시행일부터.** 받는 곳(Google LLC)이 새로 생기는 개정이라 처리방침 11항대로 공고(2026-10-01) 7일 뒤에 켠다.
+     운영만 날짜를 본다. 로컬·미리보기는 검증할 수 있게 항상 켜되 traffic_type=internal 로 표시해 GA 의
+     'Internal Traffic' 데이터 필터로 걸러 낸다. ⚠️ 공고가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
+   · **자동 수집 값을 덮어쓴다.** gtag 는 기본으로 전체 URL(카탈로그 해시의 작품 번호)·문서 제목·전체 리퍼러(검색어·
+     초대 토큰)를 싣는다 — gaPage() 가 정리한 값만 보낸다. 자동 page_view 는 끄고 page() 가 직접 보낸다.
+   · ⚠️ GA 관리 화면의 **향상된 측정은 꺼 둔다**(이탈 클릭이 넷플릭스 재생 주소를, 사이트 검색이 검색어를 싣는다).
+     이건 코드로 막을 수 없는 원격 설정이다(트래킹 플랜 §7). */
+export var GA_ID = 'G-MVDJ0Z60LJ';
+export var GA_FROM = Date.parse('2026-10-09T00:00:00+09:00');
+export var GA_URL = 'https://www.googletagmanager.com/gtag/js?id=';
+export var GA_CONFIG = { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false };
 export var SDK_CONFIG = {
   autocapture: { attribution: true, sessions: true, pageViews: false, formInteractions: false,
     fileDownloads: false, elementInteractions: false, pageUrlEnrichment: false },
@@ -60,8 +75,28 @@ export function replayInForce(hostname, nowMs) { return envOf(hostname) !== 'pro
 export function replayOn(hostname, pathname, nowMs) {
   return replayInForce(hostname, nowMs) && surfaceOf(pathname) === 'web_landing';
 }
-/* 지금 유효한 동의 버전. 시행일이 되면 1 로 받은 동의는 무효가 되어 새 문구로 다시 묻는다. */
-export function consentVersion(hostname, nowMs) { return replayInForce(hostname, nowMs) ? CONSENT_VERSION : 1; }
+/* GA 조항이 시행 중인가 — 운영은 시행일부터, 그 밖은 항상. 표면은 가리지 않는다(작품 번호는 gaPage 가 뺀다). */
+export function gaOn(hostname, nowMs) { return envOf(hostname) !== 'prod' || nowMs >= GA_FROM; }
+/* 지금 유효한 동의 버전. 시행일마다 앞 버전으로 받은 동의는 무효가 되어 새 문구로 다시 묻는다. */
+export function consentVersion(hostname, nowMs) {
+  if (envOf(hostname) !== 'prod' || nowMs >= GA_FROM) return CONSENT_VERSION;
+  return replayInForce(hostname, nowMs) ? 2 : 1;
+}
+/* GA 에 싣는 페이지 값 — 주소는 cleanPath(작품·회차 번호 없음), 제목은 표면 이름으로 고정(문서 제목에 작품명이
+   들어가도 새지 않게), 리퍼러는 외부면 출처만·같은 출처면 정리된 경로(검색어·초대 토큰이 실리지 않게). */
+export function gaPage(origin, pathname, hash, referrer) {
+  var out = {
+    page_location: origin + cleanPath(pathname, hash),
+    page_title: surfaceOf(pathname) === 'web_catalog' ? 'Replix 작품 탐색' : 'Replix 랜딩',
+  };
+  if (referrer) {
+    try {
+      var u = new URL(referrer);
+      out.page_referrer = u.origin === origin ? origin + cleanPath(u.pathname, u.hash) : u.origin;
+    } catch (_) { /* 주소가 아니면 싣지 않는다 */ }
+  }
+  return out;
+}
 export function parseConsent(raw, version) {
   try {
     var v = JSON.parse(raw);
@@ -71,6 +106,11 @@ export function parseConsent(raw, version) {
 /* 배너 문구 — 동의가 덮는 범위를 그대로 적는다. 2 는 화면 조작 기록을 밝힌다(랜딩·카탈로그가 같은 배너를 쓰므로
    '첫 화면에서'라고 범위를 적는다). */
 export function bannerText(version) {
+  if (version >= 3) {
+    return 'Replix는 사이트 개선을 위해 방문 통계를 익명으로 수집합니다. 허용하면 기기 식별값과 사용 이벤트가 ' +
+      'Amplitude와 Google Analytics(모두 미국)로, 첫 화면에서의 화면 조작 기록(스크롤·클릭)이 Amplitude로 전송됩니다. ' +
+      '입력한 내용은 기록하지 않습니다.';
+  }
   return version >= 2
     ? 'Replix는 사이트 개선을 위해 방문 통계를 익명으로 수집합니다. 허용하면 기기 식별값과 사용 이벤트, ' +
       '그리고 첫 화면에서의 화면 조작 기록(스크롤·클릭)이 Amplitude(미국)로 전송됩니다. 입력한 내용은 기록하지 않습니다.'
@@ -94,6 +134,9 @@ var _queue = [];          /* SDK 로드 전 호출 */
 var _lastPage = null;     /* 마지막 page() 인자 — 허용 직후 현재 페이지의 page_viewed 를 1회 보내기 위해 */
 var _banner = null;
 var _replay = null;      /* 붙어 있는 세션 리플레이 플러그인 — 철회 때 떼어 내려고 쥐고 있는다 */
+var _ga = 'idle';         /* 'idle' | 'loading' — gtag 는 dataLayer 가 큐라서 로드 완료를 기다릴 필요가 없다 */
+var _gaBlocked = false;   /* 이 페이지에서 철회한 뒤면 true — gtag 가 메모리에 쥔 옛 client id 가 재허용 뒤 이어지지 않게
+                             이 페이지에서는 다시 켜지 않는다. 다음 로드부터 새 쿠키로 시작한다. */
 
 function nowVersion() { return consentVersion(location.hostname, Date.now()); }
 function readConsent() { try { return parseConsent(localStorage.getItem(CONSENT_KEY), nowVersion()); } catch (_) { return null; } }
@@ -159,9 +202,42 @@ function send(fn) {
   if (_sdk === 'ready' && amp()) fn(amp());
   else { _queue.push(fn); loadSdk(); }
 }
+/* GA 를 붙인다 — 동의 허용·시행일·이 페이지에서 철회하지 않았을 때만. 정적 태그 대신 여기서 스크립트를 주입한다. */
+function ensureGa() {
+  if (_ga !== 'idle' || _gaBlocked || _consent !== 'granted' || !gaOn(location.hostname, Date.now())) return;
+  _ga = 'loading';
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+  window['ga-disable-' + GA_ID] = false;
+  var dev = envOf(location.hostname) !== 'prod';
+  var cfg = Object.assign({}, GA_CONFIG,
+    gaPage(location.origin, location.pathname, location.hash, document.referrer),
+    { cookie_flags: 'SameSite=Lax' + (location.protocol === 'https:' ? ';Secure' : '') },
+    dev ? { traffic_type: 'internal', debug_mode: true } : {});
+  window.gtag('js', new Date());
+  window.gtag('config', GA_ID, cfg);
+  var s = document.createElement('script');
+  s.src = GA_URL + encodeURIComponent(GA_ID); s.async = true;
+  /* 차단(광고 차단기 등)이면 dataLayer 에만 쌓이고 나가지 않는다 — Amplitude 와 같이 fail-open. */
+  document.head.appendChild(s);
+}
+function gaOk() { return _ga !== 'idle' && !_gaBlocked && _consent === 'granted' && typeof window.gtag === 'function'; }
+/* GA 에도 같은 이름·속성으로 보낸다. page_viewed 는 GA 의 표준 page_view 로 — 페이지 값을 갱신한 뒤 보낸다(카탈로그 라우트 이동). */
+function gaTrack(name, props) {
+  if (!gaOk()) return;
+  var p = Object.assign({ surface: surfaceOf(location.pathname) }, props || {});
+  if (name === 'page_viewed') {
+    var pg = gaPage(location.origin, location.pathname, location.hash, '');
+    window.gtag('set', { page_location: pg.page_location, page_title: pg.page_title });
+    window.gtag('event', 'page_view', p);
+  } else {
+    window.gtag('event', name, p);
+  }
+}
 /** 이벤트 1건. 이름·속성은 트래킹 플랜 §6 에 있는 것만 — 작품·회차 ID·검색어는 어떤 속성에도 싣지 않는다(§2). */
 export function track(name, props) {
   send(function (a) { a.track(name, Object.assign(commonProps(), props || {})); });
+  gaTrack(name, props);
 }
 /** page_viewed. 동의 전이면 기억만 해 두고 허용 직후 1회 보낸다. */
 export function page(props) { _lastPage = props || {}; track('page_viewed', _lastPage); }
@@ -182,9 +258,12 @@ function revoke() {
     try { a.setOptOut(true); } catch (_) { /* SDK 내부 오류는 무시 — 아래에서 직접 지운다 */ }
   }
   _queue.length = 0;
+  /* GA: 전송을 즉시 막고(gtag 공식 차단 스위치), 이 페이지에서는 다시 켜지 않는다(_gaBlocked 주석). */
+  window['ga-disable-' + GA_ID] = true;
+  if (_ga !== 'idle') _gaBlocked = true;
   document.cookie.split(';').forEach(function (c) {
     var n = c.split('=')[0].trim();
-    if (/^AMP_/i.test(n)) expireCookie(n);
+    if (/^AMP_/i.test(n) || /^_ga/.test(n)) expireCookie(n);
   });
   try { Object.keys(localStorage).forEach(function (k) { if (/^AMP_/i.test(k)) localStorage.removeItem(k); }); } catch (_) {}
   /* SDK·플러그인이 만든 IndexedDB(AMP_diagnostics_* 등)도 지운다. databases() 가 없는 브라우저는 건너뛴다. */
@@ -210,6 +289,7 @@ export function setConsent(decision) {
     } else {
       loadSdk();
     }
+    ensureGa();   /* page_viewed 보다 먼저 — 허용 직후의 페이지뷰가 GA 에도 1회 간다 */
     if (_lastPage) track('page_viewed', _lastPage);
   } else {
     revoke();
@@ -246,7 +326,7 @@ function hideBanner() { if (_banner) _banner.style.display = 'none'; }
 /* ═══ 부트 ═══════════════════════════════════════════════════════ */
 function boot() {
   _consent = readConsent();
-  if (_consent === 'granted') loadSdk();
+  if (_consent === 'granted') { loadSdk(); ensureGa(); }
   else if (_consent === null) showBanner();
   /* 설치 CTA·랜딩 링크·분석 설정은 data 속성으로 전 표면 공통 계측 — 각 모듈이 버튼 위치를 알 필요가 없고,
      카탈로그(React)도 마크업에 속성만 붙이면 된다. capture 단계라 새 탭 이동 전에 잡힌다. */

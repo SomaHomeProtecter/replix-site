@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v5 (Amplitude)
+# replix.tv 웹 — 트래킹 플랜 v6 (Amplitude + Google Analytics)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -49,13 +49,13 @@
 | 항목 | 값 |
 | --- | --- |
 | UI | 하단 고정 배너(`docs/js/analytics.js` `showBanner`). 랜딩·카탈로그 공통 — 스타일을 JS 가 들고 다닌다(두 표면의 CSS 체계가 다르다) |
-| 저장 | `localStorage.replix_web_analytics_consent_v1 = { decision: 'granted'|'denied', decidedAt, version }` — 지금 유효한 버전은 `consentVersion()`(운영은 시행일 전 1, 그 뒤 2 · 로컬은 항상 2) |
+| 저장 | `localStorage.replix_web_analytics_consent_v1 = { decision: 'granted'|'denied', decidedAt, version }` — 지금 유효한 버전은 `consentVersion()`(운영은 2026-10-07 전 1, 10-09 전 2, 그 뒤 3 · 로컬은 항상 3) |
 | 미선택 | 배너 표시. SDK·쿠키·요청 0건 |
 | 거부 | 배너 숨김. SDK·쿠키·요청 0건 |
-| 허용 | SDK 스크립트 주입 → (랜딩이면 리플레이 플러그인 주입·부착, §9) → `init` → 큐 flush → 현재 페이지 `page_viewed` 1회 |
+| 허용 | SDK 스크립트 주입 → (랜딩이면 리플레이 플러그인 주입·부착, §9) → `init` → 큐 flush · GA `gtag.js` 주입(§10) → 현재 페이지 `page_viewed`(GA 는 `page_view`) 1회 |
 | 철회 | 푸터 '분석 설정'(`[data-analytics-settings]`) → 배너 재표시 → 거부 시 리플레이 플러그인 제거 + `setOptOut(true)` + `AMP_*` 쿠키·`AMP_*` localStorage·`AMP_*` IndexedDB 삭제(IndexedDB 는 SDK 가 연결을 쥐고 있어 페이지를 떠날 때 실제로 지워진다) |
 | 재허용 | 같은 페이지에서 거부 뒤 다시 허용하면 `setOptOut(false)` + `reset()` — **새 device_id**. 철회 전 식별값과 이어지지 않는다. 리플레이도 새 식별자로 다시 붙는다 |
-| 버전 | `version` 이 바뀌면 다시 묻는다(문안·범위가 바뀌었을 때 올린다). **2 = 랜딩 세션 리플레이**(HP-457) — 배너 문구가 화면 조작 기록을 밝힌다(`bannerText`) |
+| 버전 | `version` 이 바뀌면 다시 묻는다(문안·범위·받는 곳이 바뀌었을 때 올린다). **2 = 랜딩 세션 리플레이**(HP-457) — 배너 문구가 화면 조작 기록을 밝힌다 · **3 = Google Analytics**(HP-465) — 배너 문구가 Google 을 밝힌다(`bannerText`) |
 
 처리방침 §6 문안이 이 동작을 약속한다: "확장 프로그램 **또는 웹사이트(replix.tv)** 에서 명시적으로 동의한 경우에만 … 웹사이트 하단의 '분석 설정'에서 변경".
 
@@ -206,6 +206,29 @@
 > ⚠️ **회원 약관 동의 버전(BE `requiredPrivacyVersion`)은 건드리지 않았다.** 리플레이는 웹 방문자의 배너 동의(버전 2)로 받는다.
 > 회원 재동의가 필요한지는 HP-243 담당 판단.
 
+## 10. Google Analytics (HP-465)
+
+Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 받는다. Amplitude 를 대체하지 않는다 —
+이벤트 정본·대시보드는 Amplitude 이고, GA 는 유입 경로 리포트·익숙한 화면용 사본이다. **커버리지는 Amplitude 와 같다**(동의한 방문만).
+
+| 항목 | 값 |
+| --- | --- |
+| 시행 | 운영 **2026-10-09 KST**(`GA_FROM`) — 처리방침 11항 7일 전 공고(2026-10-01). 로컬·미리보기는 항상 켜고 `traffic_type=internal`·`debug_mode` |
+| 로드 | 동의 허용 뒤 `gtag/js?id=…` 를 동적 주입(정적 태그 금지 — 테스트가 고정). 두 표면(랜딩·작품 탐색) 모두 |
+| 이벤트 | `track()` 이 Amplitude 와 **같은 이름·속성**으로 GA 에도 보낸다(+`surface`). `page_viewed` 만 GA 표준 `page_view` 로 |
+| 덮어쓰는 값 | `page_location` = `origin + cleanPath()`(쿼리·작품 번호 없음) · `page_title` = 표면 이름 고정(`Replix 랜딩`·`Replix 작품 탐색`) · `page_referrer` = 외부면 출처만, 같은 출처면 정리된 경로(검색어·초대 토큰 차단) |
+| 끈 것 | 자동 `page_view`(`send_page_view: false`) · Google 신호 · 광고 개인화 |
+| 철회 | `window['ga-disable-G-…'] = true` + `_ga*` 쿠키 삭제. 같은 페이지 재허용에서는 GA 를 다시 켜지 않는다(gtag 가 메모리에 쥔 옛 client id 가 이어지지 않게) — 다음 로드부터 새 쿠키 |
+
+> ⚠️ **GA 관리 화면의 '향상된 측정'은 반드시 끈다.** 코드로 막을 수 없는 원격 설정이다. 켜 두면 이탈 클릭이
+> 넷플릭스 재생 주소(`link_url` — 작품·회차 번호와 `?t=` 재생 위치)를, 사이트 검색이 검색어를 싣는다(§2 금지). 2026-10-01 로컬
+> 검증에서 우리가 보내지 않은 `scroll` 이벤트가 나가 **아직 켜져 있음**을 확인했다.
+>
+> GA 관리 설정(사람이 한다): 향상된 측정 끄기 · 데이터 설정 → Google 신호 끄기 · 데이터 보관 **14개월**(처리방침 3항과 같아야 한다) ·
+> 데이터 필터 'Internal Traffic' 활성(로컬 검증 트래픽 제외).
+>
+> GA4 는 IP 를 로그·저장하지 않고 지역 추정에만 쓴다(처리방침 1항이 이렇게 밝힌다). 브라우저 종류·OS(사용자 에이전트 클라이언트 힌트)는 실린다.
+
 ## 변경 이력
 
 | 버전 | 날짜 | 변경 |
@@ -215,3 +238,4 @@
 | v3 | 2026-09-21 | 랜딩 버튼·링크를 버튼별로 계측 — `nav_link_clicked{target, location}` 13곳(W6). 설치 CTA 3곳은 `install_cta_clicked` 유지. `pagehide` beacon flush 추가(같은 탭 이동 직전 이벤트가 밀리던 것, 실측)(HP-437) — 고경우 |
 | v4 | 2026-09-24 | 로그인·가입 계측 — `login_started{provider}`·`login_completed{is_new_user}`(W7). 가입은 약관 동의 저장 시점(HP-449). §4 `user_id` 설명 정정(로그인은 있으나 회원 식별값은 싣지 않는다) — 김지호 |
 | v5 | 2026-09-29 | 랜딩 세션 리플레이(W8, §9) — 랜딩 전용·운영 시행 2026-10-07·동의 버전 2·입력 가림 `medium`·`storeType: memory`. 처리방침 1·3·5·6항 반영(HP-457) — 고경우 |
+| v6 | 2026-10-01 | Google Analytics 추가(§10) — 같은 동의 뒤 동적 로드, 운영 시행 2026-10-09, 동의 버전 3, 주소·제목·리퍼러를 정리값으로 덮어쓰기, 철회 시 `_ga*` 삭제. 처리방침 1·3·5·6항 반영(HP-465) — 고경우 |

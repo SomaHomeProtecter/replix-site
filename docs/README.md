@@ -56,7 +56,10 @@ python3 -m http.server 8000     # http://localhost:8000
   둘 중 하나를 반드시 단다**, 안 달면 검사가 깨진다. 값은 `analytics.js` `LINK_TARGETS` 의 열거값만). 동의 배너·SDK
   로드·철회는 그 파일이 맡는다. **세션 리플레이는 랜딩에서만, 운영은 2026-10-07 부터**(HP-457, 트래킹 플랜 §9) —
   시행일을 옮기려면 `analytics.js REPLAY_FROM` 과 `privacy.html` 시행일을 같이 고친다(검사가 둘을 대조한다).
-  랜딩에 입력 필드나 이용자가 쓴 글이 들어가면 그 요소에 `amp-mask`(글자 가림)·`amp-block`(통째로 가림)을 단다. 검사: `node scripts/test-analytics.mjs`. `/invite` 는 계측하지 않는다(토큰).
+  랜딩에 입력 필드나 이용자가 쓴 글이 들어가면 그 요소에 `amp-mask`(글자 가림)·`amp-block`(통째로 가림)을 단다.
+  **Google Analytics 도 같은 동의 뒤에서 같은 파일이 붙인다, 운영은 2026-10-09 부터**(HP-465, 트래킹 플랜 §10) — `gtag` 정적 태그를
+  HTML 에 넣지 않는다(동의 전 수집이 된다). 시행일은 `GA_FROM` 과 `privacy.html` 을 같이 고친다. GA 관리의 **향상된 측정은 꺼 둔다**.
+  검사: `node scripts/test-analytics.mjs`. `/invite` 는 계측하지 않는다(토큰).
 - **화면 안 UI 는 확장의 실제 구조·색을 옮긴 것**이다. `--accent: #e50914` 등
   토큰이 `Replix-extension/styles.css` 와 짝이므로 임의로 바꾸면 설치 전후가
   다른 제품으로 보인다.
