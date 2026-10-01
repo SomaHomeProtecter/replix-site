@@ -262,18 +262,41 @@ function simulateType() {
   }, 90);
 }
 
-/* ── 원본↔Replix 토글 ─────────────────────────────────────
-   화면 위 세그먼트 토글로 원본/Replix 를 전환한다. 기존의 마우스
-   위치 기반 분할선을 교체(2026-08-12). */
+/* ── 원본↔Replix 스크롤 전환 (HP-467) ─────────────────────
+   2026-09-12 김찬수 기획 멘토링 반영(2026-09-23 김지호 반영안): 토글을 누르는 대신,
+   페이지가 평소대로 흐르는 동안 제품 화면의 가운데가 뷰포트 높이 78% → 36% 지점으로
+   올라오는 구간을 진행도로 삼는다 — 아래에서 들어올 땐 넷플릭스 원본, 읽기 좋은 높이에
+   오면 Replix, 되올리면 거꾸로. 값은 #intro 의 --rx(0 = 원본, 1 = Replix) 하나로 흘리고
+   모양은 css/hero.css 가 그린다. 토글 알약은 누르는 버튼이 아니라 진행 표시다.
+   ⚠ 화면을 sticky 로 붙잡아 두고 바꾸는 방식은 쓰지 않는다 — 2026-09-23 "스크롤이
+   거기서 멈추는 느낌" 피드백으로 기각됐다. */
+var intro = document.getElementById("intro");
 var heroToggle = document.getElementById("heroToggle");
-if (heroToggle && heroScreen) {
-  var isReplix = true;
-  heroToggle.addEventListener("click", function () {
-    isReplix = !isReplix;
-    heroScreen.classList.toggle("off", !isReplix);
-    heroToggle.classList.toggle("is-orig", !isReplix);
-    heroToggle.setAttribute("aria-pressed", isReplix ? "true" : "false");
-    /* 계측(W4) — 랜딩에서 방문자가 실제로 조작할 수 있는 데모는 이 토글 하나다(히트맵 플레이어는 #scenes-legacy 에 숨김). */
-    track('demo_interacted', { demo: 'hero_toggle', action: 'toggle' });
-  });
+var RX_FROM = 0.78, RX_TO = 0.36;
+var rxNow = -1, rxSawOrig = false, rxTracked = false;
+
+/* 스크롤 이벤트는 브라우저가 이미 프레임당 한 번으로 묶어 보낸다. 읽기 한 번 → 값이
+   바뀔 때만 쓰기 한 번이라, 구간 밖에서는 아무것도 다시 그리지 않는다. */
+function scrub() {
+  var r = heroScreen.getBoundingClientRect();
+  var c = (r.top + r.height / 2) / innerHeight;
+  var t = Math.min(1, Math.max(0, (RX_FROM - c) / (RX_FROM - RX_TO)));
+  /* smoothstep — 시작·끝이 부드럽게. 모션을 끈 사용자에게는 연속 변화 대신 중간에서 한 번에 넘긴다. */
+  var rx = reduce ? (t >= 0.5 ? 1 : 0) : Math.round(t * t * (3 - 2 * t) * 1000) / 1000;
+  if (rx === rxNow) return;
+  rxNow = rx;
+  intro.style.setProperty("--rx", rx);
+  if (heroToggle) heroToggle.classList.toggle("is-orig", rx < 0.5);
+  /* 계측(W4) — 원본에서 시작해 Replix 까지 다 넘겨 본 페이지뷰당 1회. 앵커 이동·새로고침으로
+     이미 지나친 위치에서 열린 경우(처음부터 1)는 전환을 본 게 아니므로 세지 않는다. */
+  if (rx === 0) rxSawOrig = true;
+  if (rx === 1 && rxSawOrig && !rxTracked) {
+    rxTracked = true;
+    track('demo_interacted', { demo: 'hero_toggle', action: 'scroll_complete' });
+  }
+}
+if (intro && heroScreen) {
+  addEventListener("scroll", scrub, { passive: true });
+  addEventListener("resize", scrub);
+  scrub();
 }
