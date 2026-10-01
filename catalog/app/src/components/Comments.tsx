@@ -103,9 +103,11 @@ function Item({ c, onLike, onDelete }: { c: Comment; onLike: (c: Comment, on: bo
   const { user } = useAuth()
   const [open, setOpen] = useState(!c.spoiler)
   useEffect(() => { setOpen(!c.spoiler) }, [c.id, c.spoiler])
+  /* amp-mask·amp-block = 세션 리플레이 가림(HP-457, js/analytics.js 주석). 남의 닉네임·평가 본문·프로필 사진은
+     녹화에 찍히지 않게 한다 — 클래스를 빼면 scripts/test-analytics.mjs 가 깨진다. */
   return (
-    <li className="grid grid-cols-[32px_1fr] gap-x-3 py-4">
-      {c.profileImageUrl ? <img src={c.profileImageUrl} alt="" className="size-8 rounded-full object-cover" /> : <Avatar ch={c.displayName.slice(0, 1)} />}
+    <li className="amp-mask grid grid-cols-[32px_1fr] gap-x-3 py-4">
+      {c.profileImageUrl ? <img src={c.profileImageUrl} alt="" className="amp-block size-8 rounded-full object-cover" /> : <Avatar ch={c.displayName.slice(0, 1)} />}
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <span className="text-[13.5px] font-bold text-ink">{c.displayName}</span>

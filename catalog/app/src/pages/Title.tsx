@@ -331,7 +331,8 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
                     </a>
                   )}
                 </div>
-                <ol className="flex-1 divide-y divide-line">
+                {/* amp-mask = 세션 리플레이 글자 가림(HP-457) — 남의 채팅·닉네임이 녹화에 찍히지 않게 */}
+                <ol className="amp-mask flex-1 divide-y divide-line">
                   {log.map((x: ChatMessage) => (
                     <li key={x.id} className="grid grid-cols-[52px_28px_1fr_auto] items-start gap-x-3 px-5 py-3">
                       <span className="num pt-[3px] font-mono text-[11px] text-faint">{fmtTime(x.playbackTime)}</span>

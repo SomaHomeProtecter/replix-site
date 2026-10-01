@@ -8,21 +8,26 @@
    ③ 자동수집(pageViews·pageUrlEnrichment·form)은 끈다 — 전체 URL 이 실리면 /catalog 해시의 작품 ID 나
       쿼리가 새 나간다. page_path 는 cleanPath 로 직접 정제한다(라우트 이름까지만).
    ④ IP 는 끈다 — 처리방침 수집 항목에 없다. 확장(HTTP API, ip 미전송)과 같은 수준으로 맞춘다.
-   ⑤ 세션 리플레이(HP-457)는 **랜딩에서만**, 시행일부터, 같은 동의 뒤에만 붙인다 — 아래 REPLAY_FROM 참조.
+   ⑤ 세션 리플레이(HP-457)는 **랜딩·작품 탐색**, 시행일부터, [허용] 뒤에만 붙인다 — 아래 REPLAY_FROM 참조.
    ⑥ Google Analytics(HP-465)도 **같은 동의 뒤에만**, 처리방침 시행일부터 붙인다 — 아래 GA_FROM 참조. 자동 수집 값
       (전체 URL·문서 제목·전체 리퍼러)을 정리된 값으로 덮어 Amplitude 와 같은 금지 목록(트래킹 플랜 §2)을 지킨다.
    카탈로그(React)는 이 파일을 /js/analytics.js 로 따로 로드해 window.ReplixAnalytics 로만 부른다.
    node 에서 import 하면 부트하지 않는다(scripts/test-analytics.mjs 가 순수 함수를 검사한다). */
 export var CONSENT_KEY = 'replix_web_analytics_consent_v1';
-/* 동의 버전 — 수집 범위나 받는 곳이 바뀌면 올려 다시 묻는다. 2 = 랜딩 세션 리플레이(HP-457), 3 = Google Analytics(HP-465).
-   운영에서는 각 시행일(REPLAY_FROM·GA_FROM) 전까지 앞 버전이 유효하다 — consentVersion() 이 가른다. */
-export var CONSENT_VERSION = 3;
+/* 동의 버전 — 수집 범위나 받는 곳이 바뀌면 올려 다시 묻는다. 2 = 랜딩 세션 리플레이(HP-457), 3 = Google Analytics(HP-465),
+   4 = 작품 탐색까지 리플레이(2026-10-01 고경우). 운영에서는 각 시행일 전까지 앞 버전이 유효하다 — consentVersion() 이 가른다.
+   거부는 버전과 무관하게 계속 존중한다(parseConsent). */
+export var CONSENT_VERSION = 4;
 export var SDK_URL = 'https://cdn.amplitude.com/libs/analytics-browser-2.45.8-min.js.gz';
 /* 확장 config.js 와 같은 두 프로젝트(쓰기 전용 클라이언트 키 — 읽기·삭제 불가). 표면은 surface 속성으로 가른다. */
 export var API_KEYS = { prod: '6f7bcf8fc37e9f93d442f943c23b6861', dev: 'fa98652a9c62152eaab56eb423b707ab' };
 /* ─── 세션 리플레이(HP-457) ───────────────────────────────────────
    화면 조작(스크롤·클릭·화면 구성 변화)을 재생 가능한 형태로 기록한다. 세 가지를 고정한다:
-   · **랜딩에서만.** 작품 탐색은 검색창 입력(=작품명)과 작품 화면이 그대로 찍혀 트래킹 플랜 §2 금지 목록에 걸린다.
+   · **랜딩·작품 탐색.** 처음엔 랜딩만이었다가 2026-10-01 고경우 결정으로 작품 탐색도 찍는다. 화면에 보이는 작품명·포스터는
+     녹화에 담긴다 — [허용]으로 받는 동의 범위로 처리방침 1항이 밝힌다(이벤트 속성 금지 목록 §2 와는 별개). 대신 **남의 글·
+     닉네임·프로필 사진·로그인 계정 이름은 마크업에서 가린다**: 평가 한 건 `amp-mask`·작성자 사진 `amp-block`(Comments.tsx),
+     순간 채팅 목록 `amp-mask`(Title.tsx), 계정 메뉴 `amp-mask`(Chrome.tsx). 검색창·입력란은 아래 medium 이 가린다.
+     ⚠️ 작품 탐색에 남의 글·이름을 보여 주는 새 화면을 붙이면 그 요소에 `amp-mask` 를 단다(테스트가 위 셋을 고정).
    · **시행일부터.** 2026-10-01 공고와 동시에 시행한다 — 법정 사전 공지 기간은 없고 개인정보위 작성지침도 "개정 전 또는
      개정 즉시 공지"다(고경우 결정, 처리방침 11항도 같이 고침). 운영(replix.tv)만 날짜를 본다. 로컬·미리보기는 검증할 수 있어야 하므로 항상 켠다(dev 프로젝트로 간다).
      ⚠️ 공고(=이 변경의 배포·공지 게시)가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
@@ -85,8 +90,9 @@ export function cleanPath(pathname, hash) {
 export function deviceClass(width) { return width < 768 ? 'mobile' : (width < 1024 ? 'tablet' : 'desktop'); }
 /* 리플레이 조항이 시행 중인가 — 운영은 시행일부터, 그 밖은 항상. */
 export function replayInForce(hostname, nowMs) { return envOf(hostname) !== 'prod' || nowMs >= REPLAY_FROM; }
+/* 표면(랜딩·작품 탐색)은 가리지 않는다 — pathname 은 표면을 다시 좁힐 때를 위해 남겨 둔 인자다. */
 export function replayOn(hostname, pathname, nowMs) {
-  return replayInForce(hostname, nowMs) && surfaceOf(pathname) === 'web_landing';
+  return replayInForce(hostname, nowMs);
 }
 /* GA 조항이 시행 중인가 — 운영은 시행일부터, 그 밖은 항상. 표면은 가리지 않는다(작품 번호는 gaPage 가 뺀다). */
 export function gaOn(hostname, nowMs) { return envOf(hostname) !== 'prod' || nowMs >= GA_FROM; }
@@ -133,11 +139,15 @@ export function collectingFor(consent, optOut) {
 export function noticeText() {
   return 'Replix는 사이트 개선을 위해 방문 통계(기기 식별값과 사용 이벤트)를 개인을 알아볼 수 없는 형태로 수집해 ' +
     'Amplitude와 Google Analytics(모두 미국)로 보냅니다. 원하지 않으면 거부를 눌러 주세요. ' +
-    '허용하면 첫 화면에서의 화면 조작 기록(스크롤·클릭)도 함께 기록합니다. 입력한 내용은 기록하지 않습니다.';
+    '허용하면 화면 조작 기록(스크롤·클릭)도 함께 기록합니다. 입력한 내용과 다른 이용자의 글·닉네임은 기록하지 않습니다.';
 }
-/* 배너 문구 — 동의가 덮는 범위를 그대로 적는다. 2 는 화면 조작 기록을 밝힌다(랜딩·카탈로그가 같은 배너를 쓰므로
-   '첫 화면에서'라고 범위를 적는다). */
+/* 배너 문구 — 동의가 덮는 범위를 그대로 적는다. 2·3 은 녹화가 랜딩뿐이라 '첫 화면에서'라고 적었고, 4 부터 작품 탐색까지. */
 export function bannerText(version) {
+  if (version >= 4) {
+    return 'Replix는 사이트 개선을 위해 방문 통계를 익명으로 수집합니다. 허용하면 기기 식별값과 사용 이벤트가 ' +
+      'Amplitude와 Google Analytics(모두 미국)로, 첫 화면과 작품 탐색에서의 화면 조작 기록(스크롤·클릭)이 Amplitude로 ' +
+      '전송됩니다. 입력한 내용과 다른 이용자의 글·닉네임은 기록하지 않습니다.';
+  }
   if (version >= 3) {
     return 'Replix는 사이트 개선을 위해 방문 통계를 익명으로 수집합니다. 허용하면 기기 식별값과 사용 이벤트가 ' +
       'Amplitude와 Google Analytics(모두 미국)로, 첫 화면에서의 화면 조작 기록(스크롤·클릭)이 Amplitude로 전송됩니다. ' +

@@ -166,8 +166,9 @@ function AccountMenu({ name }: { name: string }) {
       document.removeEventListener('keydown', onKey)
     }
   }, [open])
+  /* amp-mask = 세션 리플레이 글자 가림(HP-457) — 로그인한 사람의 닉네임이 녹화에 찍히지 않게 */
   return (
-    <div ref={box} className="relative hidden shrink-0 min-[761px]:block">
+    <div ref={box} className="amp-mask relative hidden shrink-0 min-[761px]:block">
       <button
         ref={btn}
         type="button"
