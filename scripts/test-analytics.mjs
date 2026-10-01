@@ -34,9 +34,10 @@ assert.equal(a.deviceClass(390), 'mobile');
 assert.equal(a.deviceClass(800), 'tablet');
 assert.equal(a.deviceClass(1440), 'desktop');
 
-assert.equal(a.CONSENT_VERSION, 3, '2 = 랜딩 세션 리플레이 추가(HP-457), 3 = Google Analytics 추가(HP-465)');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 3 })), 'granted');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 3 })), 'denied');
+assert.equal(a.CONSENT_VERSION, 4, '2 = 랜딩 세션 리플레이(HP-457), 3 = Google Analytics(HP-465), 4 = 작품 탐색 리플레이(HP-457 확대)');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 4 })), 'granted');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 4 })), 'denied');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 3 })), null, '녹화 범위가 작품 탐색으로 늘었다 — 3 으로 받은 허용은 다시 묻는다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 2 })), null, '받는 곳이 늘었다 — 2 로 받은 동의는 다시 묻는다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 })), null, '범위가 늘었다 — 1 로 받은 동의는 다시 묻는다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 }), 1), 'granted', '리플레이 시행일 전 운영에서는 1 이 유효하다');
@@ -44,7 +45,7 @@ assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 2 }),
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 0 })), null, '버전이 다르면 다시 묻는다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 1 })), 'denied',
   '거부는 버전이 바뀌어도 계속 존중한다 — 옵트아웃에서 옛 거부가 풀리면 거부한 사람을 수집하게 된다(HP-466)');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'maybe', version: 3 })), null);
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'maybe', version: 4 })), null);
 assert.equal(a.parseConsent('garbage'), null);
 assert.equal(a.parseConsent(null), null);
 
@@ -68,11 +69,11 @@ assert.equal(a.REPLAY_FROM, AFTER, '시행일 — 바꾸면 privacy.html 의 시
 assert.equal(a.replayOn('replix.tv', '/', BEFORE), false, '시행일(2026-10-01 공고와 같은 날) 전에는 켜지 않는다');
 assert.equal(a.replayOn('replix.tv', '/', AFTER), true);
 assert.equal(a.replayOn('replix.tv', '/index.html', AFTER), true);
-assert.equal(a.replayOn('replix.tv', '/catalog/', AFTER), false, '작품 탐색은 찍지 않는다 — 검색어·작품 화면(§2)');
+assert.equal(a.replayOn('replix.tv', '/catalog/', AFTER), true, '작품 탐색도 녹화(2026-10-01 고경우) — 입력·남의 글·닉네임·계정 이름은 가린다(아래 마스킹 검사)');
 assert.equal(a.replayOn('localhost', '/', 0), true, '로컬은 검증할 수 있게 항상 켠다(dev 프로젝트)');
-assert.equal(a.replayOn('localhost', '/catalog/', 0), false);
+assert.equal(a.replayOn('localhost', '/catalog/', 0), true);
 assert.equal(a.consentVersion('replix.tv', BEFORE), 1);
-assert.equal(a.consentVersion('replix.tv', AFTER), 3, '시행일부터 새 문구로 다시 묻는다(리플레이·GA 같은 날)');
+assert.equal(a.consentVersion('replix.tv', AFTER), 4, '시행일부터 새 문구로 다시 묻는다(리플레이·GA·작품 탐색 녹화 같은 날)');
 assert.match(a.bannerText(2), /화면 조작 기록/, '동의 문구가 녹화를 밝힌다');
 assert.match(a.bannerText(2), /첫 화면/, '배너는 두 표면이 같이 쓴다 — 범위를 적는다');
 assert.doesNotMatch(a.bannerText(1), /화면 조작/, '시행 전 문구에는 아직 없는 수집을 적지 않는다');
@@ -91,8 +92,12 @@ assert.equal(a.gaOn('replix.tv', GA_BEFORE), false, '시행일(공고와 같은 
 assert.equal(a.gaOn('replix.tv', GA_AFTER), true);
 assert.equal(a.gaOn('localhost', 0), true, '로컬은 검증할 수 있게 항상 켠다(내부 트래픽으로 표시)');
 assert.equal(a.consentVersion('replix.tv', GA_BEFORE), 1, '시행 전에는 처음 문구(1)');
-assert.equal(a.consentVersion('replix.tv', GA_AFTER), 3, 'GA 시행일부터 Google 을 밝힌 문구로 다시 묻는다');
-assert.equal(a.consentVersion('localhost', 0), 3);
+assert.equal(a.consentVersion('replix.tv', GA_AFTER), 4, 'GA·작품 탐색 녹화를 밝힌 문구로 다시 묻는다');
+assert.equal(a.consentVersion('localhost', 0), 4);
+assert.match(a.bannerText(4), /Google Analytics/);
+assert.match(a.bannerText(4), /작품 탐색/, '4 는 녹화 범위(작품 탐색)를 밝힌다');
+assert.doesNotMatch(a.bannerText(3), /작품 탐색/, '3 은 랜딩 녹화만');
+assert.doesNotMatch(a.noticeText(), /첫 화면에서의 화면 조작/, '안내 배너도 녹화 범위를 첫 화면으로 한정하지 않는다');
 assert.match(a.bannerText(3), /Google Analytics/, '동의 문구가 받는 곳(Google)을 밝힌다');
 assert.match(a.bannerText(3), /화면 조작 기록/, '3 은 2 의 범위를 그대로 포함한다');
 assert.doesNotMatch(a.bannerText(2), /Google/, '시행 전 문구에는 아직 없는 수신자를 적지 않는다');
@@ -147,7 +152,14 @@ assert.doesNotMatch(src, /\.hidden = true/, '배너를 [hidden] 으로 숨기면
 assert.match(src, /a\.setOptOut\(false\); a\.reset\(\);/, '같은 페이지에서 거부→허용이면 optOut 해제 + 새 device_id (검증에서 잡힌 버그)');
 assert.match(src, /a\.setOptOut\(true\)/, '거부·철회 시 SDK optOut');
 assert.doesNotMatch(index, /plugin-session-replay/, '리플레이 플러그인도 동의 뒤 스크립트로만 로드한다(정적 태그 금지)');
-assert.doesNotMatch(read('docs/catalog/index.html'), /plugin-session-replay/, '카탈로그 산출물에 리플레이가 섞이면 안 된다');
+assert.doesNotMatch(read('docs/catalog/index.html'), /plugin-session-replay/, '카탈로그 산출물에 정적 리플레이 태그 금지(동의 뒤 analytics.js 가 붙인다)');
+// 작품 탐색 녹화의 가림(HP-457 확대) — 남의 글·닉네임·프로필 사진·계정 이름은 녹화에 찍히면 안 된다. 입력값은 medium 이 가린다.
+const cmt = read('catalog/app/src/components/Comments.tsx');
+assert.match(cmt, /<li className="amp-mask /, '평가 한 건(닉네임·본문·날짜)을 통째로 글자 가림');
+assert.match(cmt, /<img src=\{c\.profileImageUrl\} alt="" className="amp-block /, '평가 작성자 프로필 사진은 블록');
+assert.match(read('catalog/app/src/pages/Title.tsx'), /<ol className="amp-mask /, '순간 화면의 채팅 목록(남의 채팅·닉네임) 글자 가림');
+assert.match(read('catalog/app/src/components/Chrome.tsx'), /<div ref=\{box\} className="amp-mask /, '로그인 계정 이름(닉네임) 메뉴 글자 가림');
+assert.equal(a.SR_CONFIG.privacyConfig.defaultMaskLevel, 'medium', '검색창·평가 입력란·피드백 입력란은 medium 이 가린다');
 assert.match(src, /if \(_consent !== 'granted' \|\| !replayOn\(location\.hostname, location\.pathname, Date\.now\(\)\)\) \{ start\(\); return; \}/,
   '허용을 누르지 않았거나 랜딩·시행일 조건이 아니면 플러그인 스크립트를 받지도 않는다(옵트아웃 수집 중에도 녹화는 안 함)');
 assert.match(src, /function attachReplay\(a\) \{\s*if \(_replay \|\| _consent !== 'granted'/, '리플레이는 명시적 허용에서만 붙는다');
@@ -175,6 +187,8 @@ assert.match(src, /function track\(name, props\) \{\s*send\(function \(a\) \{ a\
   '웹 이벤트에 회원 식별값을 붙이지 않는다(setUserId 금지) — 붙이는 순간 옵트아웃 근거가 무너진다');
 assert.doesNotMatch(src, /setUserId|identify\(/, '웹 계측은 사람을 식별하지 않는다(옵트아웃의 전제)');
 assert.match(privacy, /화면 조작 기록은[^.]*명시적으로 동의한 경우에만/, '리플레이는 동의한 경우에만이라는 약속을 유지한다');
+assert.match(privacy, /다른 이용자가 쓴 평가·채팅과\s+닉네임/, '처리방침이 작품 탐색 녹화에서 가리는 것을 밝힌다');
+assert.doesNotMatch(privacy, /작품 탐색 화면과 확장\s+프로그램에서는 기록하지 않습니다/, '작품 탐색도 녹화한다 — 옛 문구가 남으면 방침이 거짓말');
 assert.match(privacy, /확장 프로그램의 이용 분석[^.]*명시적으로 동의한 경우에만/, '확장은 동의 유지(웹스토어 정책·회원 식별값 결합)');
 // GA 도 동의 뒤 동적 로드만, 철회하면 전송을 막고 쿠키를 지운다.
 assert.doesNotMatch(index, /googletagmanager|gtag\(/, 'GA 도 동의 뒤 스크립트로만 로드한다(정적 태그 금지)');
