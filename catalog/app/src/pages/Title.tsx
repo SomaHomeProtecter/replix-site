@@ -16,7 +16,7 @@ import {
   type Rating,
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
-import { titleHref } from '../App'
+import { titleHref } from '../route-pure.js'
 import { engaged, trackWatch } from '../analytics'
 import { Avatar, Chip, MomentDots, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { CardGridSkeleton, EmptyNote, RailSkeleton, RowsSkeleton } from '../components/skeleton'

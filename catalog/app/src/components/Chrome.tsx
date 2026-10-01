@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { CaretDownIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { api, type ContentSearchItem } from '../api'
 import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
-import { noticeHref, titleHref } from '../App'
+import { noticeHref, titleHref, type Route } from '../route-pure.js'
 import { engaged } from '../analytics'
 import { login, logout, takeAccountFocus, useAuth } from '../auth'
 import { dismissBand, pickBand, unreadCount, useNotices } from '../notices'
@@ -22,7 +22,7 @@ const NAV = [
 ]
 
 /* 원 시안과 같은 60px 한 줄 바, 좌우 48px 거터. */
-export function Nav({ current }: { current: 'home' | 'title' | 'notice' }) {
+export function Nav({ current }: { current: Route['page'] }) {
   /* 랜딩 .nav 와 같은 치수: sticky 66px, 같은 배경·블러, .wrap 안에 gap 26px, 로고 34px, 메뉴 14px gap 24px,
      오른쪽 끝 .btn--primary.btn--sm. 랜딩과 다른 것은 '홈으로' 버튼 하나뿐이다(작품 탐색에서 랜딩으로 돌아가는 길). */
   return (
