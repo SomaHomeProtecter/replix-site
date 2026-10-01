@@ -49,11 +49,12 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
   const [paused, setPaused] = useState(false)
   const reduce = useReducedMotion()
   useEffect(() => { setIdx(0) }, [slides.length])
-  useEffect(() => {
-    if (reduce || paused || slides.length < 2) return
-    const t = setInterval(() => setIdx((i) => (i + 1) % slides.length), BILLBOARD_INTERVAL_MS)
-    return () => clearInterval(t)
-  }, [reduce, paused, slides.length, idx])
+  /* 전환 시계는 진행 줄 애니메이션 하나다. 예전엔 setInterval 과 CSS 진행 줄이 따로 돌아, 마우스를 올렸다 떼면
+     줄은 멈춘 자리부터 이어 가는데 타이머는 7초를 처음부터 다시 셌다 — 줄이 다 찬 채 몇 초씩 서 있다가 넘어갔다.
+     이제 애니메이션이 끝나는 순간(animationend)에 넘긴다. 멈춤도 animationPlayState 하나로 둘이 함께 멈춘다. */
+  const autoplay = !reduce && slides.length > 1
+  const next = () => setIdx((i) => (i + 1) % slides.length)
+  const playState = paused ? 'paused' : 'running'
   /* 오른쪽 세로 레일(2026-09-07 조현빈): 다섯 작품이 포스터를 배경으로 세로로 쌓이고, 현재 작품 칸은 크게,
      나머지는 작게. flex 값이 바뀌면서 칸 크기가 자연스럽게 흐른다. 누르면 그 작품으로 전환.
      간격·모서리 없이 붙인 한 기둥으로 두고 왼쪽 포스터보다 작게 — 레일은 보여주기가 아니라 꾸밈이라
@@ -77,8 +78,8 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
                 <img src={poster} alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: '50% 18%', filter: on ? 'saturate(.9) brightness(.85)' : 'grayscale(1) brightness(.45)', transition: reduce ? undefined : 'filter .7s' }} />
               )}
               <span className="absolute inset-0" style={{ background: on ? 'linear-gradient(90deg, rgba(16,16,24,.7), rgba(16,16,24,.35))' : 'linear-gradient(90deg, rgba(16,16,24,.75), rgba(16,16,24,.55))', transition: reduce ? undefined : 'background .7s' }} />
-              {on && !reduce && (
-                <span key={idx} className="absolute inset-x-0 bottom-0 h-[3px] origin-left bg-accent" style={{ animation: `rail-progress ${BILLBOARD_INTERVAL_MS}ms linear forwards`, animationPlayState: paused ? 'paused' : 'running' }} />
+              {on && autoplay && (
+                <span key={idx} className="absolute inset-x-0 bottom-0 h-[3px] origin-left bg-accent" style={{ animation: `rail-progress ${BILLBOARD_INTERVAL_MS}ms linear forwards`, animationPlayState: playState }} />
               )}
               <span className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-3 py-2">
                 <span className={`num font-mono text-[11px] font-bold leading-none ${on ? 'text-white' : 'text-white/55'}`} style={{ transition: 'color .5s' }}>{i + 1}</span>
@@ -101,7 +102,7 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
   ) : null
 
   return (
-    <div className="border-b border-line bg-raise" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
+    <div className="relative border-b border-line bg-raise" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
       <div className="wrap grid gap-8 py-9 md:grid-cols-[minmax(0,1fr)_168px] lg:grid-cols-[minmax(0,1fr)_184px] lg:gap-10">
         {/* 슬라이드 다섯 장을 모두 마운트해 같은 자리에 겹쳐 두고 투명도만 교차시킨다. 지웠다 다시 만들면
             그때마다 파형·순간을 새로 받아 빈 화면이 깜빡인다. 높이는 가장 큰 슬라이드에 맞춰 고정된다. */}
@@ -121,6 +122,11 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
         </div>
         {rail}
       </div>
+      {/* 전환을 일으키는 보이지 않는 시계. 진행 줄과 같은 key·길이·멈춤 상태라 함께 차오르고 함께 끝난다.
+          진행 줄 자체를 시계로 쓰지 않는 이유: 레일은 모바일에서 display:none 이라 그 안의 애니메이션은 돌지 않는다. */}
+      {autoplay && (
+        <span key={idx} aria-hidden className="pointer-events-none absolute left-0 top-0 size-px opacity-0" style={{ animation: `rail-progress ${BILLBOARD_INTERVAL_MS}ms linear forwards`, animationPlayState: playState }} onAnimationEnd={next} />
+      )}
     </div>
   )
 }
