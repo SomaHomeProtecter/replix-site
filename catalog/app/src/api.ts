@@ -156,6 +156,47 @@ export type Comment = {
 export type CommentPage = { items: Comment[]; hasMore: boolean; rating: Rating }
 export type CommentSort = 'recent' | 'top'
 
+/* ── 내 활동(HP-441 — 소비: 웹 #/me HP-443 · 확장 HP-442). 로그인 필수(Cache-Control: private).
+   서버는 가림을 판정하지 않는다 — 화면이 activity-pure.js 규칙으로 판정할 원값만 싣는다. 모양은 BE MyActivityDtos 와 1:1. */
+export type MyActivitySummary = { ratedWorks: number; averageRating: number | null; chatCount: number }
+/** 답글의 원문(남의 글). message 는 운영 가림이면 null. mine = 내 글에 이어 단 답글(가리지 않는다). */
+export type MyActivityParent = {
+  id: string
+  displayName: string
+  message: string | null
+  moderationStatus: string
+  spoilerScore: number | null
+  blockedByMe: boolean
+  mine: boolean
+}
+export type MyActivityChat = {
+  id: string
+  episodeId: number
+  seasonNumber: number
+  episodeNumber: number
+  platformEpisodeId: string
+  playbackTime: number
+  message: string
+  createdAt: string
+  moderationStatus: string
+  spoilerScore: number | null   // 작성자 표시도 10 — 꼬리표는 "스포일러"
+  parentId: string | null       // 답글이면 원문 id
+  parent: MyActivityParent | null   // 원문이 사라졌으면 null("↳ 답글")
+}
+export type MyActivityWork = {
+  contentId: number
+  title: string
+  contentType: 'MOVIE' | 'SERIES'
+  platform: string
+  posterUrl: string | null
+  lastActivityAt: string | null   // 한 작품 보기에서 활동이 없으면 null
+  review: Comment | null          // 작품 댓글 API 의 Item 그대로(mine=true)
+  chatCount: number               // 잘리기 전 전량
+  episodeCount: number
+  chats: MyActivityChat[]         // 전체 보기 = 앞 3개 · 한 작품 보기 = ≤300
+}
+export type MyActivity = { summary: MyActivitySummary; truncated: boolean; works: MyActivityWork[] }
+
 /* ── 피드백(HP-426) — 세 레포(BE·확장·웹) 공통 계약, 비로그인도 보낼 수 있다(Authorization 있으면 user_id 연결).
    이 화면(웹, 카탈로그)은 특정 회차 위에서 뜨지 않으므로 contentId·episodeId·appVersion·platform 은 항상 null(feedback-pure.js). */
 export type FeedbackCategory = 'ANNOY' | 'BUG' | 'IDEA' | 'PRAISE'
@@ -248,6 +289,11 @@ export const api = {
   deleteComment: (commentId: number) => send<void>('DELETE', `/api/v1/comments/${commentId}`),
   likeComment: (commentId: number, on: boolean) =>
     send<{ commentId: number; likeCount: number; liked: boolean }>(on ? 'PUT' : 'DELETE', `/api/v1/comments/${commentId}/like`),
+
+  /* 내 활동(HP-443). 회원일 때만 부른다 — accessToken 이 null 이면 토큰 없이 나가 401 이 되고 화면은 로그인 안내로 간다. */
+  myActivity: () => get<MyActivity>('/api/v1/users/me/activity', true),
+  myActivityWork: (contentId: number, limit = 300) =>
+    get<MyActivityWork>(`/api/v1/users/me/activity/contents/${contentId}?limit=${limit}`, true),
 
   sendFeedback: (body: FeedbackCreate) => send<{ id: number }>('POST', '/api/v1/feedback', body, { optionalAuth: true }),
 }
