@@ -334,12 +334,14 @@ export function decodeEntities(text: string | null | undefined): string {
   return el.value
 }
 
-/** 내 평가 지우기 — 확인 문구와 호출을 한 곳에 둔다(작품 페이지 Comments.tsx 와 내 활동 #/me 가 같이 쓴다, HP-443). 지웠으면 true,
- *  취소·실패는 false(실패는 호출부가 목록을 다시 받아 상태를 맞추므로 따로 알리지 않는다 — 종전 Comments.tsx 와 같다).
+/** 내 평가 지우기 — 확인 문구와 호출을 한 곳에 둔다(작품 페이지 Comments.tsx 와 내 활동 #/me 가 같이 쓴다, HP-443).
+ *  지웠으면 true, 확인을 취소하면 false. 실패(401·403·404·5xx 는 ApiError, 네트워크 오류는 TypeError)는 그대로 던진다 —
+ *  취소와 실패를 같은 false 로 접으면 호출부가 실패를 알릴 수 없다(내 활동은 카드에 한 줄, 작품 페이지는 종전처럼 조용히).
  *  컴포넌트 파일에 두지 않는 이유: Comments.tsx 가 컴포넌트 아닌 것을 export 하면 fast-refresh 린트가 는다. */
 export async function deleteMyComment(c: Comment): Promise<boolean> {
   if (!confirm('내 평가를 지울까요?')) return false
-  try { await api.deleteComment(c.id); return true } catch { return false }
+  await api.deleteComment(c.id)
+  return true
 }
 
 export function fmtTime(sec: number): string {

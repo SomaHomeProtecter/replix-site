@@ -34,6 +34,7 @@ export const EXPIRED = '로그인이 만료됐습니다. 다시 로그인해 주
 /** Notice.tsx 의 실패 문구와 같은 결 — 못 불러온 것과 활동이 없는 것은 다른 사실이다. */
 export const FAILED = '내 활동을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.';
 export const MORE_FAILED = '더 불러오지 못했어요. 잠시 뒤 다시 눌러 주세요.';
+export const DELETE_FAILED = '지우지 못했어요. 잠시 뒤 다시 시도해 주세요.';
 
 /** 미채점(null)은 신호가 아니다(fail-open — 확장 HP-109 정책과 같다). */
 export function hasSpoilerSignal(score) {
@@ -51,14 +52,15 @@ export function isLeakScore(score) {
 
 /** 답글 원문 한 줄. null = 원문이 없다('↳ 답글'). text null = 가려진 메시지 — 작성자 이름은 남긴다(누구에게 단 답글인지는
  *  읽혀야 스레드가 보인다, 확장과 같다). 내 글에 이어 단 답글(parent.mine)은 가리지 않는다(HP-274 결정 5). 남의 글은
- *  운영 가림(message null)·클린봇 차단(blocked*)·내가 차단한 작성자·스포일러 신호 중 하나라도 있으면 가린다 — 웹은 확장의
- *  스포일러 민감도·클린봇 설정을 모르므로 가장 보수적으로 판정한다. */
+ *  운영 가림(message null)·공개 아님(moderationStatus ≠ 'visible' — 클린봇 차단 등, 모르는 상태도 가린다: Title.tsx 순간
+ *  인용과 같은 fail-closed)·내가 차단한 작성자·스포일러 신호 중 하나라도 있으면 가린다 — 웹은 확장의 스포일러 민감도·클린봇
+ *  설정을 모르므로 가장 보수적으로 판정한다. */
 export function parentView(parent) {
   if (!parent) return null;
   const who = parent.displayName || '';
   if (parent.mine) return { who, text: parent.message == null ? '' : parent.message };
-  const blocked = typeof parent.moderationStatus === 'string' && parent.moderationStatus.indexOf('blocked') === 0;
-  const hidden = parent.message == null || blocked || !!parent.blockedByMe || hasSpoilerSignal(parent.spoilerScore);
+  const notVisible = parent.moderationStatus !== 'visible';
+  const hidden = parent.message == null || notVisible || !!parent.blockedByMe || hasSpoilerSignal(parent.spoilerScore);
   return { who, text: hidden ? null : parent.message };
 }
 
@@ -69,7 +71,8 @@ export function snip(text, max = 24) {
 }
 
 /** 상대 날짜 — 달력 날짜 차이로 센다(시각이 아니라). 오늘 · 어제 · N일 전(30일 미만) · N개월 전(1년 미만) · N년 전.
- *  못 읽으면 ''(화면은 그 자리를 비운다). Math.round 는 DST 로 23·25시간인 날을 하루로 세기 위한 것이다. */
+ *  못 읽으면 ''(화면은 그 자리를 비운다). Math.round 는 DST 로 23·25시간인 날을 하루로 세기 위한 것이다.
+ *  개월은 11에서 멈춘다 — 30일로 나누면 360~364일이 "12개월 전"이 되어 "1년 전" 바로 앞에 어색하게 끼기 때문. */
 export function relativeDay(iso, now = Date.now()) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -80,7 +83,7 @@ export function relativeDay(iso, now = Date.now()) {
   if (days <= 0) return '오늘';
   if (days === 1) return '어제';
   if (days < 30) return days + '일 전';
-  if (days < 365) return Math.floor(days / 30) + '개월 전';
+  if (days < 365) return Math.min(11, Math.floor(days / 30)) + '개월 전';
   return Math.floor(days / 365) + '년 전';
 }
 export function lastActivityLabel(iso, now) {
@@ -96,8 +99,25 @@ export function activityPageState({ ready, user, loading, data, error }) {
   if (!user) return 'gate';
   if (data) return Array.isArray(data.works) && data.works.length > 0 ? 'list' : 'empty';
   if (loading) return 'loading';
-  if (error) return error.status === 401 || error.status === 403 ? 'expired' : 'failed';
+  if (error) return authLost(error.status) ? 'expired' : 'failed';
   return 'loading';
+}
+
+/** 401(세션 만료)·403(약관 동의 전, CONSENT_REQUIRED) — 다시 시도가 아니라 로그인으로 풀리는 실패. */
+function authLost(status) {
+  return status === 401 || status === 403;
+}
+
+/** 내 평가 지우기 실패 → 카드에 띄울 한 줄. null = 문구 대신 전체 보기를 다시 받는다 — 404 는 이미 없다는 뜻이다
+ *  (작품 페이지·다른 탭에서 지웠다). status 가 없으면(네트워크 오류) 실패 한 줄. */
+export function deleteErrorText(status) {
+  if (status === 404) return null;
+  return authLost(status) ? EXPIRED : DELETE_FAILED;
+}
+
+/** '더 보기' 실패 → 한 줄. 로그인으로 풀리는 실패에 "다시 눌러 주세요"라고 하지 않는다. */
+export function moreErrorText(status) {
+  return authLost(status) ? EXPIRED : MORE_FAILED;
 }
 
 /** '더 보기' 버튼 문구. 미리보기(3)로 다 보이면 null. 펼쳤으면 '접기'. */

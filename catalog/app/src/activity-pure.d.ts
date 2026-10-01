@@ -22,6 +22,7 @@ export const TRUNCATED_NOTE: string
 export const EXPIRED: string
 export const FAILED: string
 export const MORE_FAILED: string
+export const DELETE_FAILED: string
 
 export function hasSpoilerSignal(score: number | string | null | undefined): boolean
 export function isLeakScore(score: number | string | null | undefined): boolean
@@ -46,3 +47,6 @@ export function capNote(chatCount: number): string | null
 export function averageLabel(avg: number | null | undefined): string
 export function chatsCount(chatCount: number, episodeCount: number): string
 export function askLine(chatCount: number): string
+/** 지우기 실패 한 줄 — null 이면(404, 이미 없음) 문구 대신 전체 보기를 다시 받는다. status 없음 = 네트워크 오류. */
+export function deleteErrorText(status: number | undefined): string | null
+export function moreErrorText(status: number | undefined): string

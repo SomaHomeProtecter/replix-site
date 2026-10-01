@@ -198,7 +198,8 @@ export function Comments({ contentId, onRating, focusWrite }: { contentId: numbe
     catch { setItems((prev) => prev.map((x) => (x.id === c.id ? c : x))) }
   }
   const onDelete = async (c: Comment) => {
-    if (await deleteMyComment(c)) { setMine(null); load(0, true) }
+    try { if (await deleteMyComment(c)) { setMine(null); load(0, true) } }
+    catch { /* 작품 페이지는 종전처럼 조용히 — 실패면 내 평가가 목록에 그대로 남는다 */ }
   }
 
   return (

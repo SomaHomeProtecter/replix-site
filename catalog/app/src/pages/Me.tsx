@@ -14,9 +14,10 @@ import { reviewHref, titleHref } from '../route-pure.js'
 import { Chip, PosterSlot } from '../components/primitives'
 import { Stars } from '../components/Comments'
 import {
-  ASK_ACTION, CHATS_HEAD, EMPTY_ACTION, EMPTY_BODY, EMPTY_TITLE, EXPIRED, FAILED, GATE_LEDE, HIDDEN_PARENT, LEDE, MORE_FAILED,
+  ASK_ACTION, CHATS_HEAD, EMPTY_ACTION, EMPTY_BODY, EMPTY_TITLE, EXPIRED, FAILED, GATE_LEDE, HIDDEN_PARENT, LEDE,
   NO_CHATS, PREVIEW, REPLY_FALLBACK, SPOILER_TAG, TRUNCATED_NOTE,
-  activityPageState, askLine, averageLabel, capNote, chatsCount, isLeakScore, lastActivityLabel, moreLabel, parentView, snip,
+  activityPageState, askLine, averageLabel, capNote, chatsCount, deleteErrorText, isLeakScore, lastActivityLabel, moreErrorText, moreLabel,
+  parentView, snip,
 } from '../activity-pure.js'
 
 const WRAP = 'wrap min-h-[60vh] py-10'
@@ -62,22 +63,33 @@ function WorkCard({ w, onDeleted }: { w: MyActivityWork; onDeleted: () => void }
   const [full, setFull] = useState<MyActivityWork | null>(null)   // '더 보기'로 받은 그 작품 전량(한 번 받으면 접었다 펴도 다시 안 받는다)
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [moreErr, setMoreErr] = useState(false)
+  const [moreErr, setMoreErr] = useState<string | null>(null)
+  const [delErr, setDelErr] = useState<string | null>(null)
   const src = open && full ? full : w
   const chats = open && full ? full.chats : w.chats.slice(0, PREVIEW)
   const more = moreLabel(src.chatCount, open)
   const toggle = async () => {
     if (open) { setOpen(false); return }
     if (full) { setOpen(true); return }
-    setBusy(true); setMoreErr(false)
+    setBusy(true); setMoreErr(null)
     try { setFull(await api.myActivityWork(w.contentId)); setOpen(true); engaged('my_activity', 'more') }
-    catch { setMoreErr(true) }
+    catch (x) { setMoreErr(moreErrorText(x instanceof ApiError ? x.status : undefined)) }
     finally { setBusy(false) }
   }
+  /* 확인을 취소하면 아무 일 없다. 지웠으면 전체 보기를 다시 받는다(요약·순서는 서버가 정본). 실패는 카드에 한 줄
+     (deleteErrorText) — 404 는 이미 없다는 뜻(다른 곳에서 지웠다)이라 문구 대신 다시 받아 맞춘다. */
   const del = async () => {
-    if (!w.review || !(await deleteMyComment(w.review))) return
-    engaged('my_activity', 'review_deleted')
-    onDeleted()
+    if (!w.review) return
+    setDelErr(null)
+    try {
+      if (!(await deleteMyComment(w.review))) return
+      engaged('my_activity', 'review_deleted')
+      onDeleted()
+    } catch (x) {
+      const text = deleteErrorText(x instanceof ApiError ? x.status : undefined)
+      if (text === null) onDeleted()
+      else setDelErr(text)
+    }
   }
   const r = w.review
   return (
@@ -106,6 +118,7 @@ function WorkCard({ w, onDeleted }: { w: MyActivityWork; onDeleted: () => void }
                 <a href={reviewHref(w.contentId)} className="text-muted hover:text-ink">고치기</a>
                 <button type="button" onClick={del} className="inline-flex items-center gap-1 text-muted hover:text-accentd"><TrashIcon size={13} />지우기</button>
               </div>
+              {delErr && <p role="alert" className="mt-1.5 text-[12.5px] text-accentd">{delErr}</p>}
             </div>
           ) : (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3.5 gap-y-2 rounded-md border border-dashed border-line2 px-4 py-3">
@@ -132,7 +145,7 @@ function WorkCard({ w, onDeleted }: { w: MyActivityWork; onDeleted: () => void }
                   </li>
                 )}
               </ol>
-              {moreErr && <p role="alert" className="mt-1.5 text-[12.5px] text-accentd">{MORE_FAILED}</p>}
+              {moreErr && <p role="alert" className="mt-1.5 text-[12.5px] text-accentd">{moreErr}</p>}
               {open && capNote(src.chatCount) && <p className="mt-1.5 text-[12px] text-faint">{capNote(src.chatCount)}</p>}
             </div>
           ) : (

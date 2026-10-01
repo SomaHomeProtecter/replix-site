@@ -4,8 +4,9 @@
 import assert from 'node:assert/strict';
 import {
   SPOILER_CUT, LEAK_SCORE, PREVIEW, CHATS_CAP, LEDE, GATE_LEDE, EMPTY_TITLE, EMPTY_BODY, EMPTY_ACTION, CHATS_HEAD, NO_CHATS, ASK_ACTION,
-  SPOILER_TAG, HIDDEN_PARENT, REPLY_FALLBACK, TRUNCATED_NOTE, EXPIRED, FAILED, MORE_FAILED,
+  SPOILER_TAG, HIDDEN_PARENT, REPLY_FALLBACK, TRUNCATED_NOTE, EXPIRED, FAILED, MORE_FAILED, DELETE_FAILED,
   hasSpoilerSignal, isLeakScore, parentView, snip, relativeDay, lastActivityLabel, activityPageState, moreLabel, capNote, averageLabel, chatsCount, askLine,
+  deleteErrorText, moreErrorText,
 } from '../catalog/app/src/activity-pure.js';
 
 // 상수 — HP-441 과 짝(미리보기 3 · 한 작품 300), 스포일러 하한 3(Title.tsx 순간 인용과 같다).
@@ -48,6 +49,10 @@ assert.deepEqual(parentView(P({ moderationStatus: 'blocked_profanity' })), { who
 assert.deepEqual(parentView(P({ moderationStatus: 'blocked_hate' })), { who: '졸린 수달', text: null });
 assert.deepEqual(parentView(P({ blockedByMe: true })), { who: '졸린 수달', text: null });
 assert.deepEqual(parentView(P({ spoilerScore: 3 })), { who: '졸린 수달', text: null });
+// 공개(visible)가 아닌 상태는 이름과 무관하게 가린다(fail-closed — Title.tsx 순간 인용이 'visible' 만 싣는 것과 같다).
+assert.deepEqual(parentView(P({ moderationStatus: 'hidden' })), { who: '졸린 수달', text: null });
+assert.deepEqual(parentView(P({ moderationStatus: undefined })), { who: '졸린 수달', text: null });
+assert.equal(parentView(P({ mine: true, moderationStatus: 'hidden' })).text, '이 장면 때문에 정주행함');
 assert.equal(parentView(P({ spoilerScore: 2 })).text, '이 장면 때문에 정주행함');
 assert.deepEqual(parentView(P({ mine: true, spoilerScore: 10, moderationStatus: 'blocked_profanity' })), { who: '졸린 수달', text: '이 장면 때문에 정주행함' });
 assert.deepEqual(parentView(P({ mine: true, message: null })), { who: '졸린 수달', text: '' });
@@ -68,6 +73,9 @@ assert.equal(relativeDay(at(2026, 8, 28), NOW), '3일 전');
 assert.equal(relativeDay(at(2026, 8, 2), NOW), '29일 전');
 assert.equal(relativeDay(at(2026, 8, 1), NOW), '1개월 전');
 assert.equal(relativeDay(at(2026, 3, 1), NOW), '6개월 전');
+assert.equal(relativeDay(at(2025, 9, 7), NOW), '11개월 전');            // 359일
+assert.equal(relativeDay(at(2025, 9, 6), NOW), '11개월 전');            // 360일 — 30일로 나누면 12 지만 1년이 안 됐다
+assert.equal(relativeDay(at(2025, 9, 2), NOW), '11개월 전');            // 364일 — "12개월 전"을 거쳐 "1년 전"으로 가지 않는다
 assert.equal(relativeDay(at(2025, 9, 1), NOW), '1년 전');
 assert.equal(relativeDay(at(2026, 9, 2), NOW), '오늘');                  // 시계가 어긋나 미래면 '오늘'
 assert.equal(relativeDay(null, NOW), '');
@@ -94,6 +102,15 @@ assert.equal(st({ data: { works: [{}] }, loading: true }), 'list');
 assert.equal(moreLabel(3, false), null); assert.equal(moreLabel(0, false), null); assert.equal(moreLabel(2, true), null);
 assert.equal(moreLabel(7, false), '4개 더 보기'); assert.equal(moreLabel(7, true), '접기');
 assert.equal(capNote(300), null); assert.equal(capNote(301), '최근 회차부터 300개까지만 보여요.');
+
+// 지우기·더 보기 실패 → 한 줄 문구. 401·403(세션 만료·약관 동의 전)은 로그인 안내(EXPIRED). 지우기의 404 는 이미 없는 것
+// (다른 곳에서 지웠다)이라 문구 대신 전체 보기를 다시 받는다(null). 그 밖(5xx · 상태 없는 네트워크 오류)은 실패 한 줄.
+assert.equal(DELETE_FAILED, '지우지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+assert.equal(deleteErrorText(401), EXPIRED); assert.equal(deleteErrorText(403), EXPIRED);
+assert.equal(deleteErrorText(404), null);
+assert.equal(deleteErrorText(500), DELETE_FAILED); assert.equal(deleteErrorText(undefined), DELETE_FAILED);
+assert.equal(moreErrorText(401), EXPIRED); assert.equal(moreErrorText(403), EXPIRED);
+assert.equal(moreErrorText(404), MORE_FAILED); assert.equal(moreErrorText(500), MORE_FAILED); assert.equal(moreErrorText(undefined), MORE_FAILED);
 
 // 요약·카드 문구.
 assert.equal(averageLabel(null), '—'); assert.equal(averageLabel(4.5), '4.5'); assert.equal(averageLabel(4), '4.0');
