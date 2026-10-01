@@ -42,6 +42,8 @@ assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 }))
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 }), 1), 'granted', '리플레이 시행일 전 운영에서는 1 이 유효하다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 2 }), 2), 'granted', 'GA 시행일 전 운영에서는 2 가 유효하다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 0 })), null, '버전이 다르면 다시 묻는다');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 1 })), 'denied',
+  '거부는 버전이 바뀌어도 계속 존중한다 — 옵트아웃에서 옛 거부가 풀리면 거부한 사람을 수집하게 된다(HP-466)');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'maybe', version: 3 })), null);
 assert.equal(a.parseConsent('garbage'), null);
 assert.equal(a.parseConsent(null), null);
@@ -60,17 +62,17 @@ assert.equal(a.SDK_CONFIG.remoteConfig.fetchRemoteConfig, false, '대시보드 �
 assert.match(a.SDK_URL, /^https:\/\/cdn\.amplitude\.com\/libs\/analytics-browser-2\.\d+\.\d+-min\.js\.gz$/);
 
 // 세션 리플레이(HP-457) — 랜딩에서만, 운영은 시행일부터, 입력값은 가리고, 브라우저 저장소에 남기지 않는다.
-const BEFORE = Date.parse('2026-10-06T23:59:59+09:00');
-const AFTER = Date.parse('2026-10-07T00:00:00+09:00');
+const BEFORE = Date.parse('2026-09-30T23:59:59+09:00');
+const AFTER = Date.parse('2026-10-01T00:00:00+09:00');
 assert.equal(a.REPLAY_FROM, AFTER, '시행일 — 바꾸면 privacy.html 의 시행일도 같이(아래에서 대조한다)');
-assert.equal(a.replayOn('replix.tv', '/', BEFORE), false, '처리방침 11항: 공고 7일 뒤에 켠다');
+assert.equal(a.replayOn('replix.tv', '/', BEFORE), false, '시행일(2026-10-01 공고와 같은 날) 전에는 켜지 않는다');
 assert.equal(a.replayOn('replix.tv', '/', AFTER), true);
 assert.equal(a.replayOn('replix.tv', '/index.html', AFTER), true);
 assert.equal(a.replayOn('replix.tv', '/catalog/', AFTER), false, '작품 탐색은 찍지 않는다 — 검색어·작품 화면(§2)');
 assert.equal(a.replayOn('localhost', '/', 0), true, '로컬은 검증할 수 있게 항상 켠다(dev 프로젝트)');
 assert.equal(a.replayOn('localhost', '/catalog/', 0), false);
 assert.equal(a.consentVersion('replix.tv', BEFORE), 1);
-assert.equal(a.consentVersion('replix.tv', AFTER), 2, '시행일부터 새 문구로 다시 묻는다');
+assert.equal(a.consentVersion('replix.tv', AFTER), 3, '시행일부터 새 문구로 다시 묻는다(리플레이·GA 같은 날)');
 assert.match(a.bannerText(2), /화면 조작 기록/, '동의 문구가 녹화를 밝힌다');
 assert.match(a.bannerText(2), /첫 화면/, '배너는 두 표면이 같이 쓴다 — 범위를 적는다');
 assert.doesNotMatch(a.bannerText(1), /화면 조작/, '시행 전 문구에는 아직 없는 수집을 적지 않는다');
@@ -80,15 +82,15 @@ assert.equal(a.SR_CONFIG.storeType, 'memory', '미전송 녹화 조각을 Indexe
 assert.equal(a.SR_CONFIG.privacyConfig.defaultMaskLevel, 'medium', '입력값은 전부 가린다');
 
 // Google Analytics(HP-465) — Amplitude 와 같은 동의 뒤에서만, 운영은 처리방침 시행일부터, 두 표면 모두.
-const GA_BEFORE = Date.parse('2026-10-08T23:59:59+09:00');
-const GA_AFTER = Date.parse('2026-10-09T00:00:00+09:00');
+const GA_BEFORE = Date.parse('2026-09-30T23:59:59+09:00');
+const GA_AFTER = Date.parse('2026-10-01T00:00:00+09:00');
 assert.equal(a.GA_ID, 'G-MVDJ0Z60LJ');
 assert.equal(a.GA_FROM, GA_AFTER, 'GA 시행일 — 바꾸면 privacy.html 의 시행일도 같이(아래에서 대조한다)');
-assert.ok(a.GA_FROM > a.REPLAY_FROM, '개정 순서: 리플레이(10/7) → GA(10/9)');
-assert.equal(a.gaOn('replix.tv', GA_BEFORE), false, '처리방침 11항: 공고 7일 뒤에 켠다');
+assert.ok(a.GA_FROM >= a.REPLAY_FROM, '리플레이·GA·옵트아웃은 2026-10-01 공고와 동시에 시행(고경우 결정)');
+assert.equal(a.gaOn('replix.tv', GA_BEFORE), false, '시행일(공고와 같은 날) 전에는 켜지 않는다');
 assert.equal(a.gaOn('replix.tv', GA_AFTER), true);
 assert.equal(a.gaOn('localhost', 0), true, '로컬은 검증할 수 있게 항상 켠다(내부 트래픽으로 표시)');
-assert.equal(a.consentVersion('replix.tv', GA_BEFORE), 2, 'GA 시행 전에는 리플레이 문구(2)');
+assert.equal(a.consentVersion('replix.tv', GA_BEFORE), 1, '시행 전에는 처음 문구(1)');
 assert.equal(a.consentVersion('replix.tv', GA_AFTER), 3, 'GA 시행일부터 Google 을 밝힌 문구로 다시 묻는다');
 assert.equal(a.consentVersion('localhost', 0), 3);
 assert.match(a.bannerText(3), /Google Analytics/, '동의 문구가 받는 곳(Google)을 밝힌다');
@@ -112,6 +114,29 @@ assert.equal(a.gaPage('https://replix.tv', '/', '', 'https://replix.tv/invite?w=
   'https://replix.tv/invite', '초대 토큰이 리퍼러로 새지 않는다');
 assert.equal(a.gaPage('https://replix.tv', '/', '', 'not a url').page_referrer, undefined);
 
+// 옵트아웃(HP-466) — 한국 시간대 방문자는 미선택 상태에서도 이벤트를 수집하고 거부할 수 있다.
+// 개인정보위 2024-01-31 정책 방안: 특정 개인을 식별하지 않는 행태정보는 동의 없이 처리 가능(투명성·거부권 조건).
+// 해외(EU GDPR·캘리포니아 CIPA)와 세션 리플레이는 동의를 유지한다.
+assert.equal(a.OPTOUT_FROM, GA_AFTER, '처리방침 개정 시행일 — GA 와 같은 날(2026-10-01, 공고와 동시)');
+assert.doesNotMatch(read('docs/privacy.html'), /최소 7일 전/, '11항의 7일 전 공지 약속은 2026-10-01 개정으로 고쳤다 — 되살리면 같은 날 시행이 방침 위반이 된다');
+assert.equal(a.optOutOn('replix.tv', GA_BEFORE, 'Asia/Seoul', '/'), false, '시행일 전에는 지금처럼 옵트인');
+assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Asia/Seoul', '/'), true);
+assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Asia/Seoul', '/index.html'), true);
+assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Asia/Seoul', '/catalog/'), false,
+  '작품 탐색은 옵트인 유지 — 로그인이 있어 식별 결합 여지가 크다(2026-10-01 고경우: 랜딩만)');
+assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'America/Los_Angeles', '/'), false, '캘리포니아 — CIPA 소송 위험, 옵트인 유지');
+assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Europe/Berlin', '/'), false, 'EU — 분석 쿠키 동의 필요, 옵트인 유지');
+assert.equal(a.optOutOn('replix.tv', GA_AFTER, '', '/'), false, '시간대를 모르면 보수적으로 옵트인');
+assert.equal(a.optOutOn('localhost', 0, 'Asia/Seoul', '/'), true, '로컬은 날짜와 무관하게 검증 가능');
+assert.equal(a.optOutOn('localhost', 0, 'UTC', '/'), false);
+assert.equal(a.collectingFor('granted', false), true);
+assert.equal(a.collectingFor(null, false), false, '옵트인 지역 미선택 = 수집 안 함');
+assert.equal(a.collectingFor(null, true), true, '옵트아웃 지역 미선택 = 수집');
+assert.equal(a.collectingFor('denied', true), false, '거부하면 어디서든 수집 안 함');
+assert.match(a.noticeText(), /거부/, '안내 배너가 거부 방법을 밝힌다(사후 통제권)');
+assert.match(a.noticeText(), /Amplitude와 Google Analytics/, '받는 곳을 밝힌다(투명성)');
+assert.match(a.noticeText(), /허용하면[^.]*화면 조작 기록/, '리플레이는 허용해야만 — 안내가 그걸 밝힌다');
+
 // 소스 규칙
 const src = read('docs/js/analytics.js');
 const index = read('docs/index.html');
@@ -123,10 +148,15 @@ assert.match(src, /a\.setOptOut\(false\); a\.reset\(\);/, '같은 페이지에�
 assert.match(src, /a\.setOptOut\(true\)/, '거부·철회 시 SDK optOut');
 assert.doesNotMatch(index, /plugin-session-replay/, '리플레이 플러그인도 동의 뒤 스크립트로만 로드한다(정적 태그 금지)');
 assert.doesNotMatch(read('docs/catalog/index.html'), /plugin-session-replay/, '카탈로그 산출물에 리플레이가 섞이면 안 된다');
-assert.match(src, /if \(!replayOn\(location\.hostname, location\.pathname, Date\.now\(\)\)\) \{ start\(\); return; \}/, '랜딩·시행일 조건이 아니면 플러그인 스크립트를 받지도 않는다');
+assert.match(src, /if \(_consent !== 'granted' \|\| !replayOn\(location\.hostname, location\.pathname, Date\.now\(\)\)\) \{ start\(\); return; \}/,
+  '허용을 누르지 않았거나 랜딩·시행일 조건이 아니면 플러그인 스크립트를 받지도 않는다(옵트아웃 수집 중에도 녹화는 안 함)');
+assert.match(src, /function attachReplay\(a\) \{\s*if \(_replay \|\| _consent !== 'granted'/, '리플레이는 명시적 허용에서만 붙는다');
+assert.match(src, /if \(_revoked\) \{ try \{ a\.setOptOut\(false\); a\.reset\(\);/,
+  '옵트아웃 수집 중 허용을 눌러도 device_id 를 새로 만들지 않는다 — 새로 만드는 건 거부 뒤 재허용뿐');
+assert.match(src, /function send\(fn\) \{\s*if \(!collecting\(\)\) return;/, '전송 게이트는 collecting() 하나');
 assert.match(src, /r\.onerror = start;/, '플러그인이 막혀도 이벤트 계측은 간다');
 assert.match(src, /function revoke\(\) \{[\s\S]{0,120}detachReplay\(a\);/, '철회하면 녹화부터 뗀다');
-assert.match(src, /a\.setOptOut\(false\); a\.reset\(\);[\s\S]{0,120}attachReplay\(a\);/, '재허용하면 새 식별자로 다시 붙인다');
+assert.match(src, /a\.setOptOut\(false\); a\.reset\(\);[\s\S]{0,160}loadReplay\(a\);/, '재허용하면 새 식별자로 다시 붙인다');
 assert.match(src, /indexedDB\.deleteDatabase\(d\.name\)/, '철회 시 SDK 가 만든 IndexedDB 도 지운다');
 // 처리방침과 코드의 시행일이 갈라지면 방침이 거짓말이 된다 — 한쪽만 고치면 여기서 깨진다.
 const privacy = read('docs/privacy.html');
@@ -139,6 +169,10 @@ assert.ok(privacy.includes('시행일 ' + gaEffective), `privacy.html 에 GA 시
 assert.match(privacy, /Google Analytics/, '처리방침이 GA 수신을 밝힌다(위탁·국외 이전)');
 assert.match(privacy, /_ga/, '처리방침이 GA 쿠키를 밝힌다(자동 수집 장치)');
 assert.match(privacy, /14개월/, 'GA 보유 기간 — GA 관리의 데이터 보관 설정과 같아야 한다');
+assert.match(privacy, /한국 시간대/, '처리방침이 옵트아웃 범위(한국 시간대 접속)를 밝힌다(HP-466)');
+assert.match(privacy, /작품 탐색[^.]*명시적으로 동의한 경우에만/, '작품 탐색은 동의 유지라고 밝힌다');
+assert.match(privacy, /화면 조작 기록은[^.]*명시적으로 동의한 경우에만/, '리플레이는 동의한 경우에만이라는 약속을 유지한다');
+assert.match(privacy, /확장 프로그램의 이용 분석[^.]*명시적으로 동의한 경우에만/, '확장은 동의 유지(웹스토어 정책·회원 식별값 결합)');
 // GA 도 동의 뒤 동적 로드만, 철회하면 전송을 막고 쿠키를 지운다.
 assert.doesNotMatch(index, /googletagmanager|gtag\(/, 'GA 도 동의 뒤 스크립트로만 로드한다(정적 태그 금지)');
 assert.doesNotMatch(read('docs/catalog/index.html'), /googletagmanager/, '카탈로그 산출물에도 정적 GA 태그 금지');

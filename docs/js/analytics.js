@@ -1,6 +1,9 @@
 /* Amplitude 계측 — 랜딩·작품 탐색 공용. 정본은 docs/analytics/tracking-plan.md (이벤트를 바꾸려면 거기부터).
    설계 요지:
-   ① 동의(옵트인) 전에는 SDK 스크립트도 쿠키도 만들지 않는다 — 배너의 [허용] 뒤에만 로드한다.
+   ① 동의 방식은 표면·지역으로 가른다(HP-466, 시행 OPTOUT_FROM). **랜딩 + 한국 시간대** 방문자는 옵트아웃 — 미선택이어도
+      이벤트를 수집하고 배너는 '수집 안내 + 거부'다(개인정보위 2024-01-31: 특정 개인을 식별하지 않는 행태정보는 동의 없이
+      처리 가능, 투명성·거부권 조건). **작품 탐색·그 밖의 지역**(EU 쿠키 동의·캘리포니아 도청법)과 **세션 리플레이**는
+      옵트인 — [허용] 뒤에만.
    ② SDK 는 허용 뒤 동적으로 붙이고, 그 전 호출은 큐에 쌓아 로드 뒤 보낸다.
    ③ 자동수집(pageViews·pageUrlEnrichment·form)은 끈다 — 전체 URL 이 실리면 /catalog 해시의 작품 ID 나
       쿼리가 새 나간다. page_path 는 cleanPath 로 직접 정제한다(라우트 이름까지만).
@@ -20,13 +23,13 @@ export var API_KEYS = { prod: '6f7bcf8fc37e9f93d442f943c23b6861', dev: 'fa98652a
 /* ─── 세션 리플레이(HP-457) ───────────────────────────────────────
    화면 조작(스크롤·클릭·화면 구성 변화)을 재생 가능한 형태로 기록한다. 세 가지를 고정한다:
    · **랜딩에서만.** 작품 탐색은 검색창 입력(=작품명)과 작품 화면이 그대로 찍혀 트래킹 플랜 §2 금지 목록에 걸린다.
-   · **시행일부터.** 처리방침 11항이 개정 7일 전 공지를 약속한다 — 새 수집 항목이라 공고(2026-09-29) 뒤 7일을 채워 켠다.
-     운영(replix.tv)만 날짜를 본다. 로컬·미리보기는 검증할 수 있어야 하므로 항상 켠다(dev 프로젝트로 간다).
+   · **시행일부터.** 2026-10-01 공고와 동시에 시행한다 — 법정 사전 공지 기간은 없고 개인정보위 작성지침도 "개정 전 또는
+     개정 즉시 공지"다(고경우 결정, 처리방침 11항도 같이 고침). 운영(replix.tv)만 날짜를 본다. 로컬·미리보기는 검증할 수 있어야 하므로 항상 켠다(dev 프로젝트로 간다).
      ⚠️ 공고(=이 변경의 배포·공지 게시)가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
    · **입력값은 가린다**(medium). 랜딩에는 입력 필드·이용자 생성 콘텐츠가 없지만, 생겨도 새 나가지 않게.
    플러그인은 자기 원격 설정(sr-client-cfg.amplitude.com)을 받는다 — 끌 수 없다. 대시보드의 Session Replay
    설정에서 마스킹을 낮추면 이 값보다 느슨해질 수 있으므로 거기는 건드리지 않는다(트래킹 플랜 §7). */
-export var REPLAY_FROM = Date.parse('2026-10-07T00:00:00+09:00');
+export var REPLAY_FROM = Date.parse('2026-10-01T00:00:00+09:00');
 export var SR_URL = 'https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.35.4-min.js.gz';
 /* storeType 'memory' — 아직 안 보낸 녹화 조각을 브라우저 저장소(IndexedDB)에 남기지 않는다. 철회하면 그 즉시 사라져야
    한다는 약속(처리방침 6항)을 저장소 청소에 기대지 않고 지키려는 것이다.
@@ -37,17 +40,27 @@ export var SR_URL = 'https://cdn.amplitude.com/libs/plugin-session-replay-browse
 export var SR_CONFIG = { sampleRate: 1, storeType: 'memory', privacyConfig: { defaultMaskLevel: 'medium' } };
 /* ─── Google Analytics(HP-465) ────────────────────────────────────
    · **같은 동의 뒤에만.** 처리방침 6항이 "동의한 경우에만 분석 도구로 보낸다"고 약속한다 — 배너 문구(버전 3)가 Google 을 밝힌다.
-   · **시행일부터.** 받는 곳(Google LLC)이 새로 생기는 개정이라 처리방침 11항대로 공고(2026-10-01) 7일 뒤에 켠다.
-     운영만 날짜를 본다. 로컬·미리보기는 검증할 수 있게 항상 켜되 traffic_type=internal 로 표시해 GA 의
+   · **시행일부터.** 2026-10-01 공고와 동시에 시행(리플레이와 같은 개정, 위 주석 참조). 운영만 날짜를 본다. 로컬·미리보기는 검증할 수 있게 항상 켜되 traffic_type=internal 로 표시해 GA 의
      'Internal Traffic' 데이터 필터로 걸러 낸다. ⚠️ 공고가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
    · **자동 수집 값을 덮어쓴다.** gtag 는 기본으로 전체 URL(카탈로그 해시의 작품 번호)·문서 제목·전체 리퍼러(검색어·
      초대 토큰)를 싣는다 — gaPage() 가 정리한 값만 보낸다. 자동 page_view 는 끄고 page() 가 직접 보낸다.
    · ⚠️ GA 관리 화면의 **향상된 측정은 꺼 둔다**(이탈 클릭이 넷플릭스 재생 주소를, 사이트 검색이 검색어를 싣는다).
      이건 코드로 막을 수 없는 원격 설정이다(트래킹 플랜 §7). */
 export var GA_ID = 'G-MVDJ0Z60LJ';
-export var GA_FROM = Date.parse('2026-10-09T00:00:00+09:00');
+export var GA_FROM = Date.parse('2026-10-01T00:00:00+09:00');
 export var GA_URL = 'https://www.googletagmanager.com/gtag/js?id=';
 export var GA_CONFIG = { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false };
+/* ─── 옵트아웃(HP-466) ───────────────────────────────────────────
+   · **랜딩만.** 2026-10-01 고경우 결정 — 수집이 중요한 곳은 랜딩이다. 작품 탐색은 로그인(Keycloak)이 있어 식별 결합
+     여지가 크므로 옵트인 그대로 둔다.
+   · **한국 시간대만.** 브라우저 시간대가 Asia/Seoul 이면 국내 방문자로 본다. EU 는 분석 쿠키에 사전 동의가 필요하고
+     (GDPR·ePrivacy), 캘리포니아는 도청법(CIPA) 소송이 잦다 — 그 밖의 시간대·모름은 옵트인 그대로.
+   · **리플레이는 제외.** 화면 조작 녹화는 CIPA 세션 리플레이 소송의 주 대상이라 [허용]을 누른 경우에만 붙인다.
+   · **식별하지 않는다는 조건을 지킨다.** 웹 계측은 IP 를 끄고, 로그인(작품 탐색 Keycloak)과 연결하지 않는다 — 회원
+     식별값을 웹 이벤트에 싣는 순간 이 근거가 무너져 동의가 필요해진다(트래킹 플랜 §4).
+   · **시행일부터.** 처리방침 1·6항 개정, 2026-10-01 공고와 동시에 시행. ⚠️ 날짜를 옮기면 privacy.html 시행일과 같이. */
+export var OPTOUT_FROM = Date.parse('2026-10-01T00:00:00+09:00');
+export var KR_TZ = 'Asia/Seoul';
 export var SDK_CONFIG = {
   autocapture: { attribution: true, sessions: true, pageViews: false, formInteractions: false,
     fileDownloads: false, elementInteractions: false, pageUrlEnrichment: false },
@@ -97,11 +110,30 @@ export function gaPage(origin, pathname, hash, referrer) {
   }
   return out;
 }
+/* 허용은 지금 버전으로 받은 것만 유효(범위·받는 곳이 늘면 다시 묻는다). 거부는 버전과 무관하게 계속 존중한다 —
+   옵트아웃에서 옛 거부가 풀리면 거부한 사람을 수집하게 된다(HP-466). */
 export function parseConsent(raw, version) {
   try {
     var v = JSON.parse(raw);
-    return v && v.version === (version || CONSENT_VERSION) && (v.decision === 'granted' || v.decision === 'denied') ? v.decision : null;
+    if (!v) return null;
+    if (v.decision === 'denied') return 'denied';
+    return v.decision === 'granted' && v.version === (version || CONSENT_VERSION) ? 'granted' : null;
   } catch (_) { return null; }
+}
+/* 옵트아웃이 적용되는가 — 랜딩 + 한국 시간대 + (운영은) 시행일 이후. 시간대를 모르면 보수적으로 옵트인. */
+export function optOutOn(hostname, nowMs, timeZone, pathname) {
+  return timeZone === KR_TZ && surfaceOf(pathname) === 'web_landing' &&
+    (envOf(hostname) !== 'prod' || nowMs >= OPTOUT_FROM);
+}
+/* 이벤트(Amplitude·GA)를 보내는가. 리플레이는 이것과 별개로 명시적 허용('granted')에서만. */
+export function collectingFor(consent, optOut) {
+  return consent === 'granted' || (consent === null && optOut);
+}
+/* 옵트아웃 지역의 안내 배너 — 무엇을 어디로 보내는지, 거부 방법, 허용하면 더해지는 것(리플레이)을 밝힌다. */
+export function noticeText() {
+  return 'Replix는 사이트 개선을 위해 방문 통계(기기 식별값과 사용 이벤트)를 개인을 알아볼 수 없는 형태로 수집해 ' +
+    'Amplitude와 Google Analytics(모두 미국)로 보냅니다. 원하지 않으면 거부를 눌러 주세요. ' +
+    '허용하면 첫 화면에서의 화면 조작 기록(스크롤·클릭)도 함께 기록합니다. 입력한 내용은 기록하지 않습니다.';
 }
 /* 배너 문구 — 동의가 덮는 범위를 그대로 적는다. 2 는 화면 조작 기록을 밝힌다(랜딩·카탈로그가 같은 배너를 쓰므로
    '첫 화면에서'라고 범위를 적는다). */
@@ -137,8 +169,12 @@ var _replay = null;      /* 붙어 있는 세션 리플레이 플러그인 — �
 var _ga = 'idle';         /* 'idle' | 'loading' — gtag 는 dataLayer 가 큐라서 로드 완료를 기다릴 필요가 없다 */
 var _gaBlocked = false;   /* 이 페이지에서 철회한 뒤면 true — gtag 가 메모리에 쥔 옛 client id 가 재허용 뒤 이어지지 않게
                              이 페이지에서는 다시 켜지 않는다. 다음 로드부터 새 쿠키로 시작한다. */
+var _revoked = false;     /* 이 페이지에서 거부(철회)했는가 — 재허용 때만 새 device_id 를 받는다(옵트아웃 수집 → 허용은 그대로) */
 
 function nowVersion() { return consentVersion(location.hostname, Date.now()); }
+function timeZone() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) { return ''; } }
+function optOutNow() { return optOutOn(location.hostname, Date.now(), timeZone(), location.pathname); }
+function collecting() { return collectingFor(_consent, optOutNow()); }
 function readConsent() { try { return parseConsent(localStorage.getItem(CONSENT_KEY), nowVersion()); } catch (_) { return null; } }
 function writeConsent(d) {
   try { localStorage.setItem(CONSENT_KEY, JSON.stringify({ decision: d, decidedAt: Date.now(), version: nowVersion() })); }
@@ -156,11 +192,20 @@ function commonProps() {
 }
 /* 리플레이 플러그인을 SDK 에 붙인다. 스크립트가 안 실렸으면(차단·랜딩 아님) 아무 일도 하지 않는다. */
 function attachReplay(a) {
-  if (_replay || !replayOn(location.hostname, location.pathname, Date.now())) return;
+  if (_replay || _consent !== 'granted' || !replayOn(location.hostname, location.pathname, Date.now())) return;
   try {
     var sr = window.sessionReplay;
     if (sr && sr.plugin) { _replay = sr.plugin(SR_CONFIG); a.add(_replay); }
   } catch (_) { _replay = null; /* fail-open — 이벤트 계측은 그대로 간다 */ }
+}
+/* SDK 가 이미 떠 있는 상태에서 [허용]을 받았을 때 — 플러그인 스크립트를 그제야 받아 붙인다(옵트아웃 수집 중에는 안 받았다). */
+function loadReplay(a) {
+  if (_replay || _consent !== 'granted' || !replayOn(location.hostname, location.pathname, Date.now())) return;
+  if (window.sessionReplay && window.sessionReplay.plugin) { attachReplay(a); return; }
+  var r = document.createElement('script');
+  r.src = SR_URL; r.async = true;
+  r.onload = function () { attachReplay(a); };
+  document.head.appendChild(r);
 }
 function detachReplay(a) {
   if (!_replay) return;
@@ -185,7 +230,7 @@ function loadSdk() {
       _sdk = 'ready';
       _queue.splice(0).forEach(function (f) { f(a); });
     };
-    if (!replayOn(location.hostname, location.pathname, Date.now())) { start(); return; }
+    if (_consent !== 'granted' || !replayOn(location.hostname, location.pathname, Date.now())) { start(); return; }
     /* 리플레이 플러그인은 init **앞에** 붙여야 첫 화면부터 찍힌다. 막히거나 실패해도 이벤트 계측은 그대로 간다. */
     var r = document.createElement('script');
     r.src = SR_URL; r.async = true;
@@ -198,13 +243,14 @@ function loadSdk() {
   document.head.appendChild(s);
 }
 function send(fn) {
-  if (_consent !== 'granted') return;
+  if (!collecting()) return;
   if (_sdk === 'ready' && amp()) fn(amp());
   else { _queue.push(fn); loadSdk(); }
 }
-/* GA 를 붙인다 — 동의 허용·시행일·이 페이지에서 철회하지 않았을 때만. 정적 태그 대신 여기서 스크립트를 주입한다. */
+/* GA 를 붙인다 — 수집 중(허용했거나 옵트아웃 대상의 미선택)·시행일·이 페이지에서 철회하지 않았을 때만.
+   정적 태그 대신 여기서 스크립트를 주입한다. */
 function ensureGa() {
-  if (_ga !== 'idle' || _gaBlocked || _consent !== 'granted' || !gaOn(location.hostname, Date.now())) return;
+  if (_ga !== 'idle' || _gaBlocked || !collecting() || !gaOn(location.hostname, Date.now())) return;
   _ga = 'loading';
   window.dataLayer = window.dataLayer || [];
   window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
@@ -221,7 +267,7 @@ function ensureGa() {
   /* 차단(광고 차단기 등)이면 dataLayer 에만 쌓이고 나가지 않는다 — Amplitude 와 같이 fail-open. */
   document.head.appendChild(s);
 }
-function gaOk() { return _ga !== 'idle' && !_gaBlocked && _consent === 'granted' && typeof window.gtag === 'function'; }
+function gaOk() { return _ga !== 'idle' && !_gaBlocked && collecting() && typeof window.gtag === 'function'; }
 /* GA 에도 같은 이름·속성으로 보낸다. page_viewed 는 GA 의 표준 page_view 로 — 페이지 값을 갱신한 뒤 보낸다(카탈로그 라우트 이동). */
 function gaTrack(name, props) {
   if (!gaOk()) return;
@@ -258,6 +304,7 @@ function revoke() {
     try { a.setOptOut(true); } catch (_) { /* SDK 내부 오류는 무시 — 아래에서 직접 지운다 */ }
   }
   _queue.length = 0;
+  _revoked = true;   /* 같은 페이지에서 다시 허용하면 새 device_id 로 시작한다(setConsent) */
   /* GA: 전송을 즉시 막고(gtag 공식 차단 스위치), 이 페이지에서는 다시 켜지 않는다(_gaBlocked 주석). */
   window['ga-disable-' + GA_ID] = true;
   if (_ga !== 'idle') _gaBlocked = true;
@@ -277,20 +324,23 @@ function revoke() {
 }
 export function setConsent(decision) {
   if (decision !== 'granted' && decision !== 'denied') return;
+  var wasCollecting = collecting();
   _consent = decision; writeConsent(decision); hideBanner();
   if (decision === 'granted') {
     var a = amp();
     if (_sdk === 'ready' && a) {
       /* 같은 페이지에서 거부 → 허용: revoke 가 걸어 둔 optOut 을 풀고, 지운 식별자 대신 **새** device_id 를 받는다 —
          옛 값을 다시 쓰면 철회 전후가 한 기기로 이어져 "철회하면 식별값을 지운다"는 약속이 빈말이 된다.
-         (2026-09-13 검증에서 잡힌 버그: 재허용 뒤 optOut 이 남아 이벤트가 조용히 버려졌다.) */
-      try { a.setOptOut(false); a.reset(); } catch (_) { /* SDK 내부 오류 — 아래 loadSdk 경로와 같이 fail-open */ }
-      attachReplay(a);   /* 철회 때 떼어 낸 녹화를 새 식별자로 다시 시작한다 */
+         (2026-09-13 검증에서 잡힌 버그: 재허용 뒤 optOut 이 남아 이벤트가 조용히 버려졌다.)
+         옵트아웃 수집 중 허용(HP-466)은 철회가 아니었으니 식별값을 그대로 두고 녹화만 더한다. */
+      if (_revoked) { try { a.setOptOut(false); a.reset(); } catch (_) { /* SDK 내부 오류 — fail-open */ } _revoked = false; }
+      loadReplay(a);   /* 허용은 화면 조작 기록까지 — 필요하면 플러그인 스크립트를 이제 받는다 */
     } else {
       loadSdk();
     }
     ensureGa();   /* page_viewed 보다 먼저 — 허용 직후의 페이지뷰가 GA 에도 1회 간다 */
-    if (_lastPage) track('page_viewed', _lastPage);
+    /* 옵트아웃으로 이미 수집 중이었으면 이 페이지의 page_viewed 는 나갔다 — 두 번 세지 않는다 */
+    if (_lastPage && !wasCollecting) track('page_viewed', _lastPage);
   } else {
     revoke();
   }
@@ -312,8 +362,10 @@ export function showBanner() {
   if (_banner) { _banner.style.display = 'flex'; return; }
   var st = document.createElement('style'); st.textContent = BANNER_CSS; document.head.appendChild(st);
   var el = document.createElement('div');
-  el.id = 'rx-consent'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '방문 통계 수집 동의');
-  el.innerHTML = '<p>' + bannerText(nowVersion()) + ' <a href="/privacy">개인정보처리방침</a></p>' +
+  var notice = optOutNow();   /* 옵트아웃 지역은 '수집 안내 + 거부', 그 밖은 '동의 요청' */
+  el.id = 'rx-consent'; el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-label', notice ? '방문 통계 수집 안내' : '방문 통계 수집 동의');
+  el.innerHTML = '<p>' + (notice ? noticeText() : bannerText(nowVersion())) + ' <a href="/privacy">개인정보처리방침</a></p>' +
     '<div class="rx-consent-actions"><button type="button" class="rx-deny">거부</button>' +
     '<button type="button" class="rx-allow">허용</button></div>';
   el.querySelector('.rx-allow').addEventListener('click', function () { setConsent('granted'); });
@@ -326,8 +378,8 @@ function hideBanner() { if (_banner) _banner.style.display = 'none'; }
 /* ═══ 부트 ═══════════════════════════════════════════════════════ */
 function boot() {
   _consent = readConsent();
-  if (_consent === 'granted') { loadSdk(); ensureGa(); }
-  else if (_consent === null) showBanner();
+  if (collecting()) { loadSdk(); ensureGa(); }   /* 허용했거나, 옵트아웃 지역의 미선택 */
+  if (_consent === null) showBanner();
   /* 설치 CTA·랜딩 링크·분석 설정은 data 속성으로 전 표면 공통 계측 — 각 모듈이 버튼 위치를 알 필요가 없고,
      카탈로그(React)도 마크업에 속성만 붙이면 된다. capture 단계라 새 탭 이동 전에 잡힌다. */
   document.addEventListener('click', function (ev) {
@@ -347,7 +399,7 @@ function boot() {
      철회 상태면 optOut 이 걸려 있어 flush 가 아무것도 보내지 않는다. */
   window.addEventListener('pagehide', function () {
     var a = amp();
-    if (_sdk === 'ready' && a && _consent === 'granted') { try { a.setTransport('beacon'); a.flush(); } catch (_) { /* fail-open */ } }
+    if (_sdk === 'ready' && a && collecting()) { try { a.setTransport('beacon'); a.flush(); } catch (_) { /* fail-open */ } }
   });
   window.addEventListener('pageshow', function (ev) {
     var a = amp();
