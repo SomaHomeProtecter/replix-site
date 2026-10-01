@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { PlayIcon, ListPlusIcon, ArrowUpRightIcon } from '@phosphor-icons/react'
 import {
@@ -138,6 +138,133 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
   )
 }
 
+/* ═══ 순간별 대표 채팅 말풍선(HP-124, 2026-10-02 조현빈 확정 — 시안 1·디자인 1) ═══ */
+const shown = (list: Moment[]) => list.filter((m) => m.quote)
+
+/** 히어로 파형 위에 순간마다 대표 채팅 말풍선을 하나씩 띄운다. 크기는 반응 강도(강도^2.5, 최소 폭 36px·글자 9.5px).
+ *  · 히트맵은 가려도 된다 — 자기 막대 바로 위가 기본 자리이고, 그 위에 공간이 없으면 막대 윗부분을 덮고 앉는다.
+ *  · 말풍선끼리는 작은 쪽 넓이의 30% 까지, 그리고 끝쪽(글 잘리는 쪽)끼리만 겹쳐도 된다. 겹치면 강한 순간이 위. 꼬리 선이 다른 말풍선을 지나는 것은 막는다.
+ *  · 모양은 둥근 사각형 + 아랫변 왼쪽 안쪽(14px)의 꼬리(꼬리 끝 = 순간의 x). 자리는 오른쪽 순간부터 잡고,
+ *    부딪히면 폭 줄이기 → 위로 올리기 → 왼쪽으로 뒤집기. */
+const FIT_HEADROOM = 28
+const TAIL = 7
+/** 꼬리 위치 — 말풍선 왼쪽 끝에서 안쪽으로 띄운다(2026-10-02: 왼쪽 끝에 딱 붙은 꼬리가 어색하다는 지적). 좁은 말풍선은 비례로 줄인다. */
+const tailInset = (w: number) => Math.min(14, w * 0.32)
+/** 말풍선 모양 — 둥근 사각형 + 아랫변에서 휘어 내려가는 꼬리(꼬리 끝 (inset, h+TAIL) = 순간). flip 이면 좌우 대칭. */
+function bubblePath(w: number, h: number, flip: boolean, radius: number, inset: number) {
+  const r = Math.min(radius, h / 2), T = TAIL, i = inset // 배치 계산과 같은 값이어야 꼬리 끝이 순간을 정확히 가리킨다
+  const d = `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h}`
+    + ` H ${i + 9} Q ${i + 2} ${h} ${i} ${h + T} Q ${i - 1} ${h + 2} ${i - 4} ${h}`
+    + ` H ${Math.min(r, Math.max(0, i - 2))} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`
+  return { d, transform: flip ? `translate(${w} 0) scale(-1 1)` : undefined }
+}
+/** 디자인 1(부드러운 카드): 테두리 없는 흰 바탕 + 두 겹 그림자, 휘어 내려가는 꼬리. 가장 뜨거운 순간만 강조색. */
+function bubbleLook(hot: boolean) {
+  return {
+    radius: 8,
+    fill: hot ? 'var(--color-accent)' : 'var(--color-raise)',
+    shadow: 'drop-shadow(0 2px 3px rgba(16,16,24,.10)) drop-shadow(0 8px 18px rgba(16,16,24,.12))',
+    color: hot ? '#fff' : 'var(--color-ink)',
+    weight: hot ? 600 : 500,
+    stem: hot ? 'var(--color-accent)' : 'rgba(16,16,24,.22)',
+  }
+}
+/** 글자 폭 측정용 캔버스 하나를 모듈에서 공유한다(컴포넌트마다 만들지 않는다). */
+const measureCtx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null
+function textWidth(text: string, font: string) {
+  if (!measureCtx) return text.length * 11
+  measureCtx.font = font
+  return measureCtx.measureText(text).width
+}
+function QuoteBubblesFit({ list, duration, peak, values, waveH }: { list: Moment[]; duration: number; peak: Moment | null; values: number[]; waveH: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [W, setW] = useState(0)
+  const [font, setFont] = useState('sans-serif')
+  // 폭과 글꼴은 그린 뒤에 잰다(렌더 중 ref 를 읽지 않는다). 글꼴은 말풍선 폭을 글자 길이로 맞추는 데 쓴다.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    setFont(getComputedStyle(el).fontFamily)
+    const ro = new ResizeObserver(() => setW(el.clientWidth))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const H = FIT_HEADROOM + waveH, MINW = 36, n = values.length, OVERLAP = 0.3
+  const barTopAt = (x: number) => H - Math.max(0.02, values[Math.min(n - 1, Math.max(0, Math.floor((x / W) * n)))] ?? 0) * waveH
+  type R = { m: Moment; x: number; left: number; top: number; w: number; h: number; fs: number; px: number; flip: boolean; tailTo: number; t: number; inset: number }
+  const placed: R[] = []
+  if (W > 0) {
+    type B = { l: number; t: number; r: number; b: number }
+    const inter = (a: B, b: B) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t))
+    const area = (a: B) => (a.r - a.l) * (a.b - a.t)
+    const boxOf = (p: R): B => ({ l: p.left, t: p.top, r: p.left + p.w, b: p.top + p.h })
+    // 꼬리 = 꼬리 끝(x)에서 막대 윗면까지의 세로선 + 뾰족한 꼬리 자체
+    const tailOf = (p: R): B => ({ l: p.x - 1, t: p.top + p.h, r: p.x + 1, b: p.tailTo })
+    // 머리 = 꼬리 쪽 45%(글이 시작하는 곳). 겹침은 말풍선의 끝쪽(글이 잘려 나가는 쪽)에만 허용한다 — 머리가 가려지면 읽을 수 없다.
+    const headOf = (p: R): B => { const hw = p.w * 0.45; return { l: p.flip ? p.left + p.w - hw : p.left, t: p.top, r: p.flip ? p.left + p.w : p.left + hw, b: p.top + p.h } }
+    const order = [...shown(list)].sort((a, b) => b.at - a.at)
+    const xs = order.map((q) => (q.at / duration) * W).sort((a, b) => a - b)
+    for (const m of order) {
+      const t = Math.pow(Math.max(0, Math.min(1, m.strength / 100)), 2.5)
+      const fs = 9.5 + 4 * t, h = Math.round(16 + 14 * t), px = Math.round(6 + 6 * t), x = (m.at / duration) * W
+      const want = Math.max(MINW, Math.min(Math.round(56 + 204 * t), Math.ceil(textWidth(m.quote ?? '', `${fs}px ${font}`) + px * 2 + 2)))
+      const tailTo = barTopAt(x)
+      const lowest = tailTo - TAIL - 2 - h // 자기 막대 윗면 바로 위
+      // 1차: 겹침 30%·머리 보호까지 지키는 자리. 2차(못 찾으면): 말풍선끼리 겹침은 너그럽게, 꼬리 선 규칙만 지킨다.
+      let found: R | null = null
+      for (const strict of [true, false]) {
+        search: for (const flip of [false, true]) {
+          for (let w = want; ; w = Math.max(MINW, w - 12)) {
+            // 꼬리 안쪽 거리는 옆 순간의 x 를 넘지 않게 줄인다 — 넘으면 이 몸통이 옆 순간의 꼬리 선 자리를 막는다(붙은 두 순간에서 실측).
+            const room = flip ? (xs.find((v) => v > x + 0.5) ?? W) - x : x - ([...xs].reverse().find((v) => v < x - 0.5) ?? 0)
+            const inset = Math.max(0, Math.min(tailInset(w), room - 4))
+            const left = flip ? x - w + inset : x - inset
+            if (left >= 0 && left + w <= W) {
+              // 막대가 너무 높아 그 위에 자리가 없으면(가장 뜨거운 순간이 흔히 그렇다) 맨 위에서 시작해 자기 막대 윗부분을 덮는다.
+              for (let top = Math.max(0, Math.min(lowest, H - h - TAIL)); top >= 0; top -= 3) {
+                const c: R = { m, x, left, top, w, h, fs, px, flip, tailTo, t, inset }
+                const box = boxOf(c), tail = tailOf(c)
+                const clash = placed.some((p) => {
+                  const pb = boxOf(p)
+                  if (inter(box, tailOf(p)) > 0 || inter(tail, pb) > 0) return true
+                  if (!strict) return inter(box, headOf(p)) > 0.6 * area(headOf(p))
+                  return inter(box, pb) > OVERLAP * Math.min(area(box), area(pb)) || inter(box, headOf(p)) > 0 || inter(headOf(c), pb) > 0
+                })
+                if (!clash) { found = c; break search }
+              }
+            }
+            if (w === MINW) break
+          }
+        }
+        if (found) break
+      }
+      placed.push(found ?? { m, x, left: Math.min(Math.max(0, x), W - want), top: 0, w: want, h, fs, px, flip: false, tailTo, t, inset: 0 })
+    }
+  }
+  return (
+    <div ref={ref} className="pointer-events-none absolute inset-0 z-[1] hidden sm:block">
+      {placed.map((p) => {
+        const hot = p.m === peak
+        const look = bubbleLook(hot)
+        const { d, transform } = bubblePath(p.w, p.h, p.flip, look.radius, p.inset)
+        const stem = p.tailTo - (p.top + p.h + TAIL)
+        return (
+          <div key={p.m.at} style={{ position: 'absolute', zIndex: Math.round(p.t * 100) }}>
+            {stem > 1 && <span className="absolute w-px" style={{ left: p.x - 0.5, top: p.top + p.h + TAIL, height: stem, background: look.stem }} />}
+            <svg className="absolute overflow-visible" style={{ left: p.left, top: p.top, filter: look.shadow }} width={p.w} height={p.h + TAIL} aria-hidden>
+              <path d={d} transform={transform} fill={look.fill} />
+            </svg>
+            <div className="absolute flex items-center leading-none"
+              style={{ left: p.left, top: p.top, width: p.w, height: p.h, fontSize: p.fs, paddingInline: p.px, fontWeight: look.weight, color: look.color }}>
+              <span className="block min-w-0 truncate">{p.m.quote}</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function BillboardSlide({ top, live, loading, rank, footer }: { top: RankItem | null; live: LiveShow[]; loading: boolean; rank: number; footer?: React.ReactNode }) {
   const episodeId = top?.episodeId ?? null
   const duration = top?.durationSec ?? 0
@@ -199,8 +326,12 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: RankItem | 
             <p className="mb-2.5 text-[12px] font-semibold text-muted">이 회차의 채팅 반응</p>
             {bars.duration > 0 ? (
               <>
-                <Waveform values={bars.values} height={104} className="hidden sm:flex"
-                  active={peak ? [peak.at / bars.duration - 0.016, peak.at / bars.duration + 0.016] : undefined} />
+                <div className="relative sm:pt-[28px]">
+                  {/* 말풍선 머리 위 여유(FIT_HEADROOM=28) — 모바일은 말풍선을 그리지 않으므로 여유도 두지 않는다. */}
+                  <QuoteBubblesFit list={list} duration={bars.duration} peak={peak} values={bars.values} waveH={104} />
+                  <Waveform values={bars.values} height={104} className="hidden sm:flex"
+                    active={peak ? [peak.at / bars.duration - 0.016, peak.at / bars.duration + 0.016] : undefined} />
+                </div>
                 <Waveform values={barsSm.values} height={72} className="sm:hidden"
                   active={peak ? [peak.at / bars.duration - 0.03, peak.at / bars.duration + 0.03] : undefined} />
                 <div className="relative mt-2 h-px bg-line">
