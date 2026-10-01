@@ -62,7 +62,7 @@ export default function App() {
         {route.page === 'notice' ? (
           <Notice noticeId={route.noticeId} />
         ) : route.page === 'title' ? (
-          <Title key={key} contentId={route.contentId} episodeId={route.episodeId} />
+          <Title key={key} contentId={route.contentId} episodeId={route.episodeId} review={route.review} />
         ) : (
           <Home />
         )}

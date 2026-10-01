@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { HeartIcon, StarIcon, TrashIcon, EyeSlashIcon } from '@phosphor-icons/react'
-import { api, ApiError, decodeEntities, type Comment, type CommentSort, type Rating } from '../api'
+import { api, ApiError, decodeEntities, deleteMyComment, type Comment, type CommentSort, type Rating } from '../api'
 import { login, useAuth } from '../auth'
 import { Avatar, SectionHead } from './primitives'
 import { EmptyNote } from './skeleton'
@@ -45,7 +45,7 @@ export function RatingSummary({ rating }: { rating: Rating }) {
   )
 }
 
-function Write({ contentId, mine, onSaved }: { contentId: number; mine: Comment | null; onSaved: (c: Comment) => void }) {
+function Write({ contentId, mine, onSaved, focus }: { contentId: number; mine: Comment | null; onSaved: (c: Comment) => void; focus?: boolean }) {
   const { ready, user } = useAuth()
   const [body, setBody] = useState(mine?.body ?? '')
   const [rating, setRating] = useState(mine?.rating ?? 0)
@@ -53,13 +53,24 @@ function Write({ contentId, mine, onSaved }: { contentId: number; mine: Comment 
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   useEffect(() => { setBody(mine?.body ?? ''); setRating(mine?.rating ?? 0); setSpoiler(mine?.spoiler ?? false) }, [mine?.id, mine?.updatedAt])
+  const area = useRef<HTMLTextAreaElement>(null)
+  const loginBtn = useRef<HTMLButtonElement>(null)
+  const signedIn = !!user   // effect 의존성은 객체가 아니라 이 불리언 — user 객체를 읽으면 exhaustive-deps 경고가 는다
+  /* #/title/{id}/review 로 들어오면(내 활동·확장 HP-442 의 '고치기'·'평가 남기기') 평가 칸으로 스크롤하고 입력란(비로그인이면
+     로그인 버튼)에 포커스. 스크롤은 섹션(#comments, scroll-mt 로 고정 헤더만큼 띄움)에 맞추고 포커스는 스크롤 없이 준다 —
+     포커스가 다시 스크롤하면 섹션 제목이 헤더 밑으로 들어간다. 로그인 왕복 뒤(signedIn 이 됨)에도 다시 잡는다. */
+  useEffect(() => {
+    if (!focus || !ready) return
+    document.getElementById('comments')?.scrollIntoView({ block: 'start' })
+    ;(signedIn ? area.current : loginBtn.current)?.focus({ preventScroll: true })
+  }, [focus, ready, signedIn])
 
   if (!ready) return null
   if (!user) {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed border-line2 px-4 py-4">
         <p className="text-[13px] text-muted">이 작품에 별점과 한마디를 남기려면 로그인이 필요합니다.</p>
-        <button type="button" onClick={login} className="btn btn--primary btn--sm">로그인하고 남기기</button>
+        <button ref={loginBtn} type="button" onClick={login} className="btn btn--primary btn--sm">로그인하고 남기기</button>
       </div>
     )
   }
@@ -84,7 +95,7 @@ function Write({ contentId, mine, onSaved }: { contentId: number; mine: Comment 
         <Stars value={rating} onChange={setRating} size={20} />
         <span className="text-[12.5px] text-muted">{mine ? '내 평가를 고칩니다' : `${user.name} 님의 평가`}</span>
       </div>
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={1000} rows={3} placeholder="이 작품, 어땠나요?"
+      <textarea ref={area} value={body} onChange={(e) => setBody(e.target.value)} maxLength={1000} rows={3} placeholder="이 작품, 어땠나요?"
         className="mt-3 w-full resize-y rounded-sm border border-line bg-warm px-3 py-2 text-[14px] leading-relaxed text-ink outline-none placeholder:text-faint focus:border-line2" />
       <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <label className="inline-flex items-center gap-1.5 text-[12.5px] text-ink2">
@@ -138,7 +149,7 @@ function Item({ c, onLike, onDelete }: { c: Comment; onLike: (c: Comment, on: bo
   )
 }
 
-export function Comments({ contentId, onRating }: { contentId: number; onRating?: (r: Rating) => void }) {
+export function Comments({ contentId, onRating, focusWrite }: { contentId: number; onRating?: (r: Rating) => void; focusWrite?: boolean }) {
   const { ready, user } = useAuth()
   const [sort, setSort] = useState<CommentSort>('recent')
   const [items, setItems] = useState<Comment[]>([])
@@ -167,8 +178,7 @@ export function Comments({ contentId, onRating }: { contentId: number; onRating?
     catch { setItems((prev) => prev.map((x) => (x.id === c.id ? c : x))) }
   }
   const onDelete = async (c: Comment) => {
-    if (!confirm('내 평가를 지울까요?')) return
-    try { await api.deleteComment(c.id); setMine(null); load(0, true) } catch { /* 목록 재요청으로 상태가 맞춰진다 */ }
+    if (await deleteMyComment(c)) { setMine(null); load(0, true) }
   }
 
   return (
@@ -189,7 +199,7 @@ export function Comments({ contentId, onRating }: { contentId: number; onRating?
           <RatingSummary rating={rating} />
         </div>
         <div className="min-w-0">
-          <Write contentId={contentId} mine={mine} onSaved={onSaved} />
+          <Write contentId={contentId} mine={mine} onSaved={onSaved} focus={focusWrite} />
           {items.length === 0 ? (
             !loading && <EmptyNote>아직 평가가 없습니다. 첫 평가를 남겨 보세요.</EmptyNote>
           ) : (

@@ -334,6 +334,14 @@ export function decodeEntities(text: string | null | undefined): string {
   return el.value
 }
 
+/** 내 평가 지우기 — 확인 문구와 호출을 한 곳에 둔다(작품 페이지 Comments.tsx 와 내 활동 #/me 가 같이 쓴다, HP-443). 지웠으면 true,
+ *  취소·실패는 false(실패는 호출부가 목록을 다시 받아 상태를 맞추므로 따로 알리지 않는다 — 종전 Comments.tsx 와 같다).
+ *  컴포넌트 파일에 두지 않는 이유: Comments.tsx 가 컴포넌트 아닌 것을 export 하면 fast-refresh 린트가 는다. */
+export async function deleteMyComment(c: Comment): Promise<boolean> {
+  if (!confirm('내 평가를 지울까요?')) return false
+  try { await api.deleteComment(c.id); return true } catch { return false }
+}
+
 export function fmtTime(sec: number): string {
   const m = Math.floor(sec / 60)
   const s = Math.floor(sec % 60)

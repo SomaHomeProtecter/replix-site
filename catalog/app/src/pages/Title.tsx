@@ -21,9 +21,9 @@ import { engaged, trackWatch } from '../analytics'
 import { Avatar, Chip, MomentDots, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { CardGridSkeleton, EmptyNote, RailSkeleton, RowsSkeleton } from '../components/skeleton'
 import { Comments, RatingSummary } from '../components/Comments'
+import { SPOILER_CUT } from '../activity-pure.js'
 
 const SEC = 'wrap py-9'
-const SPOILER_CUT = 3
 
 const SUBNAV = [
   { id: 'episodes', label: '회차' },
@@ -384,7 +384,8 @@ function Related({ items }: { items: CatalogContent['alsoWatched'] }) {
 }
 
 /* ═══ 작품 상세 ══════════════════════════════════════════════ */
-export default function Title({ contentId, episodeId }: { contentId: number; episodeId: number | null }) {
+/* review = #/title/{id}/review 로 들어옴 — 평가 칸으로 스크롤·포커스(HP-443). 같은 작품 안에서 해시만 바뀌어도(remount 없이) Comments 가 effect 로 잡는다. */
+export default function Title({ contentId, episodeId, review }: { contentId: number; episodeId: number | null; review: boolean }) {
   const detail = useAsync(() => api.catalogContent(contentId), [contentId])
   const live = useAsync(() => api.liveScenes(), [])
   const c = detail.data
@@ -438,7 +439,7 @@ export default function Title({ contentId, episodeId }: { contentId: number; epi
       <SubNav />
       <Episodes c={c} selected={ep} />
       <Moments c={c} ep={ep} moments={epDetail.data?.moments ?? ep?.moments ?? []} momentsLoading={epDetail.loading} bars={bars} onPeak={setPeak} />
-      <Comments contentId={c.contentId} onRating={onRating} />
+      <Comments contentId={c.contentId} onRating={onRating} focusWrite={review} />
       <Related items={c.alsoWatched} />
     </>
   )
