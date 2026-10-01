@@ -38,7 +38,7 @@ function Empty({ children }: { children: React.ReactNode }) {
    1위 = /catalog/home ranking[0](창별 누적 감상 시간). 지수 산식은 만들지 않기로 했으므로(2026-09-05)
    "지수 100" 대신 순위만 적는다. 파형(bars)·순간(moments)·길이는 같은 응답에 실려 온다 — 슬라이드가 따로 요청하지 않는다. */
 /* ═══ 빌보드 자동 전환 ═════════════════════════════════════════
-   상위 작품 몇 개를 일정 간격으로 돌린다(조현빈 2026-09-07). 마우스를 올리거나 포커스가 들어오면
+   상위 작품 몇 개를 일정 간격으로 돌린다(조현빈 2026-09-07). 레일에 마우스를 올리거나 포커스가 들어오면
    멈추고, 점을 누르면 그 작품으로 간다. 움직임 줄이기 설정이면 자동 전환은 하지 않는다. */
 const BILLBOARD_COUNT = 5
 const BILLBOARD_INTERVAL_MS = 7000
@@ -46,7 +46,10 @@ const BILLBOARD_INTERVAL_MS = 7000
 function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow[]; loading: boolean }) {
   const slides = items.slice(0, BILLBOARD_COUNT)
   const [idx, setIdx] = useState(0)
-  const [paused, setPaused] = useState(false)
+  // 멈춤 이유 둘을 따로 든다 — 하나로 합치면 레일에서 마우스가 나갈 때 키보드 포커스 멈춤까지 풀린다.
+  const [hoverPaused, setHoverPaused] = useState(false)
+  const [focusPaused, setFocusPaused] = useState(false)
+  const paused = hoverPaused || focusPaused
   const reduce = useReducedMotion()
   useEffect(() => { setIdx(0) }, [slides.length])
   /* 전환 시계는 진행 줄 애니메이션 하나다. 예전엔 setInterval 과 CSS 진행 줄이 따로 돌아, 마우스를 올렸다 떼면
@@ -60,7 +63,7 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
      간격·모서리 없이 붙인 한 기둥으로 두고 왼쪽 포스터보다 작게 — 레일은 보여주기가 아니라 꾸밈이라
      왼쪽 카드와 같은 형태로 나란히 서면 시선이 갈라지고 중복으로 읽힌다(시안 B). */
   const rail = slides.length > 1 ? (
-    <ol className="hidden h-[272px] flex-col self-center overflow-hidden rounded-[4px] md:flex" role="tablist" aria-label="빌보드 작품">
+    <ol className="hidden h-[272px] flex-col self-center overflow-hidden rounded-[4px] md:flex" role="tablist" aria-label="빌보드 작품" onMouseEnter={() => setHoverPaused(true)} onMouseLeave={() => setHoverPaused(false)}>
       {slides.map((w, i) => {
         const on = i === idx
         const poster = w.posterUrl ?? undefined
@@ -102,7 +105,11 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
   ) : null
 
   return (
-    <div className="relative border-b border-line bg-raise" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
+    /* 마우스 멈춤은 레일(작품 고르는 곳) 위에서만. 히어로 전체에 걸면 화면 폭을 다 차지하는 맨 위 영역이라 커서가
+       지나가기만 해도 줄이 멈췄다 가기를 반복해 버벅거렸다(2026-10-01 실측).
+       포커스 멈춤은 키보드로 들어온 포커스(:focus-visible)만. 마우스 클릭도 링크·버튼에 포커스를 남기는데, 그걸로
+       멈추면 클릭 한 번에 다른 곳을 누를 때까지 전환이 서 버린다. */
+    <div className="relative border-b border-line bg-raise" onFocusCapture={(e) => setFocusPaused((e.target as Element).matches(':focus-visible'))} onBlurCapture={() => setFocusPaused(false)}>
       <div className="wrap grid gap-8 py-9 md:grid-cols-[minmax(0,1fr)_168px] lg:grid-cols-[minmax(0,1fr)_184px] lg:gap-10">
         {/* 슬라이드 다섯 장을 모두 마운트해 같은 자리에 겹쳐 두고 투명도만 교차시킨다. 지웠다 다시 만들면
             그때마다 파형·순간을 새로 받아 빈 화면이 깜빡인다. 높이는 가장 큰 슬라이드에 맞춰 고정된다. */}
