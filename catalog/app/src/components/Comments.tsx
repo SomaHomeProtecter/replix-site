@@ -11,6 +11,10 @@ import { EmptyNote } from './skeleton'
    읽기는 누구나, 쓰기·좋아요는 로그인. 스포일러는 작성자 표시로 가리고 눌러서 연다. */
 
 const PAGE = 20
+/* 평가 칸 딥링크(#/title/{id}/review)가 위쪽 섹션이 다 받아질 때까지 위치를 다시 맞추는 최대 시간, 그리고 그 일을 곧바로
+   그만두게 하는 사용자 입력 — 사람이 직접 움직이기 시작하면 가로채지 않는다(Write 의 포커스 effect). */
+const REALIGN_MS = 5000
+const USER_INPUT = ['wheel', 'touchstart', 'keydown', 'mousedown'] as const
 
 export function Stars({ value, onChange, size = 16 }: { value: number; onChange?: (v: number) => void; size?: number }) {
   const [hover, setHover] = useState(0)
@@ -58,11 +62,27 @@ function Write({ contentId, mine, onSaved, focus }: { contentId: number; mine: C
   const signedIn = !!user   // effect 의존성은 객체가 아니라 이 불리언 — user 객체를 읽으면 exhaustive-deps 경고가 는다
   /* #/title/{id}/review 로 들어오면(내 활동·확장 HP-442 의 '고치기'·'평가 남기기') 평가 칸으로 스크롤하고 입력란(비로그인이면
      로그인 버튼)에 포커스. 스크롤은 섹션(#comments, scroll-mt 로 고정 헤더만큼 띄움)에 맞추고 포커스는 스크롤 없이 준다 —
-     포커스가 다시 스크롤하면 섹션 제목이 헤더 밑으로 들어간다. 로그인 왕복 뒤(signedIn 이 됨)에도 다시 잡는다. */
+     포커스가 다시 스크롤하면 섹션 제목이 헤더 밑으로 들어간다. 로그인 왕복 뒤(signedIn 이 됨)에도 다시 잡는다.
+     스크롤은 즉시(instant) 한다 — html 의 scroll-behavior:smooth 로 굴리면 목표가 호출 시점에 굳는데, 그사이 위쪽 '순간' 섹션이
+     회차 응답을 받아 자라면 섹션이 수백 px 아래로 밀린 채 멈춘다(2026-10-01 실측, 뷰포트가 낮으면 포커스가 화면 밖). 같은 이유로
+     잠시(REALIGN_MS, 사람이 스크롤·입력하면 즉시 그만) 문서 크기가 바뀔 때마다 다시 맞춘다. */
   useEffect(() => {
     if (!focus || !ready) return
-    document.getElementById('comments')?.scrollIntoView({ block: 'start' })
+    const sec = document.getElementById('comments')
+    if (!sec) return
+    const align = () => sec.scrollIntoView({ block: 'start', behavior: 'instant' })
+    align()
     ;(signedIn ? area.current : loginBtn.current)?.focus({ preventScroll: true })
+    const ro = new ResizeObserver(align)
+    ro.observe(document.body)
+    const timer = window.setTimeout(stop, REALIGN_MS)
+    for (const t of USER_INPUT) window.addEventListener(t, stop, { passive: true })
+    function stop() {
+      ro.disconnect()
+      window.clearTimeout(timer)
+      for (const t of USER_INPUT) window.removeEventListener(t, stop)
+    }
+    return stop
   }, [focus, ready, signedIn])
 
   if (!ready) return null
