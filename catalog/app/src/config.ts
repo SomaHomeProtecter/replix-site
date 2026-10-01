@@ -5,6 +5,6 @@ function resolveApiBase(): string {
   const meta = typeof document !== 'undefined' ? document.querySelector('meta[name="api-base"]') : null
   const fromMeta = meta?.getAttribute('content')?.trim()
   const fromEnv = (import.meta.env.VITE_API_BASE as string | undefined)?.trim()
-  return (fromMeta || fromEnv || 'https://api.replix-dev.site').replace(/\/$/, '')
+  return (fromMeta || fromEnv || 'https://api.replix.tv').replace(/\/$/, '')
 }
 export const API_BASE: string = resolveApiBase()
