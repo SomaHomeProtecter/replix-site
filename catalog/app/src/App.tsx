@@ -3,6 +3,7 @@ import { Footer, Nav, NoticeBand } from './components/Chrome'
 import { ConsentModal } from './components/ConsentModal'
 import { LoginModal } from './components/LoginModal'
 import Home from './pages/Home'
+import Me from './pages/Me'
 import Notice from './pages/Notice'
 import Title from './pages/Title'
 import { page } from './analytics'
@@ -63,6 +64,8 @@ export default function App() {
           <Notice noticeId={route.noticeId} />
         ) : route.page === 'title' ? (
           <Title key={key} contentId={route.contentId} episodeId={route.episodeId} review={route.review} />
+        ) : route.page === 'me' ? (
+          <Me />
         ) : (
           <Home />
         )}
