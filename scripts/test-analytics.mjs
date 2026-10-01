@@ -122,8 +122,8 @@ assert.doesNotMatch(read('docs/privacy.html'), /최소 7일 전/, '11항의 7일
 assert.equal(a.optOutOn('replix.tv', GA_BEFORE, 'Asia/Seoul', '/'), false, '시행일 전에는 지금처럼 옵트인');
 assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Asia/Seoul', '/'), true);
 assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Asia/Seoul', '/index.html'), true);
-assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Asia/Seoul', '/catalog/'), false,
-  '작품 탐색은 옵트인 유지 — 로그인이 있어 식별 결합 여지가 크다(2026-10-01 고경우: 랜딩만)');
+assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Asia/Seoul', '/catalog/'), true,
+  '작품 탐색도 옵트아웃(2026-10-01 고경우) — 회원 식별값을 싣지 않으니 식별하지 않는다는 조건은 그대로');
 assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'America/Los_Angeles', '/'), false, '캘리포니아 — CIPA 소송 위험, 옵트인 유지');
 assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Europe/Berlin', '/'), false, 'EU — 분석 쿠키 동의 필요, 옵트인 유지');
 assert.equal(a.optOutOn('replix.tv', GA_AFTER, '', '/'), false, '시간대를 모르면 보수적으로 옵트인');
@@ -170,7 +170,10 @@ assert.match(privacy, /Google Analytics/, '처리방침이 GA 수신을 밝힌�
 assert.match(privacy, /_ga/, '처리방침이 GA 쿠키를 밝힌다(자동 수집 장치)');
 assert.match(privacy, /14개월/, 'GA 보유 기간 — GA 관리의 데이터 보관 설정과 같아야 한다');
 assert.match(privacy, /한국 시간대/, '처리방침이 옵트아웃 범위(한국 시간대 접속)를 밝힌다(HP-466)');
-assert.match(privacy, /작품 탐색[^.]*명시적으로 동의한 경우에만/, '작품 탐색은 동의 유지라고 밝힌다');
+assert.match(privacy, /작품 탐색의 로그인\s+정보와도 결합하지 않습니다/, '작품 탐색까지 옵트아웃 — 로그인과 결합하지 않는다는 조건을 밝힌다');
+assert.match(src, /function track\(name, props\) \{\s*send\(function \(a\) \{ a\.track\(name, Object\.assign\(commonProps\(\), props \|\| \{\}\)\); \}\);/,
+  '웹 이벤트에 회원 식별값을 붙이지 않는다(setUserId 금지) — 붙이는 순간 옵트아웃 근거가 무너진다');
+assert.doesNotMatch(src, /setUserId|identify\(/, '웹 계측은 사람을 식별하지 않는다(옵트아웃의 전제)');
 assert.match(privacy, /화면 조작 기록은[^.]*명시적으로 동의한 경우에만/, '리플레이는 동의한 경우에만이라는 약속을 유지한다');
 assert.match(privacy, /확장 프로그램의 이용 분석[^.]*명시적으로 동의한 경우에만/, '확장은 동의 유지(웹스토어 정책·회원 식별값 결합)');
 // GA 도 동의 뒤 동적 로드만, 철회하면 전송을 막고 쿠키를 지운다.

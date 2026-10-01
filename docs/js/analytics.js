@@ -1,8 +1,8 @@
 /* Amplitude 계측 — 랜딩·작품 탐색 공용. 정본은 docs/analytics/tracking-plan.md (이벤트를 바꾸려면 거기부터).
    설계 요지:
-   ① 동의 방식은 표면·지역으로 가른다(HP-466, 시행 OPTOUT_FROM). **랜딩 + 한국 시간대** 방문자는 옵트아웃 — 미선택이어도
-      이벤트를 수집하고 배너는 '수집 안내 + 거부'다(개인정보위 2024-01-31: 특정 개인을 식별하지 않는 행태정보는 동의 없이
-      처리 가능, 투명성·거부권 조건). **작품 탐색·그 밖의 지역**(EU 쿠키 동의·캘리포니아 도청법)과 **세션 리플레이**는
+   ① 동의 방식은 지역으로 가른다(HP-466, 시행 OPTOUT_FROM). **한국 시간대** 방문자는 랜딩·작품 탐색 모두 옵트아웃 —
+      미선택이어도 이벤트를 수집하고 배너는 '수집 안내 + 거부'다(개인정보위 2024-01-31: 특정 개인을 식별하지 않는 행태정보는
+      동의 없이 처리 가능, 투명성·거부권 조건). **그 밖의 지역**(EU 쿠키 동의·캘리포니아 도청법)과 **세션 리플레이**는
       옵트인 — [허용] 뒤에만.
    ② SDK 는 허용 뒤 동적으로 붙이고, 그 전 호출은 큐에 쌓아 로드 뒤 보낸다.
    ③ 자동수집(pageViews·pageUrlEnrichment·form)은 끈다 — 전체 URL 이 실리면 /catalog 해시의 작품 ID 나
@@ -51,8 +51,8 @@ export var GA_FROM = Date.parse('2026-10-01T00:00:00+09:00');
 export var GA_URL = 'https://www.googletagmanager.com/gtag/js?id=';
 export var GA_CONFIG = { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false };
 /* ─── 옵트아웃(HP-466) ───────────────────────────────────────────
-   · **랜딩만.** 2026-10-01 고경우 결정 — 수집이 중요한 곳은 랜딩이다. 작품 탐색은 로그인(Keycloak)이 있어 식별 결합
-     여지가 크므로 옵트인 그대로 둔다.
+   · **두 표면 모두.** 처음엔 랜딩만이었다가 같은 날 고경우 결정으로 작품 탐색도 넣었다. 작품 탐색은 로그인(Keycloak)이
+     있지만 웹 이벤트에 회원 식별값을 싣지 않으므로 '식별하지 않는다'는 조건이 그대로다 — 아래 넷째 항목이 이걸 지킨다.
    · **한국 시간대만.** 브라우저 시간대가 Asia/Seoul 이면 국내 방문자로 본다. EU 는 분석 쿠키에 사전 동의가 필요하고
      (GDPR·ePrivacy), 캘리포니아는 도청법(CIPA) 소송이 잦다 — 그 밖의 시간대·모름은 옵트인 그대로.
    · **리플레이는 제외.** 화면 조작 녹화는 CIPA 세션 리플레이 소송의 주 대상이라 [허용]을 누른 경우에만 붙인다.
@@ -120,10 +120,10 @@ export function parseConsent(raw, version) {
     return v.decision === 'granted' && v.version === (version || CONSENT_VERSION) ? 'granted' : null;
   } catch (_) { return null; }
 }
-/* 옵트아웃이 적용되는가 — 랜딩 + 한국 시간대 + (운영은) 시행일 이후. 시간대를 모르면 보수적으로 옵트인. */
-export function optOutOn(hostname, nowMs, timeZone, pathname) {
-  return timeZone === KR_TZ && surfaceOf(pathname) === 'web_landing' &&
-    (envOf(hostname) !== 'prod' || nowMs >= OPTOUT_FROM);
+/* 옵트아웃이 적용되는가 — 한국 시간대 + (운영은) 시행일 이후. 표면(랜딩·작품 탐색)은 가리지 않는다.
+   시간대를 모르면 보수적으로 옵트인. */
+export function optOutOn(hostname, nowMs, timeZone) {
+  return timeZone === KR_TZ && (envOf(hostname) !== 'prod' || nowMs >= OPTOUT_FROM);
 }
 /* 이벤트(Amplitude·GA)를 보내는가. 리플레이는 이것과 별개로 명시적 허용('granted')에서만. */
 export function collectingFor(consent, optOut) {
@@ -173,7 +173,7 @@ var _revoked = false;     /* 이 페이지에서 거부(철회)했는가 — 재
 
 function nowVersion() { return consentVersion(location.hostname, Date.now()); }
 function timeZone() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) { return ''; } }
-function optOutNow() { return optOutOn(location.hostname, Date.now(), timeZone(), location.pathname); }
+function optOutNow() { return optOutOn(location.hostname, Date.now(), timeZone()); }
 function collecting() { return collectingFor(_consent, optOutNow()); }
 function readConsent() { try { return parseConsent(localStorage.getItem(CONSENT_KEY), nowVersion()); } catch (_) { return null; } }
 function writeConsent(d) {
