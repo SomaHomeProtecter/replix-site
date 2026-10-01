@@ -55,7 +55,8 @@ assert.deepEqual(parentView(P({ moderationStatus: undefined })), { who: '졸린 
 assert.equal(parentView(P({ mine: true, moderationStatus: 'hidden' })).text, '이 장면 때문에 정주행함');
 assert.equal(parentView(P({ spoilerScore: 2 })).text, '이 장면 때문에 정주행함');
 assert.deepEqual(parentView(P({ mine: true, spoilerScore: 10, moderationStatus: 'blocked_profanity' })), { who: '졸린 수달', text: '이 장면 때문에 정주행함' });
-assert.deepEqual(parentView(P({ mine: true, message: null })), { who: '졸린 수달', text: '' });
+// 내 원문이라도 운영 가림(blinded — 서버가 본문을 null 로 비운다)이면 '가려진 메시지'다. 빈 인용 줄("↳ 내 이름"만)로 두지 않는다.
+assert.deepEqual(parentView(P({ mine: true, message: null })), { who: '졸린 수달', text: null });
 assert.equal(parentView(P({ displayName: null })).who, '');
 
 // 스니펫 — 확장 피드와 같은 24자.

@@ -58,7 +58,9 @@ export function isLeakScore(score) {
 export function parentView(parent) {
   if (!parent) return null;
   const who = parent.displayName || '';
-  if (parent.mine) return { who, text: parent.message == null ? '' : parent.message };
+  // 내 원문은 스포일러·클린봇·차단으로 가리지 않는다. 다만 운영 가림(blinded)이면 서버가 본문을 null 로 비우므로
+  // 그때는 남의 글과 같이 '가려진 메시지'(text null) — 빈 인용 줄("↳ 내 이름"만)로 두지 않는다.
+  if (parent.mine) return { who, text: parent.message == null ? null : parent.message };
   const notVisible = parent.moderationStatus !== 'visible';
   const hidden = parent.message == null || notVisible || !!parent.blockedByMe || hasSpoilerSignal(parent.spoilerScore);
   return { who, text: hidden ? null : parent.message };
