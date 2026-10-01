@@ -238,7 +238,12 @@ assert.deepEqual(linkPairs.slice().sort(), [
   'footer:privacy', 'footer:terms', 'footer:tmdb',
 ].sort(), '랜딩 링크 13곳 — 바꾸면 tracking-plan.md §6 의 표도 같이');
 assert.match(read('docs/js/faq.js'), /track\('faq_opened', \{ question_index:/);
-assert.match(read('docs/js/hero.js'), /track\('demo_interacted', \{ demo: 'hero_toggle', action: 'toggle' \}\)/);
+assert.match(read('docs/js/hero.js'), /track\('demo_interacted', \{ demo: 'hero_toggle', action: 'scroll_complete' \}\)/);
+assert.doesNotMatch(read('docs/js/hero.js'), /addEventListener\("click"/, '제품 화면 전환은 클릭이 아니라 스크롤이다(HP-467)');
+assert.doesNotMatch(index, /<button[^>]*id="heroToggle"/, '토글 알약은 누르는 버튼이 아니라 진행 표시다(HP-467)');
+assert.ok(index.indexOf('id="intro"') < index.indexOf('id="rooms"') && index.indexOf('id="rooms"') < index.indexOf('id="scenes"')
+  && index.indexOf('id="works"') < index.indexOf('id="how"') && index.indexOf('id="how"') < index.indexOf('id="faq"'),
+  '섹션 순서: 제품 화면 → 함께 보기 → 인기 장면 … 작품 → 설명 카드 → 설치 → FAQ (HP-467, 2026-09-12 멘토링)');
 assert.match(read('docs/js/reveal.js'), /track\('section_viewed', \{ section: e\.target\.id \}\)/);
 assert.match(read('docs/js/reveal.js'), /rootMargin: '0px 0px -40% 0px'/, '뷰포트보다 큰 섹션도 발화하게 threshold 0 + rootMargin');
 

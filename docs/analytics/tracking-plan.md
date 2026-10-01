@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v7 (Amplitude + Google Analytics)
+# replix.tv 웹 — 트래킹 플랜 v9 (Amplitude + Google Analytics)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -92,7 +92,7 @@
 | `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture) | `location`: `nav` \| `hero` \| `close`(랜딩) · `catalog_nav` \| `catalog_title` \| `catalog_footer` | **W1** |
 | `nav_link_clicked` | landing | `[data-link]` 요소 클릭(`analytics.js` 문서 위임, capture) — 설치 CTA 가 **아닌** 랜딩의 모든 `<a>`. 아래 표 | `target`(어디로) · `location`: `nav` \| `footer` | **W6** |
 | `section_viewed` | landing | `reveal.js` — 섹션 상단이 뷰포트 위 60% 안에 들어올 때 페이지뷰당 1회 | `section`: `intro` \| `how` \| `scenes` \| `works` \| `rooms` \| `faq` \| `install` | W3 |
-| `demo_interacted` | landing | `hero.js` 히어로 원본/Replix 토글 클릭 | `demo`: `hero_toggle` · `action`: `toggle` | W4 |
+| `demo_interacted` | landing | `hero.js` 제품 화면 원본→Replix 스크롤 전환을 **원본(0)에서 시작해 Replix(1)까지 다 넘겼을 때** 페이지뷰당 1회. 이미 지나친 위치에서 열린 경우(앵커·새로고침)는 세지 않는다 | `demo`: `hero_toggle` · `action`: `scroll_complete` | W4 |
 | `faq_opened` | landing | `faq.js` 아코디언을 **열 때만** | `question_index`(0~7) | W4 |
 | `catalog_engaged` | catalog | 아래 표 | `feature`, `action`(+`has_results`·`sort`·`source`·`kind`·`score`·`category`) | W5 |
 | `watch_link_clicked` | catalog | 재생 딥링크 `<a>` 클릭(`analytics.ts` `trackWatch`) | `platform`(`netflix`), `from`: `title_hero` \| `moment` \| `home_billboard` \| `home_hot` \| `home_live`, `has_timestamp`(bool — `?t=` 유무) | **W5** |
@@ -139,6 +139,9 @@
 | `feedback` | `submitted` | 피드백 전송 **성공**(`POST /api/v1/feedback` 201) | `score`: `0`(미선택) \| `1`~`5`, `category`: `ANNOY` \| `BUG` \| `IDEA` \| `PRAISE` \| `none`(미선택) |
 | `feedback` | `store_review_clicked` | 전송 뒤 감사 화면의 스토어 평가 링크 클릭 | — |
 
+> ⚠️ `demo_interacted{action: toggle}`(토글 클릭)은 HP-467 배포(2026-10-01)로 **발화 지점이 사라졌다** — 토글이 버튼이 아니라
+> 스크롤 진행 표시가 됐다. 그 날짜 이후 값은 `scroll_complete` 뿐이고, 두 값은 뜻이 달라(클릭 vs 스크롤로 끝까지 봄) 한 추이로 잇지 않는다.
+>
 > ⚠️ `demo_interacted` 는 `hero_toggle` 하나다. 인터랙티브 히트맵 플레이어(`hm*`)는 `#scenes-legacy` 에 `display:none` 으로
 > 숨겨져 있어 발화 지점이 없다 — 되살리면 `scenes_player`(`play`/`pause`/`jump`)를 여기 먼저 추가한다.
 >
@@ -262,3 +265,4 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v7 | 2026-10-01 | 랜딩·한국 시간대 옵트아웃(§11) — 미선택에도 이벤트 수집, 배너는 안내+거부, 리플레이·작품 탐색·해외는 옵트인 유지, 거부는 버전 무관 존중. 리플레이(v5)·GA(v6)·옵트아웃을 한 개정으로 묶어 **2026-10-01 공고와 동시에 시행**, 처리방침 1·6·11항(HP-466) — 고경우 |
 | v7.1 | 2026-10-01 | 작품 탐색도 한국 시간대 옵트아웃(§11) — 처음엔 랜딩만이었다가 같은 날 확대. 처리방침 1·6항 문구 갱신, 웹 이벤트 `setUserId`·`identify` 금지를 테스트로 고정(HP-466) — 고경우 |
 | v8 | 2026-10-01 | 세션 리플레이를 작품 탐색까지(§9) — 동의 버전 4, 남의 평가·채팅·닉네임·프로필 사진·계정 이름은 `amp-mask`/`amp-block` 으로 가림, 처리방침 1·3·5·6항 "웹사이트의 화면 조작 기록"(HP-457) — 고경우 |
+| v9 | 2026-10-01 | 랜딩 제품 화면 토글이 버튼 → 스크롤 진행 표시로 바뀌어 `demo_interacted` 의 `action` 을 `toggle` → `scroll_complete`(원본에서 Replix 까지 다 넘긴 페이지뷰당 1회)로 교체. 섹션 순서 변경(함께 보기 3번째·설명 카드 6번째)은 `section_viewed` 열거값에 영향 없음(HP-467) — 고경우 |

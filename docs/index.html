@@ -32,8 +32,8 @@
          이 바에는 랜딩 섹션만, 작품 탐색 바에는 그 섹션만. 서로는 오른쪽 보조 버튼으로 오간다.
          치수를 바꾸면 catalog/app/src/components/Chrome.tsx 도 같이. -->
     <div class="nav-links">
-      <a href="#scenes" data-link="scenes" data-link-loc="nav">인기 장면</a>
       <a href="#rooms" data-link="rooms" data-link-loc="nav">함께 보기</a>
+      <a href="#scenes" data-link="scenes" data-link-loc="nav">인기 장면</a>
       <a href="#faq" data-link="faq" data-link-loc="nav">자주 묻는 질문</a>
     </div>
     <a class="btn btn--ghost btn--sm nav-switch" href="/catalog/" data-link="catalog" data-link-loc="nav">작품 탐색</a>
@@ -82,12 +82,13 @@
       <p>이 장면에서 다른 사람들은 어떤 반응을 남겼는지 보이고, 나도 반응을 남길 수 있어요.</p>
     </div>
 
-    <!-- 원본↔Replix 토글 -->
-    <button class="hero-toggle" id="heroToggle" type="button" aria-pressed="true" aria-label="원본 화면과 Replix 화면 전환">
+    <!-- 원본↔Replix 진행 표시 — 누르는 버튼이 아니다. 스크롤하면 아래 화면이 넷플릭스에서
+         Replix 로 넘어가고, 이 알약은 지금 어느 쪽인지만 보여 준다(js/hero.js, HP-467). -->
+    <div class="hero-toggle" id="heroToggle" aria-hidden="true">
       <span class="hero-toggle-seg hero-toggle-seg--og">넷플릭스</span>
       <span class="hero-toggle-seg hero-toggle-seg--rx">Replix</span>
       <i class="hero-toggle-thumb"></i>
-    </button>
+    </div>
 
     <div class="screen hero-screen intro-screen reveal" role="img"
          aria-label="Replix 가 켜진 재생 화면: 영상 위로 탄막이 흐르고, 오른쪽 패널에 채팅이 도착하며, 재생바 위에 반응이 몰린 구간이 그려진다.">
@@ -150,123 +151,144 @@
   </div>
 </div>
 
-<!-- ─── 동작 방식: 남겨진 채팅 · 실시간 채팅 ─────────────────────
-     방문자의 실제 의문("아무도 없는데 채팅이 왜 있지?")을 채팅 패널
-     실물 두 개로 답한다. 1행 = 남겨진 채팅(정지), 2행 = 그 사이로
-     LIVE 채팅이 도착하는 패널(애니메이션). 스타일 = css/how.css -->
-<section class="pad band-soft" id="how">
+<!-- ─── 함께 보는 방식 (다크) ────────────────────────────────── 
+     제품 화면 바로 뒤 3번째(HP-467, 2026-09-12 김찬수 기획 멘토링 반영 — 원래 6번째).
+     채팅 설명 카드(#how)는 반대로 설치 안내 바로 앞으로 내려갔다. -->
+<section class="cinema" id="rooms">
   <div class="wrap">
 
-    <div class="how-row reveal">
-      <div class="how-panel how-panel--solo">
-        <div class="panel-head">
-          <img class="panel-logo" src="assets/logo/replix-horizontal-dark.png" alt="Replix" height="20">
-          <span class="ep-chip" style="margin-left:auto">3화</span>
-        </div>
-        <div class="how-sub">
-          <svg class="solo-ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M5 20c.8-3.2 3.6-5 7-5s6.2 1.8 7 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <span>지금은 나 혼자 보는 중 · 32:15</span>
-        </div>
-        <div class="panel-feed">
-          <div class="msg">
-            <span class="av" style="background:#4e5a9e">민</span>
-            <div class="msg-body">
-              <span class="msg-name">민지</span><span class="msg-time">3일 전</span>
-              <div class="msg-text">소름 돋았다 진짜</div>
-            </div>
-          </div>
-          <div class="msg">
-            <span class="av" style="background:#9e6a4e">준</span>
-            <div class="msg-body">
-              <span class="msg-name">준호</span><span class="msg-time">어제</span>
-              <div class="msg-text">이 복선 아까부터 느꼈어</div>
-            </div>
-          </div>
-          <div class="msg">
-            <span class="av" style="background:#2daa6e">하</span>
-            <div class="msg-body">
-              <span class="msg-name">하은</span><span class="msg-time">방금</span>
-              <div class="msg-text">와 여기서 터지는 거였어?!</div>
-            </div>
-          </div>
-        </div>
-        <div class="panel-input">
-          <span>지금 이 장면에 반응을 남겨보세요</span><span class="caret"></span>
-        </div>
-      </div>
-
-      <div class="how-copy">
-        <h2>"지금 아무도 안 보고 있는데<br>채팅이 왜 있지?"</h2>
-        <p>이 장면을 먼저 본 사람들이 남긴 채팅이에요.
-          내가 그 장면을 보는 순간, 저장된 채팅이 실시간 채팅처럼 나타나요.</p>
-      </div>
+    <div class="cinema-head reveal">
+      <span class="cin-eyebrow">TWO WAYS TO WATCH</span>
+      <h2>함께 보는 방식도 선택하세요</h2>
+      <p>때로는 더 많은 사람들과, 때로는 가까운 사람들과.<br>
+        Replix에서 함께 보는 방식을 골라보세요.</p>
     </div>
 
-    <div class="how-row how-row--reverse reveal">
-      <div class="how-panel how-panel--live">
-        <div class="panel-head">
-          <img class="panel-logo" src="assets/logo/replix-horizontal-dark.png" alt="Replix" height="20">
-          <span class="ep-chip" style="margin-left:auto">3화</span>
-        </div>
-        <div class="how-sub">
-          <span class="dot-live"></span>
-          <span><b class="num" style="color:var(--s-text)">12</b>명 함께 시청 중</span>
-          <span class="how-crowd" aria-hidden="true">
-            <i style="background:#d4594e">서</i><i style="background:#7c5cbf">수</i><i style="background:#3b8fd4">유</i><i class="how-crowd-more">+9</i>
-          </span>
-        </div>
-        <div class="panel-feed">
-          <div class="msg">
-            <span class="av" style="background:#4e5a9e">민</span>
-            <div class="msg-body">
-              <span class="msg-name">민지</span><span class="msg-time">3일 전</span>
-              <div class="msg-text">소름 돋았다 진짜</div>
-            </div>
-          </div>
-          <div class="msg how-live-row how-arrive" style="--d:.4s">
-            <span class="av" style="background:#d4594e">서</span>
-            <div class="msg-body">
-              <span class="msg-name">서윤</span><span class="how-live-badge"><i></i>LIVE</span>
-              <div class="msg-text">지금 이 장면 보는 사람 있어?</div>
-            </div>
-          </div>
-          <div class="msg">
-            <span class="av" style="background:#9e6a4e">준</span>
-            <div class="msg-body">
-              <span class="msg-name">준호</span><span class="msg-time">어제</span>
-              <div class="msg-text">이 복선 아까부터 느꼈어</div>
-            </div>
-          </div>
-          <div class="msg msg--reply how-live-row how-arrive" style="--d:1.5s">
-            <span class="av" style="background:#7c5cbf">수</span>
-            <div class="msg-body">
-              <span class="msg-name">수민</span><span class="how-live-badge"><i></i>LIVE</span>
-              <div class="msg-text">나! 방금 소리 지름 ㅋㅋ</div>
-            </div>
-          </div>
-          <div class="msg msg--reply how-live-row how-arrive" style="--d:2.6s">
-            <span class="av" style="background:#d4594e">서</span>
-            <div class="msg-body">
-              <span class="msg-name">서윤</span><span class="how-live-badge"><i></i>LIVE</span>
-              <div class="msg-text">ㅋㅋㅋ 나만 놀란 게 아니었네</div>
-            </div>
-          </div>
-        </div>
-        <div class="how-floats" aria-hidden="true">
-          <i style="--fd:.5s">❤️</i>
-          <i style="--fd:1.8s">🔥</i>
-          <i style="--fd:3.2s">😂</i>
-          <i style="--fd:4.6s">❤️</i>
-        </div>
-        <div class="panel-input">
-          <span>지금 이 장면에 반응을 남겨보세요</span><span class="caret"></span>
-        </div>
-      </div>
+    <div class="rooms reveal">
 
-      <div class="how-copy">
-        <h2>같이 보고 있는 사람들의<br>채팅은 실시간으로 보여요</h2>
-        <p>같은 장면을 보고 있다면, 서로의 채팅이 바로 전달돼요.</p>
-      </div>
+      <!-- 왼쪽: 공개 에피소드방 - 붐비고 빠르다 -->
+      <figure class="room room--pub">
+        <div class="screen room-screen" role="img"
+             aria-label="공개 에피소드방 화면: 321명이 함께 보는 방에 탄막과 이모지가 흐르고, 짧은 반응이 쉴 새 없이 도착하며, 반응 수가 계속 오른다.">
+          <div class="room-head">
+            <span class="room-dot" aria-hidden="true"></span>
+            <span class="room-name">공개 에피소드방</span>
+            <span class="room-meta"><span><b class="num" id="cinViewers">321</b>명 시청 중</span></span>
+          </div>
+
+          <div class="room-stage" aria-hidden="true">
+            <div class="room-dm">
+              <i>다들 이 장면 기다렸지</i>
+              <i>와 미쳤다 진짜</i>
+              <i>숨 참고 보는 중</i>
+              <i>여기서 비명 질렀다</i>
+              <i>같이 보니까 더 무섭네</i>
+            </div>
+            <div class="floaters" id="cinFloaters"></div>
+            <div class="room-ctrl">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M8.5 5.5v13M15.5 5.5v13" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+              </svg>
+              <span class="room-track"><i></i></span>
+              <span class="room-time">32:47</span>
+            </div>
+          </div>
+
+          <div class="room-feed cin-side--pub" aria-hidden="true">
+            <span class="cin-msg">와... 반전 소름 <i>🔥</i></span>
+            <span class="cin-msg" style="justify-self:end">다음 화 빨리 보고 싶어요!</span>
+            <span class="cin-msg" style="margin-left:14%">이거 실화 기반인가요?</span>
+            <span class="cin-msg" style="justify-self:end; margin-right:9%">나만 놀란 거 아니지</span>
+            <span class="cin-msg" style="margin-left:5%">저 장면 너무 미쳤다</span>
+            <span class="cin-msg" style="justify-self:end">소름 돋는 연출 <i>🍿</i></span>
+          </div>
+
+          <div class="room-foot" aria-hidden="true">
+            <span class="cin-react cin-react--a"><span>❤️</span><b class="num" data-react>128</b></span>
+            <span class="cin-react cin-react--b"><span>🔥</span><b class="num" data-react>87</b></span>
+            <span class="cin-react cin-react--c"><span>😀</span><b class="num" data-react>56</b></span>
+          </div>
+        </div>
+        <figcaption>수많은 사람들과 실시간으로<br>반응을 나눠보세요.</figcaption>
+      </figure>
+
+      <!-- 오른쪽: 그룹방(초대 전용) - 이름 있는 메신저. 공개방과
+           UI 문법 자체를 다르게 해 두 방의 차이가 한눈에 읽히게 한다 -->
+      <figure class="room room--grp">
+        <div class="screen room-screen" role="img"
+             aria-label="그룹방 화면: 초대받은 사람들의 메신저식 대화. 함께 보는 중인 회차 줄, 초대장 배너, 아바타와 이름이 붙은 메시지, 입력 중 표시가 있다.">
+          <div class="room-head">
+            <span class="room-name">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="4" y="10.5" width="16" height="10" rx="2.4" stroke="currentColor" stroke-width="1.9"/>
+                <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+              </svg>
+              그룹방
+            </span>
+            <span class="room-meta">초대 전용
+              <span class="avs" aria-hidden="true"><i class="a1">지</i><i class="a2">수</i><i class="a3">현</i><i class="plus">+</i></span>
+            </span>
+          </div>
+
+          <!-- 얇은 '함께 보는 중' 줄 - 큰 영상 대신 같은 지점(32:47)만 말한다 -->
+          <div class="gwatch" aria-hidden="true">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M8 5.5v13l11-6.5z"/>
+            </svg>
+            <b>동궁 정주행방</b>
+            <span class="room-track"><i></i></span>
+            <span class="room-time">32:47</span>
+          </div>
+
+          <div class="ginvite" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3" y="5.5" width="18" height="13" rx="2.4" stroke="currentColor" stroke-width="1.7"/>
+              <path d="m3.8 6.8 7.2 5.4a1.6 1.6 0 0 0 2 0l7.2-5.4" stroke="currentColor"
+                    stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+            <span><b>초대장</b>이 도착했어요 · <span class="num">4/8명</span></span>
+            <span class="ginvite-btn">입장하기</span>
+          </div>
+
+          <!-- 재생/정지/입장 줄의 문구·모양은 확장 room.js flushRoomEvent ·
+               chat.js addSystemLine(.rx-sys)의 실물을 그대로 옮겼다 -->
+          <div class="gchat cin-side--grp" aria-hidden="true">
+            <div class="grow">
+              <i class="gav a1">지</i>
+              <div class="gbody">
+                <span class="gmeta"><span class="gname">지혜</span><span class="gtime">21:04</span></span>
+                <span class="cin-msg">우리끼리 보니까 더 좋다 <i>😊</i></span>
+              </div>
+            </div>
+            <div class="gsys gsys--pause"><i></i><b>⏸ 수민님이 잠시 멈췄어요</b><i></i></div>
+            <div class="grow">
+              <i class="gav a2">수</i>
+              <div class="gbody">
+                <span class="gmeta"><span class="gname">수민</span><span class="gtime">21:05</span></span>
+                <span class="cin-msg">이 장면에서 마음이 멈췄어</span>
+              </div>
+            </div>
+            <div class="gsys gsys--play"><i></i><b>▶ 지혜님이 재생했어요</b><i></i></div>
+            <div class="gsys"><i></i><b>＋ 현우님이 들어왔어요</b><i></i></div>
+            <div class="grow">
+              <i class="gav a3">현</i>
+              <div class="gbody">
+                <span class="gmeta"><span class="gname">현우</span><span class="gtime">21:07</span></span>
+                <span class="cin-msg">다음 화는 이번 주말에! <i>❤️</i></span>
+              </div>
+            </div>
+            <div class="grow">
+              <i class="gav a2">수</i>
+              <span class="gtyping"><i></i><i></i><i></i></span>
+            </div>
+          </div>
+
+          <div class="panel-input" aria-hidden="true">
+            <span>초대받은 사람에게만 보이는 대화예요</span><span class="caret"></span>
+          </div>
+        </div>
+        <figcaption>초대한 사람들끼리 편하게 이야기하며<br>함께 즐겨보세요.</figcaption>
+      </figure>
     </div>
 
   </div>
@@ -435,142 +457,125 @@
   </div>
 </section>
 
-<!-- ─── 함께 보는 방식 (다크) ────────────────────────────────── -->
-<section class="cinema" id="rooms">
+<!-- ─── 동작 방식: 남겨진 채팅 · 실시간 채팅 ─────────────────────
+     방문자의 실제 의문("아무도 없는데 채팅이 왜 있지?")을 채팅 패널
+     실물 두 개로 답한다. 1행 = 남겨진 채팅(정지), 2행 = 그 사이로
+     LIVE 채팅이 도착하는 패널(애니메이션). 스타일 = css/how.css
+     설치 안내 바로 앞 6번째(HP-467 — 원래 3번째). 배경은 기본색: 회색(band-soft)으로 두면
+     작품 → 이 섹션 → 설치 안내로 회색 띠가 세 번 이어진다. -->
+<section class="pad" id="how">
   <div class="wrap">
 
-    <div class="cinema-head reveal">
-      <span class="cin-eyebrow">TWO WAYS TO WATCH</span>
-      <h2>함께 보는 방식도 선택하세요</h2>
-      <p>때로는 더 많은 사람들과, 때로는 가까운 사람들과.<br>
-        Replix에서 함께 보는 방식을 골라보세요.</p>
+    <div class="how-row reveal">
+      <div class="how-panel how-panel--solo">
+        <div class="panel-head">
+          <img class="panel-logo" src="assets/logo/replix-horizontal-dark.png" alt="Replix" height="20">
+          <span class="ep-chip" style="margin-left:auto">3화</span>
+        </div>
+        <div class="how-sub">
+          <svg class="solo-ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M5 20c.8-3.2 3.6-5 7-5s6.2 1.8 7 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>지금은 나 혼자 보는 중 · 32:15</span>
+        </div>
+        <div class="panel-feed">
+          <div class="msg">
+            <span class="av" style="background:#4e5a9e">민</span>
+            <div class="msg-body">
+              <span class="msg-name">민지</span><span class="msg-time">3일 전</span>
+              <div class="msg-text">소름 돋았다 진짜</div>
+            </div>
+          </div>
+          <div class="msg">
+            <span class="av" style="background:#9e6a4e">준</span>
+            <div class="msg-body">
+              <span class="msg-name">준호</span><span class="msg-time">어제</span>
+              <div class="msg-text">이 복선 아까부터 느꼈어</div>
+            </div>
+          </div>
+          <div class="msg">
+            <span class="av" style="background:#2daa6e">하</span>
+            <div class="msg-body">
+              <span class="msg-name">하은</span><span class="msg-time">방금</span>
+              <div class="msg-text">와 여기서 터지는 거였어?!</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-input">
+          <span>지금 이 장면에 반응을 남겨보세요</span><span class="caret"></span>
+        </div>
+      </div>
+
+      <div class="how-copy">
+        <h2>"지금 아무도 안 보고 있는데<br>채팅이 왜 있지?"</h2>
+        <p>이 장면을 먼저 본 사람들이 남긴 채팅이에요.
+          내가 그 장면을 보는 순간, 저장된 채팅이 실시간 채팅처럼 나타나요.</p>
+      </div>
     </div>
 
-    <div class="rooms reveal">
-
-      <!-- 왼쪽: 공개 에피소드방 - 붐비고 빠르다 -->
-      <figure class="room room--pub">
-        <div class="screen room-screen" role="img"
-             aria-label="공개 에피소드방 화면: 321명이 함께 보는 방에 탄막과 이모지가 흐르고, 짧은 반응이 쉴 새 없이 도착하며, 반응 수가 계속 오른다.">
-          <div class="room-head">
-            <span class="room-dot" aria-hidden="true"></span>
-            <span class="room-name">공개 에피소드방</span>
-            <span class="room-meta"><span><b class="num" id="cinViewers">321</b>명 시청 중</span></span>
-          </div>
-
-          <div class="room-stage" aria-hidden="true">
-            <div class="room-dm">
-              <i>다들 이 장면 기다렸지</i>
-              <i>와 미쳤다 진짜</i>
-              <i>숨 참고 보는 중</i>
-              <i>여기서 비명 질렀다</i>
-              <i>같이 보니까 더 무섭네</i>
-            </div>
-            <div class="floaters" id="cinFloaters"></div>
-            <div class="room-ctrl">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M8.5 5.5v13M15.5 5.5v13" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
-              </svg>
-              <span class="room-track"><i></i></span>
-              <span class="room-time">32:47</span>
+    <div class="how-row how-row--reverse reveal">
+      <div class="how-panel how-panel--live">
+        <div class="panel-head">
+          <img class="panel-logo" src="assets/logo/replix-horizontal-dark.png" alt="Replix" height="20">
+          <span class="ep-chip" style="margin-left:auto">3화</span>
+        </div>
+        <div class="how-sub">
+          <span class="dot-live"></span>
+          <span><b class="num" style="color:var(--s-text)">12</b>명 함께 시청 중</span>
+          <span class="how-crowd" aria-hidden="true">
+            <i style="background:#d4594e">서</i><i style="background:#7c5cbf">수</i><i style="background:#3b8fd4">유</i><i class="how-crowd-more">+9</i>
+          </span>
+        </div>
+        <div class="panel-feed">
+          <div class="msg">
+            <span class="av" style="background:#4e5a9e">민</span>
+            <div class="msg-body">
+              <span class="msg-name">민지</span><span class="msg-time">3일 전</span>
+              <div class="msg-text">소름 돋았다 진짜</div>
             </div>
           </div>
-
-          <div class="room-feed cin-side--pub" aria-hidden="true">
-            <span class="cin-msg">와... 반전 소름 <i>🔥</i></span>
-            <span class="cin-msg" style="justify-self:end">다음 화 빨리 보고 싶어요!</span>
-            <span class="cin-msg" style="margin-left:14%">이거 실화 기반인가요?</span>
-            <span class="cin-msg" style="justify-self:end; margin-right:9%">나만 놀란 거 아니지</span>
-            <span class="cin-msg" style="margin-left:5%">저 장면 너무 미쳤다</span>
-            <span class="cin-msg" style="justify-self:end">소름 돋는 연출 <i>🍿</i></span>
+          <div class="msg how-live-row how-arrive" style="--d:.4s">
+            <span class="av" style="background:#d4594e">서</span>
+            <div class="msg-body">
+              <span class="msg-name">서윤</span><span class="how-live-badge"><i></i>LIVE</span>
+              <div class="msg-text">지금 이 장면 보는 사람 있어?</div>
+            </div>
           </div>
-
-          <div class="room-foot" aria-hidden="true">
-            <span class="cin-react cin-react--a"><span>❤️</span><b class="num" data-react>128</b></span>
-            <span class="cin-react cin-react--b"><span>🔥</span><b class="num" data-react>87</b></span>
-            <span class="cin-react cin-react--c"><span>😀</span><b class="num" data-react>56</b></span>
+          <div class="msg">
+            <span class="av" style="background:#9e6a4e">준</span>
+            <div class="msg-body">
+              <span class="msg-name">준호</span><span class="msg-time">어제</span>
+              <div class="msg-text">이 복선 아까부터 느꼈어</div>
+            </div>
+          </div>
+          <div class="msg msg--reply how-live-row how-arrive" style="--d:1.5s">
+            <span class="av" style="background:#7c5cbf">수</span>
+            <div class="msg-body">
+              <span class="msg-name">수민</span><span class="how-live-badge"><i></i>LIVE</span>
+              <div class="msg-text">나! 방금 소리 지름 ㅋㅋ</div>
+            </div>
+          </div>
+          <div class="msg msg--reply how-live-row how-arrive" style="--d:2.6s">
+            <span class="av" style="background:#d4594e">서</span>
+            <div class="msg-body">
+              <span class="msg-name">서윤</span><span class="how-live-badge"><i></i>LIVE</span>
+              <div class="msg-text">ㅋㅋㅋ 나만 놀란 게 아니었네</div>
+            </div>
           </div>
         </div>
-        <figcaption>수많은 사람들과 실시간으로<br>반응을 나눠보세요.</figcaption>
-      </figure>
-
-      <!-- 오른쪽: 그룹방(초대 전용) - 이름 있는 메신저. 공개방과
-           UI 문법 자체를 다르게 해 두 방의 차이가 한눈에 읽히게 한다 -->
-      <figure class="room room--grp">
-        <div class="screen room-screen" role="img"
-             aria-label="그룹방 화면: 초대받은 사람들의 메신저식 대화. 함께 보는 중인 회차 줄, 초대장 배너, 아바타와 이름이 붙은 메시지, 입력 중 표시가 있다.">
-          <div class="room-head">
-            <span class="room-name">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="4" y="10.5" width="16" height="10" rx="2.4" stroke="currentColor" stroke-width="1.9"/>
-                <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
-              </svg>
-              그룹방
-            </span>
-            <span class="room-meta">초대 전용
-              <span class="avs" aria-hidden="true"><i class="a1">지</i><i class="a2">수</i><i class="a3">현</i><i class="plus">+</i></span>
-            </span>
-          </div>
-
-          <!-- 얇은 '함께 보는 중' 줄 - 큰 영상 대신 같은 지점(32:47)만 말한다 -->
-          <div class="gwatch" aria-hidden="true">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M8 5.5v13l11-6.5z"/>
-            </svg>
-            <b>동궁 정주행방</b>
-            <span class="room-track"><i></i></span>
-            <span class="room-time">32:47</span>
-          </div>
-
-          <div class="ginvite" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="3" y="5.5" width="18" height="13" rx="2.4" stroke="currentColor" stroke-width="1.7"/>
-              <path d="m3.8 6.8 7.2 5.4a1.6 1.6 0 0 0 2 0l7.2-5.4" stroke="currentColor"
-                    stroke-width="1.7" stroke-linecap="round"/>
-            </svg>
-            <span><b>초대장</b>이 도착했어요 · <span class="num">4/8명</span></span>
-            <span class="ginvite-btn">입장하기</span>
-          </div>
-
-          <!-- 재생/정지/입장 줄의 문구·모양은 확장 room.js flushRoomEvent ·
-               chat.js addSystemLine(.rx-sys)의 실물을 그대로 옮겼다 -->
-          <div class="gchat cin-side--grp" aria-hidden="true">
-            <div class="grow">
-              <i class="gav a1">지</i>
-              <div class="gbody">
-                <span class="gmeta"><span class="gname">지혜</span><span class="gtime">21:04</span></span>
-                <span class="cin-msg">우리끼리 보니까 더 좋다 <i>😊</i></span>
-              </div>
-            </div>
-            <div class="gsys gsys--pause"><i></i><b>⏸ 수민님이 잠시 멈췄어요</b><i></i></div>
-            <div class="grow">
-              <i class="gav a2">수</i>
-              <div class="gbody">
-                <span class="gmeta"><span class="gname">수민</span><span class="gtime">21:05</span></span>
-                <span class="cin-msg">이 장면에서 마음이 멈췄어</span>
-              </div>
-            </div>
-            <div class="gsys gsys--play"><i></i><b>▶ 지혜님이 재생했어요</b><i></i></div>
-            <div class="gsys"><i></i><b>＋ 현우님이 들어왔어요</b><i></i></div>
-            <div class="grow">
-              <i class="gav a3">현</i>
-              <div class="gbody">
-                <span class="gmeta"><span class="gname">현우</span><span class="gtime">21:07</span></span>
-                <span class="cin-msg">다음 화는 이번 주말에! <i>❤️</i></span>
-              </div>
-            </div>
-            <div class="grow">
-              <i class="gav a2">수</i>
-              <span class="gtyping"><i></i><i></i><i></i></span>
-            </div>
-          </div>
-
-          <div class="panel-input" aria-hidden="true">
-            <span>초대받은 사람에게만 보이는 대화예요</span><span class="caret"></span>
-          </div>
+        <div class="how-floats" aria-hidden="true">
+          <i style="--fd:.5s">❤️</i>
+          <i style="--fd:1.8s">🔥</i>
+          <i style="--fd:3.2s">😂</i>
+          <i style="--fd:4.6s">❤️</i>
         </div>
-        <figcaption>초대한 사람들끼리 편하게 이야기하며<br>함께 즐겨보세요.</figcaption>
-      </figure>
+        <div class="panel-input">
+          <span>지금 이 장면에 반응을 남겨보세요</span><span class="caret"></span>
+        </div>
+      </div>
+
+      <div class="how-copy">
+        <h2>같이 보고 있는 사람들의<br>채팅은 실시간으로 보여요</h2>
+        <p>같은 장면을 보고 있다면, 서로의 채팅이 바로 전달돼요.</p>
+      </div>
     </div>
 
   </div>

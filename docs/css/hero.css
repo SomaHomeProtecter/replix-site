@@ -134,7 +134,10 @@
 
 .hero-screen {
   position: relative; z-index: 2;
-  display: grid; grid-template-columns: 1fr 272px;
+  /* 패널 칸 = 제 폭(--pw) × 전환 진행도(--rx, #intro 에 js/hero.js 가 스크롤로 흘린다).
+     0 이면 넷플릭스 원본처럼 영상만 남는다. JS 가 없으면 Replix(1)로 보인다. */
+  --pw: 272px;
+  display: grid; grid-template-columns: 1fr calc(var(--rx, 1) * var(--pw));
   /* 행을 컨테이너 높이(고정 비율)에 못박는다. auto 로 두면 행이 패널
      내용만큼 자라서, 채팅이 쌓일수록 스테이지·이미지가 함께 커져
      cover 이미지가 서서히 확대됐다 채팅 정리 때 되돌아오기를 반복했고,
@@ -142,16 +145,16 @@
      이미지가 특정 영역으로 확대됐다. */
   grid-template-rows: 100%;
   aspect-ratio: 16/8.6; min-height: 330px;
-  transition: grid-template-columns .42s var(--ease), box-shadow .5s var(--ease);
+  /* 전환 값은 스크롤에 바로 붙어야 하므로 transition 을 걸지 않는다 — .reveal 의 등장만 남긴다. */
+  transition: opacity .52s var(--ease), transform .52s var(--ease);
+  /* Replix 쪽으로 갈수록 화면이 붉게 발광한다 - 상태 전환이 카드의 기운으로도
+     읽히는 시각 장치. 원본(0)이면 .screen 의 기본 그림자만 남는다. */
+  box-shadow: 0 2px 4px rgba(16,16,24,.06),
+    0 16px 34px -12px rgba(16,16,24,.22), 0 60px 110px -38px rgba(16,16,24,.46),
+    0 0 76px -12px rgba(229,9,20,calc(.45 * var(--rx, 1)));
 }
-/* Replix 가 켜져 있으면 화면이 붉게 발광한다 - 상태 전환이 카드의
-   기운으로도 읽히는 시각 장치. 꺼지면 .screen 의 기본 그림자로 식는다. */
-.hero-screen:not(.off) { box-shadow: 0 2px 4px rgba(16,16,24,.06),
-  0 16px 34px -12px rgba(16,16,24,.22), 0 60px 110px -38px rgba(16,16,24,.46),
-  0 0 76px -12px rgba(229,9,20,.45); }
 .hero-screen .panel { min-height: 0; overflow: hidden; }
-@media (max-width: 900px) { .hero-screen { grid-template-columns: 1fr 196px; } }
-@media (max-width: 560px) { .hero-screen { grid-template-columns: 1fr 156px; } }
+@media (max-width: 900px) { .hero-screen { --pw: 196px; } }
 
 /* ─── 탄막 모드 (HP-123 · HP-240) ─────────────────────────────
    확장 features/danmaku.js 의 실제 스펙을 옮겼다. 레인 4개를 상단
@@ -180,15 +183,18 @@
 .ctrl-ics--r { margin-left: auto; }
 @media (max-width: 620px) { .ctrl-ics--r { display: none; } }
 
-/* 꺼진 상태 = 원래 화면. 우리가 얹은 것만 걷힌다. */
-.hero-screen.off { grid-template-columns: 1fr 0px; }
-.hero-screen.off .panel { opacity: 0; }
-.hero-screen .panel { transition: opacity .28s var(--ease); }
-.hero-screen.off .heat { opacity: 0; height: 0; margin-bottom: 0; }
-.hero-screen .heat { transition: opacity .3s var(--ease), height .38s var(--ease), margin-bottom .38s var(--ease); }
-.hero-screen.off .floaters, .hero-screen.off .dm-layer { opacity: 0; }
-.hero-screen .floaters, .hero-screen .dm-layer { transition: opacity .25s var(--ease); }
-.hero-screen.off .timecode em { opacity: 0; }
+/* 진행도(--rx) 0 = 원래 화면. 우리가 얹은 것(패널·탄막·이모지·히트맵·'반응 몰림')만
+   그 비율만큼 펴지고 걷힌다. 스크롤에 바로 붙어야 하므로 transition 은 없다. */
+.hero-screen .panel { opacity: var(--rx, 1); }
+/* 패널이 좁게 열려 있는 동안 채팅이 한두 글자씩 세로로 줄바꿈되지 않게, 속 내용은 제 폭을
+   지키고 왼쪽 가장자리에 붙는다 — 열릴수록 아바타·이름(말의 앞부분)부터 밀려 들어온다.
+   (버튼 전환은 0.4초라 이 중간 상태가 안 보였지만, 스크롤에 맞추면 오래 머문다.)
+   1px 은 패널 왼쪽 경계선 몫. */
+.hero-screen .panel > * { width: calc(var(--pw) - 1px); max-width: none; align-self: flex-start; }
+.hero-screen .floaters, .hero-screen .dm-layer { opacity: var(--rx, 1); }
+.hero-screen .heat { opacity: var(--rx, 1);
+  height: calc(var(--rx, 1) * 38px); margin-bottom: calc(var(--rx, 1) * 10px); }
+.hero-screen .timecode em { opacity: var(--rx, 1); }
 
 /* 라이브 수치 스트립 */
 .strip {
@@ -251,17 +257,17 @@
    hero.js 가 #feed·#floaters·#heat·#splitStage 를 잡아 시뮬레이션을 돌린다. */
 .intro-screen { max-width: 960px; margin: 0 auto; }
 
-/* ═══ 원본↔Replix 토글 (2026-08-12) ═══════════════════════════
-   세그먼트 컨트롤: [넷플릭스 | Replix]. Replix 가 기본 활성.
-   hero.js 가 heroScreen 에 .off 를 토글해 패널·탄막·히트맵을 접는다. */
+/* ═══ 원본↔Replix 진행 표시 (2026-08-12 토글 → HP-467 스크롤) ═════════
+   세그먼트 모양: [넷플릭스 | Replix]. 누르는 버튼이 아니라 아래 화면이 지금
+   어느 쪽인지 보여 준다 — 손잡이가 --rx 만큼 미끄러지고, 가운데를 넘으면
+   hero.js 가 .is-orig 를 떼고 붙여 글자색을 바꾼다. */
 
 .hero-toggle {
   display: flex; align-items: center; position: relative;
   width: 220px; height: 38px; margin: 0 auto 24px;
   background: var(--soft); border: 1px solid var(--line);
-  border-radius: 10px; padding: 3px; cursor: pointer;
+  border-radius: 10px; padding: 3px;
   font-family: var(--sans); font-size: 13px; font-weight: 700;
-  -webkit-appearance: none; appearance: none;
 }
 .hero-toggle-seg {
   flex: 1; text-align: center; position: relative; z-index: 1;
@@ -269,29 +275,20 @@
 }
 .hero-toggle-seg--og { color: var(--faint); }
 .hero-toggle-seg--rx { color: #fff; }
+/* 손잡이: Replix(1)면 오른쪽 칸에 빨강, 원본(0)이면 왼쪽 칸에 먹색. 색은 먹색 덧칠(::after)의
+   불투명도로 섞는다 — color-mix 를 못 읽는 구형 사파리에서 배경이 통째로 빠지지 않게. */
 .hero-toggle-thumb {
   position: absolute; top: 3px; right: 3px;
   width: calc(50% - 3px); height: calc(100% - 6px);
   border-radius: 7px; background: var(--accent);
-  box-shadow: 0 2px 8px rgba(229,9,20,.3);
-  transition: transform .3s var(--ease);
+  box-shadow: 0 2px 8px rgba(229,9,20,calc(.3 * var(--rx, 1)));
+  transform: translateX(calc((1 - var(--rx, 1)) * (-100% - 3px)));
 }
-/* 원본 활성 상태 */
-.hero-toggle.is-orig .hero-toggle-thumb { transform: translateX(calc(-100% - 3px)); }
+.hero-toggle-thumb::after { content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: var(--ink); opacity: calc(1 - var(--rx, 1)); }
+/* 원본 쪽(가운데 이전) 글자색 */
 .hero-toggle.is-orig .hero-toggle-seg--og { color: #fff; }
 .hero-toggle.is-orig .hero-toggle-seg--rx { color: var(--faint); }
-.hero-toggle.is-orig .hero-toggle-thumb { background: var(--ink); }
-
-/* hero-screen .off — 패널·탄막·히트맵·이모지가 접힌다 */
-.hero-screen.off .panel { width: 0; min-width: 0; padding: 0; border: 0; overflow: hidden;
-  transition: width .4s var(--ease), min-width .4s var(--ease), padding .4s var(--ease); }
-.hero-screen.off .dm-layer,
-.hero-screen.off .floaters,
-.hero-screen.off .heat { opacity: 0; transition: opacity .3s var(--ease); }
-.hero-screen .panel { transition: width .4s var(--ease), min-width .4s var(--ease), padding .4s var(--ease); }
-.hero-screen .dm-layer,
-.hero-screen .floaters,
-.hero-screen .heat { transition: opacity .3s var(--ease); }
 
 /* 사용자 타이핑 시뮬레이션 — 입력창 활성 + 전송 버튼 */
 .panel-input.input-active {
@@ -311,7 +308,7 @@
 /* ── 모바일 대응 ── */
 @media (max-width: 680px) {
   .intro-screen { max-width: 100%; }
-  .hero-screen { grid-template-columns: 1fr 140px; }
+  .hero-screen { --pw: 140px; }
   .hero-screen .panel { max-height: 100%; }
   .hero-screen .feed { max-height: 200px; overflow: hidden; }
   .hero-screen .panel-ep,
