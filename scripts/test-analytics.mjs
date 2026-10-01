@@ -34,13 +34,15 @@ assert.equal(a.deviceClass(390), 'mobile');
 assert.equal(a.deviceClass(800), 'tablet');
 assert.equal(a.deviceClass(1440), 'desktop');
 
-assert.equal(a.CONSENT_VERSION, 2, '2 = 랜딩 세션 리플레이 추가(HP-457)');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 2 })), 'granted');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 2 })), 'denied');
+assert.equal(a.CONSENT_VERSION, 3, '2 = 랜딩 세션 리플레이 추가(HP-457), 3 = Google Analytics 추가(HP-465)');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 3 })), 'granted');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 3 })), 'denied');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 2 })), null, '받는 곳이 늘었다 — 2 로 받은 동의는 다시 묻는다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 })), null, '범위가 늘었다 — 1 로 받은 동의는 다시 묻는다');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 }), 1), 'granted', '시행일 전 운영에서는 1 이 유효하다');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 }), 1), 'granted', '리플레이 시행일 전 운영에서는 1 이 유효하다');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 2 }), 2), 'granted', 'GA 시행일 전 운영에서는 2 가 유효하다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 0 })), null, '버전이 다르면 다시 묻는다');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'maybe', version: 2 })), null);
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'maybe', version: 3 })), null);
 assert.equal(a.parseConsent('garbage'), null);
 assert.equal(a.parseConsent(null), null);
 
@@ -69,7 +71,6 @@ assert.equal(a.replayOn('localhost', '/', 0), true, '로컬은 검증할 수 있
 assert.equal(a.replayOn('localhost', '/catalog/', 0), false);
 assert.equal(a.consentVersion('replix.tv', BEFORE), 1);
 assert.equal(a.consentVersion('replix.tv', AFTER), 2, '시행일부터 새 문구로 다시 묻는다');
-assert.equal(a.consentVersion('localhost', 0), 2);
 assert.match(a.bannerText(2), /화면 조작 기록/, '동의 문구가 녹화를 밝힌다');
 assert.match(a.bannerText(2), /첫 화면/, '배너는 두 표면이 같이 쓴다 — 범위를 적는다');
 assert.doesNotMatch(a.bannerText(1), /화면 조작/, '시행 전 문구에는 아직 없는 수집을 적지 않는다');
@@ -77,6 +78,39 @@ assert.match(a.SR_URL, /^https:\/\/cdn\.amplitude\.com\/libs\/plugin-session-rep
 assert.equal(a.SR_CONFIG.sampleRate, 1);
 assert.equal(a.SR_CONFIG.storeType, 'memory', '미전송 녹화 조각을 IndexedDB 에 남기지 않는다(철회 즉시 소멸)');
 assert.equal(a.SR_CONFIG.privacyConfig.defaultMaskLevel, 'medium', '입력값은 전부 가린다');
+
+// Google Analytics(HP-465) — Amplitude 와 같은 동의 뒤에서만, 운영은 처리방침 시행일부터, 두 표면 모두.
+const GA_BEFORE = Date.parse('2026-10-08T23:59:59+09:00');
+const GA_AFTER = Date.parse('2026-10-09T00:00:00+09:00');
+assert.equal(a.GA_ID, 'G-MVDJ0Z60LJ');
+assert.equal(a.GA_FROM, GA_AFTER, 'GA 시행일 — 바꾸면 privacy.html 의 시행일도 같이(아래에서 대조한다)');
+assert.ok(a.GA_FROM > a.REPLAY_FROM, '개정 순서: 리플레이(10/7) → GA(10/9)');
+assert.equal(a.gaOn('replix.tv', GA_BEFORE), false, '처리방침 11항: 공고 7일 뒤에 켠다');
+assert.equal(a.gaOn('replix.tv', GA_AFTER), true);
+assert.equal(a.gaOn('localhost', 0), true, '로컬은 검증할 수 있게 항상 켠다(내부 트래픽으로 표시)');
+assert.equal(a.consentVersion('replix.tv', GA_BEFORE), 2, 'GA 시행 전에는 리플레이 문구(2)');
+assert.equal(a.consentVersion('replix.tv', GA_AFTER), 3, 'GA 시행일부터 Google 을 밝힌 문구로 다시 묻는다');
+assert.equal(a.consentVersion('localhost', 0), 3);
+assert.match(a.bannerText(3), /Google Analytics/, '동의 문구가 받는 곳(Google)을 밝힌다');
+assert.match(a.bannerText(3), /화면 조작 기록/, '3 은 2 의 범위를 그대로 포함한다');
+assert.doesNotMatch(a.bannerText(2), /Google/, '시행 전 문구에는 아직 없는 수신자를 적지 않는다');
+// 자동 수집을 끄고 우리가 정리한 값만 싣는다 — gtag 기본값은 전체 URL·문서 제목·전체 리퍼러를 보낸다(§2).
+assert.equal(a.GA_CONFIG.send_page_view, false, '자동 page_view 는 전체 URL(작품 번호 해시)을 싣는다 — 끈다');
+assert.equal(a.GA_CONFIG.allow_google_signals, false, 'Google 신호(광고 계정과 기기 연결) 끈다');
+assert.equal(a.GA_CONFIG.allow_ad_personalization_signals, false, '광고 개인화에 쓰지 않는다');
+assert.deepEqual(a.gaPage('https://replix.tv', '/catalog/', '#/title/123/ep/4', ''), {
+  page_location: 'https://replix.tv/catalog/#/title', page_title: 'Replix 작품 탐색',
+}, '작품·회차 번호를 뺀 경로, 제목은 표면 이름으로 고정(문서 제목에 작품명이 들어가도 새지 않게)');
+assert.deepEqual(a.gaPage('https://replix.tv', '/index.html', '#faq', ''), {
+  page_location: 'https://replix.tv/', page_title: 'Replix 랜딩',
+});
+assert.equal(a.gaPage('https://replix.tv', '/', '', 'https://www.google.com/search?q=replix').page_referrer,
+  'https://www.google.com', '외부 리퍼러는 출처만 — 검색어·쿼리를 싣지 않는다');
+assert.equal(a.gaPage('https://replix.tv', '/', '', 'https://replix.tv/catalog/#/title/123').page_referrer,
+  'https://replix.tv/catalog/#/title', '같은 출처 리퍼러도 정리된 경로로');
+assert.equal(a.gaPage('https://replix.tv', '/', '', 'https://replix.tv/invite?w=1&t=SECRET').page_referrer,
+  'https://replix.tv/invite', '초대 토큰이 리퍼러로 새지 않는다');
+assert.equal(a.gaPage('https://replix.tv', '/', '', 'not a url').page_referrer, undefined);
 
 // 소스 규칙
 const src = read('docs/js/analytics.js');
@@ -100,6 +134,17 @@ const effective = new Date(a.REPLAY_FROM + 9 * 3600 * 1000).toISOString().slice(
 assert.ok(privacy.includes('시행일 ' + effective), `privacy.html 시행일이 ${effective} 여야 한다`);
 assert.match(privacy, /화면 조작 기록/, '처리방침이 리플레이 수집을 밝힌다');
 assert.match(privacy, /30일/, '리플레이 보유 기간');
+const gaEffective = new Date(a.GA_FROM + 9 * 3600 * 1000).toISOString().slice(0, 10);
+assert.ok(privacy.includes('시행일 ' + gaEffective), `privacy.html 에 GA 시행일 ${gaEffective} 가 있어야 한다`);
+assert.match(privacy, /Google Analytics/, '처리방침이 GA 수신을 밝힌다(위탁·국외 이전)');
+assert.match(privacy, /_ga/, '처리방침이 GA 쿠키를 밝힌다(자동 수집 장치)');
+assert.match(privacy, /14개월/, 'GA 보유 기간 — GA 관리의 데이터 보관 설정과 같아야 한다');
+// GA 도 동의 뒤 동적 로드만, 철회하면 전송을 막고 쿠키를 지운다.
+assert.doesNotMatch(index, /googletagmanager|gtag\(/, 'GA 도 동의 뒤 스크립트로만 로드한다(정적 태그 금지)');
+assert.doesNotMatch(read('docs/catalog/index.html'), /googletagmanager/, '카탈로그 산출물에도 정적 GA 태그 금지');
+assert.match(src, /function revoke\(\) \{[\s\S]*?\['ga-disable-' \+ GA_ID\] = true/, '철회 시 GA 전송 차단');
+assert.match(src, /\^_ga/, '철회 시 _ga* 쿠키 삭제');
+assert.match(src, /_gaBlocked = true/, '같은 페이지 재허용에 옛 client id 가 이어지지 않게 — 다음 로드부터 새로');
 assert.match(src, /typeof window !== 'undefined' && typeof document !== 'undefined'\) boot\(\)/, 'node import 가 부트하면 안 된다');
 assert.match(read('docs/js/main.js'), /import \{ page \} from '\.\/analytics\.js'/);
 assert.match(read('docs/js/main.js'), /^page\(\);/m, '랜딩 page_viewed 는 main.js 가 1회 부른다');
