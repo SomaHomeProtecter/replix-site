@@ -4,7 +4,7 @@
    가림·상대 날짜·상태 판정은 activity-pure.js(노드 검사 scripts/test-activity.mjs). 내 글은 가리지 않고 남의 원문만 가린다.
    쓰기·고치기는 작품 페이지의 평가 칸(#/title/{id}/review)에만 있다 — 여기선 지우기만, 작품 페이지와 같은 확인(Comments.tsx).
    들어오는 길 = 헤더 닉네임 메뉴 「내 활동」(Chrome.tsx) · 확장의 「전체 활동 보기」(HP-442). */
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { EyeSlashIcon, HeartIcon, TrashIcon } from '@phosphor-icons/react'
 import { api, ApiError, decodeEntities, deleteMyComment, episodeLabel, fmtTime, watchUrl, type MyActivityChat, type MyActivityWork } from '../api'
 import { login, useAuth } from '../auth'
@@ -183,6 +183,12 @@ export default function Me() {
     ready, user: !!user, loading: act.loading, data: act.data,
     error: act.error ? { status: act.error instanceof ApiError ? act.error.status : undefined } : null,
   })
+  /* 들어오면 제목(h1)에 포커스 — 헤더 메뉴 「내 활동」은 누르는 순간 메뉴와 함께 사라져 포커스가 body 로 떨어진다(키보드·
+     스크린리더 사용자가 길을 잃는다). 제목 요소는 로그인 안내 ↔ 본문 전환 때 바뀌므로 effect 가 아니라 붙을 때마다 부르는 ref 로
+     잡고, 포커스를 잃었을 때(body)만 옮긴다. 고정 함수(useCallback)라 같은 요소에 다시 불리지 않는다. */
+  const focusIfLost = useCallback((el: HTMLHeadingElement | null) => {
+    if (el && (!document.activeElement || document.activeElement === document.body)) el.focus({ preventScroll: true })
+  }, [])
 
   /* 로그인 전(확장의 「전체 활동 보기」로 들어온 경우가 대부분 — 헤더 메뉴는 로그인해야 생긴다)과 세션 만료·동의 전(401·403)은
      같은 자리에서 로그인으로 보낸다. 동의 전이면 ConsentModal 이 위에 떠 있다(auth.ts). */
@@ -190,7 +196,7 @@ export default function Me() {
     return (
       <section className={WRAP}>
         <div className="mx-auto mt-6 max-w-[520px] rounded-lg border border-line bg-raise px-6 py-8 text-center">
-          <h1 className="text-[28px]">내 활동</h1>
+          <h1 ref={focusIfLost} tabIndex={-1} className="text-[28px] focus:outline-none">내 활동</h1>
           <p className="mt-2.5 text-[14px] text-muted">{view === 'expired' ? EXPIRED : GATE_LEDE}</p>
           <button type="button" onClick={login} className="btn btn--primary btn--sm mt-[18px]">로그인</button>
         </div>
@@ -201,7 +207,7 @@ export default function Me() {
   const s = act.data?.summary
   return (
     <section className={WRAP} aria-busy={view === 'auth' || view === 'loading'}>
-      <h1 className="text-[32px]">내 활동</h1>
+      <h1 ref={focusIfLost} tabIndex={-1} className="text-[32px] focus:outline-none">내 활동</h1>
       <p className="mt-2 text-[14px] text-muted">{LEDE}</p>
       {(view === 'auth' || view === 'loading') && <MeSkeleton />}
       {/* 못 불러온 것과 활동이 없는 것은 다른 사실이다 — 섞어 쓰면 장애 중에 "활동 없음"이라고 거짓말한다(Notice.tsx 와 같은 이유). */}

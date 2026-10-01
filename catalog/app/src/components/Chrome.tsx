@@ -183,8 +183,10 @@ function AccountMenu({ name }: { name: string }) {
       </button>
       {open && (
         <div role="menu" aria-label="내 계정" className="absolute right-0 top-[calc(100%+10px)] z-50 min-w-[132px] rounded-md border border-line bg-raise p-1 shadow-[0_12px_32px_rgba(16,16,24,0.14)]">
-          {/* 내 활동(HP-443) — 로그아웃 위. 해시 이동이라 메뉴는 직접 닫는다(focusin 은 같은 문서 안 이동이라 안 온다). */}
+          {/* 내 활동(HP-443) — 로그아웃 위. 해시 이동이라 메뉴는 직접 닫는다(focusin 은 같은 문서 안 이동이라 안 온다).
+              링크는 Space 로 눌리지 않는다 — menuitem 은 Enter·Space 둘 다 받아야 해서(옆의 로그아웃 버튼과 같게) Space 를 클릭으로 바꾼다. */}
           <a ref={item} href={ME_HREF} role="menuitem" onClick={() => { setOpen(false); engaged('my_activity', 'opened', { source: 'menu' }) }}
+            onKeyDown={(e) => { if (e.key === ' ') { e.preventDefault(); e.currentTarget.click() } }}
             className="block w-full rounded-sm px-3 py-2 text-left text-[13.5px] text-ink hover:bg-soft">
             내 활동
           </a>

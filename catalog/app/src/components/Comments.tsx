@@ -60,14 +60,18 @@ function Write({ contentId, mine, onSaved, focus }: { contentId: number; mine: C
   const area = useRef<HTMLTextAreaElement>(null)
   const loginBtn = useRef<HTMLButtonElement>(null)
   const signedIn = !!user   // effect 의존성은 객체가 아니라 이 불리언 — user 객체를 읽으면 exhaustive-deps 경고가 는다
+  const wasSignedIn = useRef(signedIn)   // 직전 effect 때의 로그인 여부 — 로그아웃(true→false)을 로그인과 가르려고
   /* #/title/{id}/review 로 들어오면(내 활동·확장 HP-442 의 '고치기'·'평가 남기기') 평가 칸으로 스크롤하고 입력란(비로그인이면
      로그인 버튼)에 포커스. 스크롤은 섹션(#comments, scroll-mt 로 고정 헤더만큼 띄움)에 맞추고 포커스는 스크롤 없이 준다 —
-     포커스가 다시 스크롤하면 섹션 제목이 헤더 밑으로 들어간다. 로그인 왕복 뒤(signedIn 이 됨)에도 다시 잡는다.
+     포커스가 다시 스크롤하면 섹션 제목이 헤더 밑으로 들어간다. 로그인 왕복 뒤(signedIn 이 됨)에도 다시 잡는다 — 반대로
+     로그아웃·세션 만료(signedIn 이 꺼짐)로는 잡지 않는다: 읽던 자리에서 평가 칸으로 끌려가면 안 된다.
      스크롤은 즉시(instant) 한다 — html 의 scroll-behavior:smooth 로 굴리면 목표가 호출 시점에 굳는데, 그사이 위쪽 '순간' 섹션이
      회차 응답을 받아 자라면 섹션이 수백 px 아래로 밀린 채 멈춘다(2026-10-01 실측, 뷰포트가 낮으면 포커스가 화면 밖). 같은 이유로
      잠시(REALIGN_MS, 사람이 스크롤·입력하면 즉시 그만) 문서 크기가 바뀔 때마다 다시 맞춘다. */
   useEffect(() => {
-    if (!focus || !ready) return
+    const signedOut = wasSignedIn.current && !signedIn
+    wasSignedIn.current = signedIn
+    if (!focus || !ready || signedOut) return
     const sec = document.getElementById('comments')
     if (!sec) return
     const align = () => sec.scrollIntoView({ block: 'start', behavior: 'instant' })

@@ -79,7 +79,7 @@
 | `env` | `prod` \| `dev` | 호스트명으로 판정 — `replix.tv` 만 prod, 미리보기·localhost·file 은 dev. 확장과 같은 두 프로젝트 |
 | `surface` | `web_landing` \| `web_catalog` | 확장(`extension`)과 한 프로젝트에 섞이므로 표면을 가른다 |
 | `locale` | `ko-KR` | `navigator.language` |
-| `page_path` | `/` · `/catalog/` · `/catalog/#/title` | 정제된 경로(§7). 작품·회차 ID 없음 |
+| `page_path` | `/` · `/catalog/` · `/catalog/#/title` · `/catalog/#/notice` · `/catalog/#/me` | 정제된 경로(§7) — 해시는 라우트 이름까지만(`cleanPath`). 작품·회차·공지 ID 없음 |
 | `device_class` | `mobile` \| `tablet` \| `desktop` | 768/1024 경계. 랜딩 레이아웃 판단 |
 
 ## 6. 이벤트 명세
