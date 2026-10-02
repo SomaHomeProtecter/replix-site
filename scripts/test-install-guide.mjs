@@ -60,12 +60,13 @@ assert.deepEqual(g.GUIDE_ACTIONS, ['opened', 'copy_link', 'share', 'open_store']
 assert.match(plan, /`install_guide_action`/, '트래킹 플랜에 install_guide_action 이 있다');
 for (const action of g.GUIDE_ACTIONS) assert.match(plan, new RegExp('`' + action + '`'), `트래킹 플랜에 action ${action}`);
 assert.match(src, /track\('install_guide_action'/, '시트 행동은 install_guide_action 으로 센다');
+for (const action of g.GUIDE_ACTIONS) assert.match(src, new RegExp(`track\\('${action}'\\)`), `시트가 ${action} 을 센다`);
 assert.doesNotMatch(src, /data-cta="/, '시트의 웹 스토어 링크에 data-cta 를 달지 않는다');
 
 // 두 표면에 붙는다 — 랜딩은 main.js 가, 작품 탐색은 런타임 주입(analytics.js 와 같은 방식).
 assert.match(read('docs/js/main.js'), /^import '\.\/install-guide\.js';$/m, '랜딩이 설치 안내를 불러온다');
 assert.match(read('catalog/app/src/installGuide.ts'), /\/js\/install-guide\.js/, '작품 탐색이 /js/install-guide.js 를 붙인다');
-assert.match(read('catalog/app/src/main.tsx'), /loadInstallGuide\(\)/, '작품 탐색 진입점에서 부른다');
+assert.match(read('catalog/app/src/main.tsx'), /^loadInstallGuide\(\)/m, '작품 탐색 진입점에서 부른다(주석 아님)');
 
 // 랜딩 헤더 — 760px 이하에선 설치 버튼 자리에 '작품 탐색'(휴대폰은 설치 불가), 로고는 줄이지 않는다.
 const index = read('docs/index.html');
