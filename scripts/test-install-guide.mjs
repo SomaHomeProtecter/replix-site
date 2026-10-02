@@ -70,9 +70,12 @@ for (const action of g.GUIDE_ACTIONS) assert.match(plan, new RegExp('`' + action
 assert.match(src, /track\('install_guide_action'/, '시트 행동은 install_guide_action 으로 센다');
 for (const action of g.GUIDE_ACTIONS) assert.match(src, new RegExp(`track\\('${action}'\\)`), `시트가 ${action} 을 센다`);
 assert.doesNotMatch(src, /data-cta="/, '시트의 웹 스토어 링크에 data-cta 를 달지 않는다');
-// 뒤로 가기(작품 탐색의 해시 라우트 이동)에 시트가 남아 다른 화면을 덮지 않게 닫는다 — 안드로이드는 뒤로 가기로 창을 닫는다.
-assert.match(src, /addEventListener\('hashchange', close\)/, '해시 이동이면 시트를 닫는다');
-assert.match(src, /addEventListener\('popstate', close\)/, '뒤로 가기면 시트를 닫는다');
+// 뒤로 가기는 페이지를 떠나지 않고 시트만 닫는다(안드로이드는 뒤로 가기로 창을 닫는다) — 열 때 같은 주소로 히스토리 한 칸을
+// 쌓고, 버튼·Esc·바깥으로 닫으면 그 칸을 되돌린다. 뒤로 가기·해시 이동으로 닫힐 때는 히스토리를 건드리지 않는다.
+assert.match(src, /history\.pushState\(/, '열 때 히스토리 한 칸을 쌓는다');
+assert.match(src, /history\.back\(\)/, '직접 닫으면 쌓은 칸을 되돌린다');
+assert.match(src, /addEventListener\('popstate', onNavigate\)/, '뒤로 가기면 시트를 닫는다');
+assert.match(src, /addEventListener\('hashchange', onNavigate\)/, '해시 이동이면 시트를 닫는다');
 
 // 두 표면에 붙는다 — 랜딩은 main.js 가, 작품 탐색은 런타임 주입(analytics.js 와 같은 방식).
 assert.match(read('docs/js/main.js'), /^import '\.\/install-guide\.js';$/m, '랜딩이 설치 안내를 불러온다');

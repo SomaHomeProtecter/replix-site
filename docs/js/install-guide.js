@@ -56,6 +56,7 @@ var CSS = '#rx-install-guide{position:fixed;inset:0;z-index:10000;display:none;a
 var _sheet = null;
 var _trigger = null;       /* 시트를 연 설치 버튼 — 닫으면 포커스를 돌려준다 */
 var _copiedTimer = 0;
+var _historyPushed = false; /* 열 때 히스토리 한 칸을 쌓았는가 — 직접 닫을 때 되돌린다 */
 
 function deviceEnv() {
   var n = navigator;
@@ -145,16 +146,28 @@ function open(trigger) {
   status('');
   _sheet.style.display = 'flex';
   document.documentElement.style.overflow = 'hidden';   /* 시트 뒤 페이지가 같이 스크롤되지 않게 */
+  /* 뒤로 가기가 페이지를 떠나지 않고 시트만 닫게 — 같은 주소로 히스토리 한 칸을 쌓는다(안드로이드는 뒤로 가기로 창을 닫는다).
+     주소·해시가 그대로라 작품 탐색 라우터(hashchange 만 듣는다)와 계측에는 영향이 없다. */
+  if (!_historyPushed) {
+    try { history.pushState({ rxInstallGuide: true }, ''); _historyPushed = true; } catch (_) { _historyPushed = false; }
+  }
   $('.rxg-copy').focus();
   track('opened');
 }
-function close() {
+/* 직접 닫으면(버튼·Esc·바깥) 열 때 쌓은 히스토리 칸을 되돌린다. 뒤로 가기·해시 이동으로 닫힐 때는 이미 그 칸을 지났거나
+   다른 화면으로 갔으니 건드리지 않는다 — 되돌리면 한 번 더 뒤로 간다. */
+function close(viaNavigation) {
   if (!_sheet || _sheet.style.display === 'none') return;
   _sheet.style.display = 'none';
   document.documentElement.style.overflow = '';
   if (_trigger && _trigger.focus) _trigger.focus();
   _trigger = null;
+  if (_historyPushed) {
+    _historyPushed = false;
+    if (viaNavigation !== true) { try { history.back(); } catch (_) { /* 히스토리를 못 건드리는 환경 — 칸이 하나 남을 뿐이다 */ } }
+  }
 }
+function onNavigate() { close(true); }
 
 /* ═══ 부트 ═══════════════════════════════════════════════════════ */
 function boot() {
@@ -168,9 +181,9 @@ function boot() {
     ev.preventDefault();
     open(a);
   });
-  /* 뒤로 가기·해시 이동이면 닫는다 — 작품 탐색은 해시 라우트라, 안 닫으면 화면만 바뀌고 시트가 새 화면을 덮은 채 남는다
-     (안드로이드는 뒤로 가기로 창을 닫는다). */
-  window.addEventListener('hashchange', close);
-  window.addEventListener('popstate', close);
+  /* 뒤로 가기(열 때 쌓은 칸을 지남)·해시 이동이면 닫는다 — 작품 탐색은 해시 라우트라, 안 닫으면 화면만 바뀌고 시트가
+     새 화면을 덮은 채 남는다. */
+  window.addEventListener('popstate', onNavigate);
+  window.addEventListener('hashchange', onNavigate);
 }
 if (typeof window !== 'undefined' && typeof document !== 'undefined') boot();
