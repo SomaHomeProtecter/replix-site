@@ -11,6 +11,8 @@ import { FeedbackModal } from './FeedbackModal'
 /* 공개 카탈로그의 실제 목적지만 둔다. 같은 곳으로 가는 메뉴 두 개나 알림 같은 빈 약속은 두지 않는다.
    로그인은 2026-09-14부터 있다(작품 댓글·별점, HP-124) — 개인화가 아니라 쓰기 권한이다. 화면은 여전히 누구에게나 같다. */
 const STORE = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp'
+/* 헤더 전체 배치(섹션 링크·늘 열린 검색창)가 들어가는 폭 — 클래스의 min-[1240px] 와 같은 값이어야 한다(HP-474). */
+const WIDE_QUERY = '(min-width: 1240px)'
 
 /* 메뉴바는 랜딩과 같은 치수지만 항목은 섞지 않는다(2026-09-05): 로고 옆 '인기 작품' 라벨이 지금
    어느 표면인지 말하고, 링크는 이 표면의 섹션뿐이다. 랜딩으로는 오른쪽 '홈으로'.
@@ -250,6 +252,23 @@ function Search() {
     }
     document.addEventListener('pointerdown', on)
     return () => document.removeEventListener('pointerdown', on)
+  }, [expanded, collapse])
+
+  /* 펼친 검색 줄이 헤더를 덮은 채 남지 않게 두 경우를 더 접는다(코드 리뷰 지적):
+     · 넓어지면(태블릿 회전 등으로 1,240px 이상) — 그 폭엔 늘 열린 검색창이 있고 돋보기는 숨는다. 포커스는 돌려주지 않는다.
+     · 키보드 포커스가 줄 밖(줄 밑에 가린 헤더 버튼·돋보기)으로 나가면 — 안 접으면 보이지 않는 곳에 포커스가 가고 Enter 가
+       보이지 않는 링크를 누른다. 계정 메뉴의 focusin 닫기와 같은 방식이다. */
+  useEffect(() => {
+    if (!expanded) return
+    const mq = window.matchMedia(WIDE_QUERY)
+    const onWide = () => { if (mq.matches) collapse(false) }
+    const onFocusIn = (e: FocusEvent) => { if (box.current && !box.current.contains(e.target as Node)) collapse(false) }
+    mq.addEventListener('change', onWide)
+    document.addEventListener('focusin', onFocusIn)
+    return () => {
+      mq.removeEventListener('change', onWide)
+      document.removeEventListener('focusin', onFocusIn)
+    }
   }, [expanded, collapse])
 
   return (

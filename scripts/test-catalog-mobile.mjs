@@ -52,6 +52,10 @@ assert.ok((chrome.match(/addEventListener\('pointerdown'/g) || []).length >= 2, 
 // ② 검색 — 좁은 폭엔 돋보기 버튼, 누르면 헤더 폭 검색 줄. 펼친 입력은 16px(iOS 사파리 확대 방지).
 assert.match(chrome, /aria-label="작품 검색"[\s\S]{0,200}min-\[1240px\]:hidden|min-\[1240px\]:hidden[\s\S]{0,400}aria-label="작품 검색"/, '좁은 폭 돋보기 버튼');
 assert.match(chrome, /expanded \? 'text-\[16px\]'/, '펼친 검색 입력은 16px');
+// 펼친 검색 줄이 남아 헤더를 덮지 않게 — 넓어지면(태블릿 회전) 접고, 키보드 포커스가 줄 밖으로 나가도 접는다.
+assert.match(chrome, /const WIDE_QUERY = '\(min-width: 1240px\)'/, '넓은 폭 경계 = 돋보기를 숨기는 min-[1240px] 와 같은 값');
+assert.match(chrome, /matchMedia\(WIDE_QUERY\)/, '넓어지면 펼친 검색 줄을 접는다');
+assert.ok((chrome.match(/addEventListener\('focusin'/g) || []).length >= 2, '포커스가 검색 줄 밖으로 나가면 접는다(계정 메뉴와 같은 focusin)');
 assert.match(chrome, /engaged\('search', 'open'\)/, '계측 search/open 그대로(포커스당 1회)');
 
 // ④ 격자 → 휴대폰 레일. 항목을 숨기는 격자 넷(순위·지금 보는 중·이번 주 인기 순간·함께 본 작품)이 모두 레일을 쓴다.
