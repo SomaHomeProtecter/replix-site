@@ -160,5 +160,9 @@ function boot() {
     ev.preventDefault();
     open(a);
   });
+  /* 뒤로 가기·해시 이동이면 닫는다 — 작품 탐색은 해시 라우트라, 안 닫으면 화면만 바뀌고 시트가 새 화면을 덮은 채 남는다
+     (안드로이드는 뒤로 가기로 창을 닫는다). */
+  window.addEventListener('hashchange', close);
+  window.addEventListener('popstate', close);
 }
 if (typeof window !== 'undefined' && typeof document !== 'undefined') boot();
