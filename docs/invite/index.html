@@ -2,6 +2,8 @@
 <!-- HP-186 초대 스텁 (C안, 2026-07-24 김지호 확정) — https://replix.tv/invite?w=<watch id>&t=<초대 토큰>
      역할: 미설치자를 넷플릭스 해당 회차로 보낸다(설치자는 확장 background가 이 페이지 도달 전에 가로챔).
      자동 이동 + 수동 버튼(인앱 브라우저가 자동 리다이렉트를 막는 경우 대비) + 파라미터 오류 안내.
+     휴대폰은 자동 이동하지 않는다(HP-477) — 초대는 대개 메신저로 받아 휴대폰에서 열리는데, 휴대폰엔 확장이 없어
+     넷플릭스로 보내면 Replix 안내 없이 초대가 끊긴다. 'PC 크롬에서 같이 봐요' 안내와 링크 복사를 보여 준다.
      계약 정본 = Jira HP-186 코멘트 11185 · HP-87 코멘트 11191. HP-87 랜딩이 완성되면 이 파일을
      랜딩형 초대 페이지로 교체한다(URL·파라미터 불변). 외부 리소스 0 — 단일 파일 유지. -->
 <html lang="ko">
@@ -39,8 +41,18 @@
       display: inline-block; background: #e50914; color: #fff; text-decoration: none;
       border-radius: 10px; padding: 13px 26px; font-size: 15px; font-weight: 700; margin-top: 4px;
     }
+    button.btn { border: 0; font-family: inherit; cursor: pointer; min-width: 180px; }
     .btn:hover { filter: brightness(1.08); }
     .btn:focus-visible { outline: 2px solid #ff5b63; outline-offset: 2px; }
+    .lead { font-size: 13.5px; line-height: 1.6; color: #a9a9b4; max-width: 280px; }
+    .url {
+      display: none; width: 100%; max-width: 300px; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.16); background: #15151b; color: #cfcfd6;
+      font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .copied { min-height: 18px; font-size: 12.5px; color: #8b8b96; }
+    .link { padding: 8px 4px; font-size: 13px; color: #8b8b96; text-decoration: underline; text-underline-offset: 3px; }
+    .link:focus-visible { outline: 2px solid #ff5b63; outline-offset: 2px; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -50,6 +62,15 @@
     <p class="msg" id="msg">이동하고 있어요…</p>
     <a id="open" class="btn">열기</a>
     <p class="sub">자동으로 이동하지 않으면 눌러 주세요</p>
+  </main>
+  <main id="mobile" hidden>
+    <div class="wordmark">Replix</div>
+    <p class="msg">친구가 함께 보자고 초대했어요</p>
+    <p class="lead">같이 보기는 PC 크롬에서 돼요.<br>이 링크를 PC로 보내 열어 주세요.</p>
+    <button type="button" id="copy" class="btn">링크 복사</button>
+    <input id="url" class="url" type="text" readonly aria-label="초대 링크">
+    <p class="copied" id="copied" role="status" aria-live="polite"></p>
+    <a id="anyway" class="link">넷플릭스에서 그냥 열기 →</a>
   </main>
   <main id="bad" hidden>
     <div class="wordmark">Replix</div>
@@ -70,6 +91,19 @@
         url: function (id) { return 'https://www.disneyplus.com/play/' + encodeURIComponent(id); },
       },
     };
+    // 확장을 설치할 수 없는 기기인가(HP-477). 정본은 docs/js/install-guide.js 의 isMobileDevice 이고 여기는 사본이다 —
+    // 외부 리소스 0 원칙이라 import 하지 못한다. 고치면 둘 다(scripts/test-install-guide.mjs 가 같은 사례로 대조한다).
+    /* isMobileDevice:start */
+    function isMobileDevice(env) {
+      var e = env || {};
+      var ua = e.ua || '';
+      if (/Android|iPhone|iPad|iPod/i.test(ua)) return true;
+      if (e.uaPlatform === 'Android') return true;
+      if (e.platform === 'MacIntel' && (e.maxTouchPoints || 0) > 1) return true;
+      if (/Linux/.test(ua) && !/CrOS/.test(ua) && (e.maxTouchPoints || 0) > 0) return true;
+      return e.uaMobile === true;
+    }
+    /* isMobileDevice:end */
     var p = new URLSearchParams(location.search);
     var w = p.get('w');
     var t = p.get('t');
@@ -84,13 +118,41 @@
       // 토큰은 해시(#)로 나른다 — fragment는 서버로 전송되지 않아 OTT 쪽이 토큰을 보지 못하고,
       // 설치된 확장(content script)만 읽는다. encodeURIComponent는 URL 조립 방어(값은 base64url).
       var url = NAV[pk].url(w) + '#replix-invite=' + encodeURIComponent(t);
-      document.getElementById('msg').textContent = NAV[pk].name + '(으)로 이동하고 있어요…';
-      var open = document.getElementById('open');
-      open.textContent = NAV[pk].name + '에서 열기';
-      open.href = url;
-      document.getElementById('go').hidden = false;
-      // 수동 버튼을 먼저 그린 뒤 자동 이동 — 일부 인앱 브라우저가 replace를 막아도 길이 남는다.
-      location.replace(url);
+      var nav = navigator;
+      var device = { ua: nav.userAgent || '', platform: nav.platform || '', maxTouchPoints: nav.maxTouchPoints || 0,
+        uaMobile: nav.userAgentData ? nav.userAgentData.mobile === true : undefined,
+        uaPlatform: nav.userAgentData ? nav.userAgentData.platform : undefined };
+      if (isMobileDevice(device)) {
+        // 휴대폰: 자동 이동하지 않는다. 복사하는 링크는 이 초대 주소 그대로라 PC에서 열면 아래 PC 경로를 탄다.
+        var anyway = document.getElementById('anyway');
+        anyway.textContent = NAV[pk].name + '에서 그냥 열기 →';
+        anyway.href = url;
+        var copied = document.getElementById('copied');
+        var copyBtn = document.getElementById('copy');
+        var done = function () { copyBtn.textContent = '복사했어요'; copied.textContent = 'PC에서 붙여 넣어 열어 주세요.'; };
+        // 클립보드 API 가 막힌 인앱 브라우저(카카오톡 등)면 주소 칸을 꺼내 선택해 두고 옛 방식으로 한 번 더 시도한다.
+        var fallback = function () {
+          var input = document.getElementById('url');
+          input.value = location.href; input.style.display = 'block';
+          input.focus(); input.select();
+          var ok = false;
+          try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+          if (ok) done(); else copied.textContent = '주소를 길게 눌러 복사해 주세요.';
+        };
+        copyBtn.addEventListener('click', function () {
+          if (nav.clipboard && nav.clipboard.writeText) nav.clipboard.writeText(location.href).then(done, fallback);
+          else fallback();
+        });
+        document.getElementById('mobile').hidden = false;
+      } else {
+        document.getElementById('msg').textContent = NAV[pk].name + '(으)로 이동하고 있어요…';
+        var open = document.getElementById('open');
+        open.textContent = NAV[pk].name + '에서 열기';
+        open.href = url;
+        document.getElementById('go').hidden = false;
+        // 수동 버튼을 먼저 그린 뒤 자동 이동 — 일부 인앱 브라우저가 replace를 막아도 길이 남는다.
+        location.replace(url);
+      }
     } else {
       document.getElementById('bad').hidden = false;
     }
