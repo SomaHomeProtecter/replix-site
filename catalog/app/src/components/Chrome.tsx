@@ -26,8 +26,9 @@ export function Nav({ current }: { current: Route['page'] }) {
   /* 랜딩 .nav 와 같은 치수: sticky 66px, 같은 배경·블러, .wrap 안에 gap 26px, 로고 34px, 메뉴 14px gap 24px,
      오른쪽 끝 .btn--primary.btn--sm. 랜딩과 다른 것은 '홈으로' 버튼 하나뿐이다(작품 탐색에서 랜딩으로 돌아가는 길).
      폭별 구성(HP-474 — 전엔 휴대폰·태블릿에서 버튼이 화면 밖으로 밀려 잘렸다):
-     · 1,100px 이상: 위 그대로.
-     · 761~1,099px: 섹션 링크를 숨기고(푸터·홈 스크롤로 닿는다) 검색은 돋보기로 접는다, 간격 18px.
+     · 1,240px 이상: 위 그대로.
+     · 761~1,239px: 섹션 링크를 숨기고(푸터·홈 스크롤로 닿는다) 검색은 돋보기로 접는다, 간격 18px. 경계가 1,240px 인 이유 —
+       그보다 좁으면 늘 열린 검색창이 눌려(1,100px 에서 73px, '작'만 보였다) 1,240px 에서야 200px 가 된다(2026-10-02 실측).
      · 760px 이하(휴대폰): 로고 · '작품' · 돋보기 · 로그인(로그인 뒤엔 닉네임 메뉴). 설치 버튼·'홈으로'·공지는 숨긴다 —
        휴대폰엔 확장을 깔 수 없고(설치 안내는 HP-477), 랜딩으로는 로고가, 공지로는 공지 띠·푸터가 간다. 360px 미만은 로고를 28px 로. */
   return (
@@ -35,17 +36,17 @@ export function Nav({ current }: { current: Route['page'] }) {
       className="sticky top-0 z-40 flex h-[66px] items-center border-b border-line"
       style={{ background: 'rgba(250,249,249,.86)', backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)' }}
     >
-      <div className="wrap flex w-full items-center gap-3 min-[761px]:gap-[18px] min-[1100px]:gap-[26px]">
+      <div className="wrap flex w-full items-center gap-3 min-[761px]:gap-[18px] min-[1240px]:gap-[26px]">
         <a href="/" className="inline-flex shrink-0 items-center" aria-label="Replix 홈">
           <img src={logo} alt="Replix" height={34} className="h-[28px] w-auto min-[360px]:h-[34px]" />
         </a>
         {/* 표면 이름. 랜딩에는 없는 요소 — 이것이 두 바를 구분한다. */}
-        <a href="#/" className="-ml-1 inline-flex shrink-0 items-center gap-2 text-[15px] font-bold text-ink min-[1100px]:-ml-3 min-[1100px]:gap-3">
+        <a href="#/" className="-ml-1 inline-flex shrink-0 items-center gap-2 text-[15px] font-bold text-ink min-[1240px]:-ml-3 min-[1240px]:gap-3">
           <span className="h-4 w-px bg-line2" aria-hidden />
           작품
         </a>
 
-        <nav className="ml-3 hidden items-center gap-6 min-[1100px]:flex">
+        <nav className="ml-3 hidden items-center gap-6 min-[1240px]:flex">
           {NAV.map((n) => (
             <a key={n.label} href={n.href} className="whitespace-nowrap text-[14px] text-muted transition-colors hover:text-ink">
               {n.label}
@@ -209,7 +210,7 @@ function AccountMenu({ name }: { name: string }) {
 }
 
 /** 작품 검색. 범위는 "리플릭스에 반응이 쌓인 작품"뿐이다(카탈로그가 크라우드소싱, HP-168) — 그 사실을 빈 결과에 적는다.
- *  1,100px 이상은 헤더에 검색창이 늘 있고, 그보다 좁으면 돋보기 버튼만 두었다가 누르면 헤더 전체를 덮는 검색 줄로
+ *  1,240px 이상은 헤더에 검색창이 늘 있고, 그보다 좁으면 돋보기 버튼만 두었다가 누르면 헤더 전체를 덮는 검색 줄로
  *  펼친다(HP-474 — 전엔 768px 미만에서 입력창을 숨기기만 해 휴대폰에선 검색할 수 없었다). 펼친 입력은 16px —
  *  iOS 사파리는 16px 보다 작은 입력에 포커스하면 화면을 확대한다. */
 function Search() {
@@ -260,7 +261,7 @@ function Search() {
         onClick={() => setExpanded(true)}
         aria-label="작품 검색"
         aria-expanded={expanded}
-        className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-sm border border-line bg-raise text-faint transition-colors hover:text-ink min-[1100px]:hidden"
+        className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-sm border border-line bg-raise text-faint transition-colors hover:text-ink min-[1240px]:hidden"
       >
         <MagnifyingGlassIcon size={15} />
       </button>
@@ -268,7 +269,7 @@ function Search() {
         ref={box}
         className={expanded
           ? 'absolute inset-0 z-50 flex items-center gap-2 bg-warm px-[var(--gut)]'   // 헤더를 덮는 검색 줄(헤더가 sticky 라 그 안에 붙는다)
-          : 'relative ml-auto hidden w-[268px] min-[1100px]:block'}
+          : 'relative ml-auto hidden w-[268px] min-[1240px]:block'}
       >
         <label className="flex min-w-0 flex-1 items-center gap-2 rounded-sm border border-line bg-raise px-3 py-[7px]">
           <MagnifyingGlassIcon size={14} className="shrink-0 text-faint" />

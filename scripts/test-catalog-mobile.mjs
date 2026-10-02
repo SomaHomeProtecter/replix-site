@@ -37,7 +37,7 @@ assert.match(install, /\bhidden\b/, '헤더 설치 버튼은 휴대폰에서 숨
 assert.match(install, /min-\[761px\]:inline-flex/, '헤더 설치 버튼은 761px 부터 보인다');
 const home761 = tag(/<a href="\/" className="btn btn--ghost[^"]*">/);
 assert.match(home761, /\bhidden\b.*min-\[761px\]:inline-flex/, "'홈으로'는 761px 부터");
-assert.match(chrome, /<nav className="[^"]*\bhidden\b[^"]*min-\[1100px\]:flex/, '섹션 링크는 1,100px 부터(태블릿 폭 넘침)');
+assert.match(chrome, /<nav className="[^"]*\bhidden\b[^"]*min-\[1240px\]:flex/, '섹션 링크는 1,240px 부터(그보다 좁으면 늘 열린 검색창이 눌린다)');
 const loginBtn = tag(/<button type="button" onClick=\{login\}[^>]*>/);
 assert.ok(loginBtn && !/\bhidden\b/.test(loginBtn), '로그인 버튼은 휴대폰에서도 보인다(HP-274 결정 12 재개)');
 const accountBox = tag(/<div ref=\{box\} className="amp-mask[^"]*"/);
@@ -50,7 +50,7 @@ assert.doesNotMatch(chrome, /addEventListener\('mousedown'/, '바깥 닫기는 m
 assert.ok((chrome.match(/addEventListener\('pointerdown'/g) || []).length >= 2, 'pointerdown 으로(계정 메뉴·검색)');
 
 // ② 검색 — 좁은 폭엔 돋보기 버튼, 누르면 헤더 폭 검색 줄. 펼친 입력은 16px(iOS 사파리 확대 방지).
-assert.match(chrome, /aria-label="작품 검색"[\s\S]{0,200}min-\[1100px\]:hidden|min-\[1100px\]:hidden[\s\S]{0,400}aria-label="작품 검색"/, '좁은 폭 돋보기 버튼');
+assert.match(chrome, /aria-label="작품 검색"[\s\S]{0,200}min-\[1240px\]:hidden|min-\[1240px\]:hidden[\s\S]{0,400}aria-label="작품 검색"/, '좁은 폭 돋보기 버튼');
 assert.match(chrome, /expanded \? 'text-\[16px\]'/, '펼친 검색 입력은 16px');
 assert.match(chrome, /engaged\('search', 'open'\)/, '계측 search/open 그대로(포커스당 1회)');
 
