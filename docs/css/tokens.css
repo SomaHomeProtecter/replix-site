@@ -103,9 +103,20 @@ img { max-width: 100%; }
 .nav-links { display: flex; gap: 24px; margin-left: 12px; }
 .nav-links a { font-size: 14px; color: var(--muted); text-decoration: none; transition: color .18s var(--ease); }
 .nav-links a:hover { color: var(--ink); }
+/* 로고는 줄이지 않는다 — flex 로 줄면 높이(34px)는 그대로라 이미지 비율이 깨진다(320px 에서 가로 36% 찌그러짐, HP-477). */
+.nav .wordmark { flex-shrink: 0; }
 .nav .btn { margin-left: auto; }
 .nav .btn + .btn { margin-left: 10px; }
-@media (max-width: 760px) { .nav-links, .nav .nav-switch { display: none; } }
+/* 휴대폰 폭: 섹션 링크와 설치 버튼을 숨기고 '작품 탐색'만 남긴다 — 휴대폰에선 확장을 깔 수 없어 헤더 설치 버튼이 막다른
+   길이었고, '작품 탐색'까지 숨겨 랜딩에서 작품 탐색으로 갈 길이 맨 아래 푸터뿐이었다(HP-477). 설치는 히어로·마지막 버튼이
+   맡고, 휴대폰 기기에선 js/install-guide.js 가 웹 스토어 대신 'PC 크롬에서 써요' 안내를 띄운다. */
+@media (max-width: 760px) { .nav-links, .nav .nav-install { display: none; } }
+
+/* 휴대폰 기기 전용·PC 전용 문구(HP-477) — js/install-guide.js 가 확장을 깔 수 없는 기기면 <html> 에 rx-mobile-device 를 단다.
+   폭이 아니라 기기로 가르는 이유: 좁은 창의 PC 는 설치할 수 있고 넓은 태블릿은 못 한다. */
+.rx-mobile-only { display: none; }
+.rx-mobile-device .rx-mobile-only { display: inline; }
+.rx-mobile-device .rx-pc-only { display: none; }
 
 /* ── 스크롤 조립 ────────────────────────────────────────────── */
 /* 리빌은 짧고 얕게. 크게 밀어 올리면 섹션이 덩어리째 튀어나와 흐름이 끊긴다. */

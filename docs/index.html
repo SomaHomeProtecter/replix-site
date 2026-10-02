@@ -8,6 +8,22 @@
      이 한 줄만 바꾼다(js/stats.js·js/chart.js가 함께 읽는다) — HP-358. -->
 <meta name="api-base" content="https://api.replix.tv">
 <title>Replix - 혼자서도 같이 보는 즐거움, Replix에서</title>
+<!-- 링크 미리보기(카카오톡·슬랙 등)·아이콘(HP-478). 이미지는 Replix 로고로 만든 것만 쓴다 — 작품 포스터·스틸은
+     공개 웹에 올리지 않는다(CLAUDE.md §7). 이미지 출처·다시 만드는 법 = assets/og/README.md. 주소는 절대 주소여야 한다. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Replix">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content="https://replix.tv/">
+<meta property="og:title" content="Replix - 혼자서도 같이 보는 즐거움, Replix에서">
+<meta property="og:description" content="같은 장면을 보는 사람들과 반응을 나누며 넷플릭스를 즐기세요. 혼자서도 같이 보는 즐거움, Replix에서.">
+<meta property="og:image" content="https://replix.tv/assets/og/replix-og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Replix">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#faf9f9">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/hero.css">
@@ -30,6 +46,7 @@
     </a>
     <!-- 메뉴바는 작품 탐색(/catalog/)과 같은 치수·구성이지만 항목은 섞지 않는다(2026-09-05):
          이 바에는 랜딩 섹션만, 작품 탐색 바에는 그 섹션만. 서로는 오른쪽 보조 버튼으로 오간다.
+         휴대폰 폭(760px 이하)에선 섹션 링크와 설치 버튼을 숨기고 '작품 탐색'만 남긴다(HP-477, css/tokens.css).
          치수를 바꾸면 catalog/app/src/components/Chrome.tsx 도 같이. -->
     <div class="nav-links">
       <a href="#rooms" data-link="rooms" data-link-loc="nav">함께 보기</a>
@@ -37,7 +54,7 @@
       <a href="#faq" data-link="faq" data-link-loc="nav">자주 묻는 질문</a>
     </div>
     <a class="btn btn--ghost btn--sm nav-switch" href="/catalog/" data-link="catalog" data-link-loc="nav">작품 탐색</a>
-    <a class="btn btn--primary btn--sm" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" data-cta="nav">크롬 확장프로그램 설치하기</a>
+    <a class="btn btn--primary btn--sm nav-install" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" data-cta="nav">크롬 확장프로그램 설치하기</a>
   </div>
 </nav>
 
@@ -59,7 +76,8 @@
         </span>
         크롬 확장프로그램 설치하기
       </a>
-      <p class="hero-note">Chrome 120 이상에서 사용 가능</p>
+      <!-- 휴대폰 기기(확장 설치 불가)면 js/install-guide.js 가 <html> 에 rx-mobile-device 를 달아 아래 문구로 바뀐다(HP-477). -->
+      <p class="hero-note"><span class="rx-pc-only">Chrome 120 이상에서 사용 가능</span><span class="rx-mobile-only">PC 크롬에서 설치할 수 있어요</span></p>
     </div>
 
     <ul class="hero-chips">

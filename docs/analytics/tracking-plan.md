@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v10 (Amplitude + Google Analytics)
+# replix.tv 웹 — 트래킹 플랜 v11 (Amplitude + Google Analytics)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -89,7 +89,8 @@
 | 이벤트 | surface | 발화 시점 | 속성 | 질문 |
 | --- | --- | --- | --- | --- |
 | `page_viewed` | 둘 다 | 랜딩: `main.js` 끝 `page()` 1회 · 카탈로그: `App.tsx` 라우트 effect(홈/작품/앵커 변경마다). 동의 전 호출은 기억만 하고 허용 직후 1회 | `route`(카탈로그: `home` \| `title` \| `notice` \| `me`) | W1 분모 |
-| `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture) | `location`: `nav` \| `hero` \| `close`(랜딩) · `catalog_nav` \| `catalog_title` \| `catalog_footer` | **W1** |
+| `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture). 휴대폰 기기(확장 설치 불가)에서는 웹 스토어 대신 설치 안내 시트가 열리지만 클릭은 그대로 센다(HP-477) | `location`: `nav` \| `hero` \| `close`(랜딩) · `catalog_nav` \| `catalog_title` \| `catalog_footer` | **W1** |
+| `install_guide_action` | 둘 다 | `install-guide.js` — 휴대폰 기기에서 설치 버튼으로 열린 'PC 크롬에서 써요' 시트 안의 행동. 열 때 1회(`opened`)와 버튼마다. 시트의 웹 스토어 링크에는 `data-cta` 가 없어 `install_cta_clicked` 와 겹쳐 세지 않는다. 복사·공유하는 주소는 싣지 않는다 | `action`: `opened` \| `copy_link` \| `share` \| `open_store` | **W1**(휴대폰 갈래) |
 | `nav_link_clicked` | landing | `[data-link]` 요소 클릭(`analytics.js` 문서 위임, capture) — 설치 CTA 가 **아닌** 랜딩의 모든 `<a>`. 아래 표 | `target`(어디로) · `location`: `nav` \| `footer` | **W6** |
 | `section_viewed` | landing | `reveal.js` — 섹션 상단이 뷰포트 위 60% 안에 들어올 때 페이지뷰당 1회 | `section`: `intro` \| `how` \| `scenes` \| `works` \| `rooms` \| `faq` \| `install` | W3 |
 | `demo_interacted` | landing | `hero.js` 제품 화면 원본→Replix 스크롤 전환을 **원본(0)에서 시작해 Replix(1)까지 다 넘겼을 때** 페이지뷰당 1회. 이미 지나친 위치에서 열린 경우(앵커·새로고침)는 세지 않는다 | `demo`: `hero_toggle` · `action`: `scroll_complete` | W4 |
@@ -274,3 +275,4 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v8 | 2026-10-01 | 세션 리플레이를 작품 탐색까지(§9) — 동의 버전 4, 남의 평가·채팅·닉네임·프로필 사진·계정 이름은 `amp-mask`/`amp-block` 으로 가림, 처리방침 1·3·5·6항 "웹사이트의 화면 조작 기록"(HP-457) — 고경우 |
 | v9 | 2026-10-01 | 랜딩 제품 화면 토글이 버튼 → 스크롤 진행 표시로 바뀌어 `demo_interacted` 의 `action` 을 `toggle` → `scroll_complete`(원본에서 Replix 까지 다 넘긴 페이지뷰당 1회)로 교체. 섹션 순서 변경(함께 보기 3번째·설명 카드 6번째)은 `section_viewed` 열거값에 영향 없음(HP-467) — 고경우 |
 | v10 | 2026-10-01 | 내 활동(`#/me`, HP-443) — `page_viewed{route: me}`, `catalog_engaged{feature: my_activity}`(`opened`·`more`·`review_deleted`), `watch_link_clicked{from: my_activity}`. 새 이벤트 없음, ID·본문 금지 유지 — 김지호 |
+| v11 | 2026-10-02 | 휴대폰 설치 안내(HP-477) — 휴대폰 기기에서 설치 버튼은 웹 스토어 대신 'PC 크롬에서 써요' 시트를 연다. 새 이벤트 `install_guide_action{action: opened \| copy_link \| share \| open_store}`, `install_cta_clicked` 는 그대로(클릭 시점 계측). 랜딩 헤더는 760px 이하에서 설치 버튼 대신 '작품 탐색'(`nav_link_clicked{target: catalog, location: nav}` 이 휴대폰에서도 생긴다). `/invite` 는 여전히 계측하지 않는다 — 김지호 |

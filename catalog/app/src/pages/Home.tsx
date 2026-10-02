@@ -96,11 +96,16 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
     </ol>
   ) : null
 
+  /* 누르는 칸은 24×24 이상(WCAG 2.5.8, HP-478) — 6px 점을 그대로 누르게 하면 손가락으로 옆 점을 누르기 쉬웠다.
+     보이는 점(6px·활성 28px)은 안쪽 span 이 그리고 버튼은 점 양옆 9px·높이 24px 의 투명한 칸이다. 칸끼리 겹치지 않으려면
+     점 사이가 18px 가 된다(종전 gap 8px). 위·아래·왼쪽 음수 여백으로 점의 자리와 줄 높이는 종전과 같다. */
   const dots = slides.length > 1 ? (
-    <div className="mt-6 flex items-center gap-2 md:hidden" role="tablist" aria-label="빌보드 작품">
+    <div className="-mx-[9px] mt-[15px] -mb-[9px] flex items-center md:hidden" role="tablist" aria-label="빌보드 작품">
       {slides.map((w, i) => (
         <button key={`${w.contentId}-${i}`} type="button" role="tab" aria-selected={i === idx} aria-label={`${i + 1}위 ${w.title}`} onClick={() => { setIdx(i); engaged('billboard', 'switch') }}
-          className={`h-[6px] rounded-full transition-all ${i === idx ? 'w-7 bg-accent' : 'w-[6px] bg-ink/25 hover:bg-ink/50'}`} />
+          className="group flex h-6 items-center px-[9px]">
+          <span className={`block h-[6px] rounded-full transition-all ${i === idx ? 'w-7 bg-accent' : 'w-[6px] bg-ink/25 group-hover:bg-ink/50'}`} />
+        </button>
       ))}
     </div>
   ) : null
