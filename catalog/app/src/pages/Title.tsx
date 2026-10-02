@@ -368,9 +368,9 @@ function Related({ items }: { items: CatalogContent['alsoWatched'] }) {
           <EmptyNote>아직 함께 본 작품이 없습니다.</EmptyNote>
         </div>
       ) : (
-        <ul ref={fill.ref} className="fill-grid" style={{ '--min': '140px', '--gx': '16px', '--gy': '0px' } as React.CSSProperties}>
+        <ul ref={fill.ref} className="fill-grid rail-sm" style={{ '--min': '140px', '--gx': '16px', '--gy': '0px' } as React.CSSProperties}>
           {items.map((t, i) => (
-            <li key={t.contentId} hidden={i >= fill.count}>
+            <li key={t.contentId} hidden={i >= fill.limit}>
               <a href={titleHref(t.contentId)} className="group block" onClick={() => engaged('also_watched', 'click')}>
                 <PosterSlot title={t.title} poster={t.posterUrl} />
                 <p className="mt-2 truncate text-[12.5px] font-bold text-ink">{t.title}</p>

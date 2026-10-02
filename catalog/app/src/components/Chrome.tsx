@@ -24,23 +24,28 @@ const NAV = [
 /* 원 시안과 같은 60px 한 줄 바, 좌우 48px 거터. */
 export function Nav({ current }: { current: Route['page'] }) {
   /* 랜딩 .nav 와 같은 치수: sticky 66px, 같은 배경·블러, .wrap 안에 gap 26px, 로고 34px, 메뉴 14px gap 24px,
-     오른쪽 끝 .btn--primary.btn--sm. 랜딩과 다른 것은 '홈으로' 버튼 하나뿐이다(작품 탐색에서 랜딩으로 돌아가는 길). */
+     오른쪽 끝 .btn--primary.btn--sm. 랜딩과 다른 것은 '홈으로' 버튼 하나뿐이다(작품 탐색에서 랜딩으로 돌아가는 길).
+     폭별 구성(HP-474 — 전엔 휴대폰·태블릿에서 버튼이 화면 밖으로 밀려 잘렸다):
+     · 1,100px 이상: 위 그대로.
+     · 761~1,099px: 섹션 링크를 숨기고(푸터·홈 스크롤로 닿는다) 검색은 돋보기로 접는다, 간격 18px.
+     · 760px 이하(휴대폰): 로고 · '작품' · 돋보기 · 로그인(로그인 뒤엔 닉네임 메뉴). 설치 버튼·'홈으로'·공지는 숨긴다 —
+       휴대폰엔 확장을 깔 수 없고(설치 안내는 HP-477), 랜딩으로는 로고가, 공지로는 공지 띠·푸터가 간다. 360px 미만은 로고를 28px 로. */
   return (
     <header
       className="sticky top-0 z-40 flex h-[66px] items-center border-b border-line"
       style={{ background: 'rgba(250,249,249,.86)', backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)' }}
     >
-      <div className="wrap flex w-full items-center gap-[26px]">
+      <div className="wrap flex w-full items-center gap-3 min-[761px]:gap-[18px] min-[1100px]:gap-[26px]">
         <a href="/" className="inline-flex shrink-0 items-center" aria-label="Replix 홈">
-          <img src={logo} alt="Replix" height={34} style={{ height: 34, width: 'auto' }} />
+          <img src={logo} alt="Replix" height={34} className="h-[28px] w-auto min-[360px]:h-[34px]" />
         </a>
         {/* 표면 이름. 랜딩에는 없는 요소 — 이것이 두 바를 구분한다. */}
-        <a href="#/" className="-ml-3 inline-flex shrink-0 items-center gap-3 text-[15px] font-bold text-ink">
+        <a href="#/" className="-ml-1 inline-flex shrink-0 items-center gap-2 text-[15px] font-bold text-ink min-[1100px]:-ml-3 min-[1100px]:gap-3">
           <span className="h-4 w-px bg-line2" aria-hidden />
           작품
         </a>
 
-        <nav className="ml-3 hidden items-center gap-6 min-[761px]:flex">
+        <nav className="ml-3 hidden items-center gap-6 min-[1100px]:flex">
           {NAV.map((n) => (
             <a key={n.label} href={n.href} className="whitespace-nowrap text-[14px] text-muted transition-colors hover:text-ink">
               {n.label}
@@ -55,7 +60,7 @@ export function Nav({ current }: { current: Route['page'] }) {
         </a>
         <NoticeLink current={current === 'notice'} />
         <AuthButton />
-        <a href={STORE} target="_blank" rel="noopener" className="btn btn--primary btn--sm shrink-0" data-cta="catalog_nav">
+        <a href={STORE} target="_blank" rel="noopener" className="btn btn--primary btn--sm hidden shrink-0 min-[761px]:inline-flex" data-cta="catalog_nav">
           크롬 확장프로그램 설치하기
         </a>
       </div>
@@ -127,13 +132,15 @@ export function NoticeBand() {
 /** 로그인 상태. 동의를 마친 회원은 닉네임(서버의 랜덤 닉네임)을 보이고, 누르면 작은 메뉴 — 「내 활동」(#/me, HP-443)과 로그아웃.
  *  누르자마자 로그아웃되던 것(HP-421)은 실수 한 번에 확인 없이 로그아웃됐다(2026-09-24 김지호, HP-449).
  *  내 활동이 웹의 유일한 '내 것' 화면이고 입구는 이 메뉴뿐이다(HP-274 결정 12 — 섹션 내비는 "이 표면의 섹션만" 규칙과 충돌해 기각).
+ *  휴대폰에서도 보인다 — 결정 12 의 '760px 이하에선 입구 없음'은 2026-10-02 김지호가 재개해 고쳤다(HP-474): 휴대폰 로그인
+ *  사용자가 로그아웃도 내 활동 진입도 못 했다.
  *  프로필·설정 화면은 여전히 두지 않는다(그건 확장의 몫) — 내 활동은 설정이 아니라 내가 남긴 것의 모아보기다. */
 function AuthButton() {
   const { ready, user } = useAuth()
   if (!ready) return null
   if (!user) {
     return (
-      <button type="button" onClick={login} className="hidden shrink-0 text-[14px] text-muted transition-colors hover:text-ink min-[761px]:inline-flex">
+      <button type="button" onClick={login} className="inline-flex shrink-0 items-center py-2 text-[14px] text-muted transition-colors hover:text-ink">
         로그인
       </button>
     )
@@ -151,34 +158,36 @@ function AccountMenu({ name }: { name: string }) {
   /* 열면 메뉴 항목에 포커스. 바깥을 누르거나, 포커스가 메뉴 밖 요소로 들어오거나(Tab), Esc 면 닫는다(Esc 는 포커스를
      닉네임 버튼으로 돌려준다). 'blur 로 닫기'를 쓰지 않는 이유: Safari 는 버튼을 눌러도 포커스를 주지 않고 mousedown 에서
      포커스를 비우므로, 로그아웃을 누르는 순간 메뉴가 먼저 사라져 클릭이 닿지 않는다. focusin 은 실제로 포커스가 옮겨 간
-     요소가 있을 때만 온다. */
+     요소가 있을 때만 온다. 바깥 누름은 mousedown 이 아니라 pointerdown 으로 본다 — iOS 사파리는 누를 수 없는 요소(빈 바탕·
+     글자)를 탭하면 마우스 이벤트를 만들지 않아 휴대폰에서 메뉴가 안 닫혔다(HP-474). */
   useEffect(() => {
     if (!open) return
     item.current?.focus()
-    const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const onDown = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
     const onFocusIn = (e: FocusEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); btn.current?.focus() } }
-    document.addEventListener('mousedown', onDown)
+    document.addEventListener('pointerdown', onDown)
     document.addEventListener('focusin', onFocusIn)
     document.addEventListener('keydown', onKey)
     return () => {
-      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('pointerdown', onDown)
       document.removeEventListener('focusin', onFocusIn)
       document.removeEventListener('keydown', onKey)
     }
   }, [open])
-  /* amp-mask = 세션 리플레이 글자 가림(HP-457) — 로그인한 사람의 닉네임이 녹화에 찍히지 않게 */
+  /* amp-mask = 세션 리플레이 글자 가림(HP-457) — 로그인한 사람의 닉네임이 녹화에 찍히지 않게.
+     min-w-0 — 휴대폰 헤더에 자리가 모자라면 이 칸이 줄고 닉네임이 말줄임된다(한 줄 유지). */
   return (
-    <div ref={box} className="amp-mask relative hidden shrink-0 min-[761px]:block">
+    <div ref={box} className="amp-mask relative min-w-0">
       <button
         ref={btn}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex max-w-[160px] items-center gap-1 text-[14px] font-bold text-ink"
+        className="inline-flex max-w-full items-center gap-1 py-2 text-[14px] font-bold text-ink min-[761px]:max-w-[160px]"
       >
-        <span className="truncate">{name}</span>
+        <span className="min-w-0 truncate">{name}</span>
         <CaretDownIcon size={12} weight="bold" aria-hidden className={`flex-none transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
@@ -199,12 +208,18 @@ function AccountMenu({ name }: { name: string }) {
   )
 }
 
-/** 작품 검색. 범위는 "리플릭스에 반응이 쌓인 작품"뿐이다(카탈로그가 크라우드소싱, HP-168) — 그 사실을 빈 결과에 적는다. */
+/** 작품 검색. 범위는 "리플릭스에 반응이 쌓인 작품"뿐이다(카탈로그가 크라우드소싱, HP-168) — 그 사실을 빈 결과에 적는다.
+ *  1,100px 이상은 헤더에 검색창이 늘 있고, 그보다 좁으면 돋보기 버튼만 두었다가 누르면 헤더 전체를 덮는 검색 줄로
+ *  펼친다(HP-474 — 전엔 768px 미만에서 입력창을 숨기기만 해 휴대폰에선 검색할 수 없었다). 펼친 입력은 16px —
+ *  iOS 사파리는 16px 보다 작은 입력에 포커스하면 화면을 확대한다. */
 function Search() {
   const [q, setQ] = useState('')
   const [items, setItems] = useState<ContentSearchItem[] | null>(null)
   const [open, setOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)   // 좁은 폭에서 돋보기로 펼친 상태
   const box = useRef<HTMLDivElement>(null)
+  const input = useRef<HTMLInputElement>(null)
+  const opener = useRef<HTMLButtonElement>(null)
   const focused = useRef(false) // 계측 search/open 은 포커스당 1회 — 타이핑마다 세지 않는다
 
   useEffect(() => {
@@ -217,50 +232,88 @@ function Search() {
     return () => { alive = false; clearTimeout(t) }
   }, [q])
 
-  useEffect(() => {
-    const on = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false) }
-    document.addEventListener('mousedown', on)
-    return () => document.removeEventListener('mousedown', on)
+  /* 펼치면 바로 입력. 접을 땐 검색어도 비운다 — 다시 펼쳤을 때 지난 결과가 남아 있지 않게. */
+  useEffect(() => { if (expanded) input.current?.focus() }, [expanded])
+  const collapse = useCallback((refocus: boolean) => {
+    setExpanded(false); setOpen(false); setQ('')
+    if (refocus) opener.current?.focus()
   }, [])
 
+  /* 바깥을 누르면 결과를 닫고 펼친 검색 줄도 접는다. pointerdown 인 이유는 계정 메뉴와 같다(iOS 사파리 탭). */
+  useEffect(() => {
+    const on = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (!box.current || box.current.contains(t) || opener.current?.contains(t)) return
+      setOpen(false)
+      if (expanded) collapse(false)
+    }
+    document.addEventListener('pointerdown', on)
+    return () => document.removeEventListener('pointerdown', on)
+  }, [expanded, collapse])
+
   return (
-    <div ref={box} className="relative ml-auto w-9 md:w-[268px]">
-      <label className="flex items-center gap-2 rounded-sm border border-line bg-raise px-3 py-[7px]">
-        <MagnifyingGlassIcon size={14} className="shrink-0 text-faint" />
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => { setQ(e.target.value); setOpen(true) }}
-          onFocus={() => { setOpen(true); if (!focused.current) { focused.current = true; engaged('search', 'open') } }}
-          onBlur={() => { focused.current = false }}
-          placeholder="작품 검색"
-          aria-label="작품 검색"
-          className="hidden w-full bg-transparent text-[12.5px] text-ink outline-none placeholder:text-faint md:block"
-        />
-      </label>
-      {open && items && (
-        <ul className="absolute right-0 top-full z-50 mt-1 w-[320px] overflow-hidden rounded-md border border-line bg-raise shadow-[0_12px_32px_rgba(16,16,24,0.12)]">
-          {items.length === 0 && (
-            <li className="px-3 py-3 text-[12.5px] text-muted">리플릭스에 반응이 쌓인 작품 중에는 없습니다</li>
-          )}
-          {items.slice(0, 8).map((it) => (
-            <li key={it.contentId}>
-              <a
-                href={titleHref(it.contentId)}
-                onClick={() => { setOpen(false); setQ(''); engaged('search', 'select', { has_results: true }) }}
-                className="flex items-center gap-3 px-3 py-2 hover:bg-soft"
-              >
-                <span className="h-9 w-6 shrink-0 overflow-hidden rounded-[3px] bg-sink">
-                  {it.posterUrl && <img src={it.posterUrl} alt="" className="size-full object-cover" />}
-                </span>
-                <span className="truncate text-[13px] font-bold text-ink">{it.title}</span>
-                <span className="ml-auto shrink-0 text-[11px] text-muted">{it.contentType === 'MOVIE' ? '영화' : '시리즈'}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <>
+      {/* 좁은 폭의 돋보기. 넓은 폭엔 검색창이 늘 있어 숨긴다. */}
+      <button
+        ref={opener}
+        type="button"
+        onClick={() => setExpanded(true)}
+        aria-label="작품 검색"
+        aria-expanded={expanded}
+        className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-sm border border-line bg-raise text-faint transition-colors hover:text-ink min-[1100px]:hidden"
+      >
+        <MagnifyingGlassIcon size={15} />
+      </button>
+      <div
+        ref={box}
+        className={expanded
+          ? 'absolute inset-0 z-50 flex items-center gap-2 bg-warm px-[var(--gut)]'   // 헤더를 덮는 검색 줄(헤더가 sticky 라 그 안에 붙는다)
+          : 'relative ml-auto hidden w-[268px] min-[1100px]:block'}
+      >
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-sm border border-line bg-raise px-3 py-[7px]">
+          <MagnifyingGlassIcon size={14} className="shrink-0 text-faint" />
+          <input
+            ref={input}
+            type="search"
+            value={q}
+            onChange={(e) => { setQ(e.target.value); setOpen(true) }}
+            onFocus={() => { setOpen(true); if (!focused.current) { focused.current = true; engaged('search', 'open') } }}
+            onBlur={() => { focused.current = false }}
+            onKeyDown={(e) => { if (e.key === 'Escape' && expanded) { e.preventDefault(); collapse(true) } }}
+            placeholder="작품 검색"
+            aria-label="작품 검색"
+            className={`w-full min-w-0 bg-transparent text-ink outline-none placeholder:text-faint ${expanded ? 'text-[16px]' : 'text-[12.5px]'}`}
+          />
+        </label>
+        {expanded && (
+          <button type="button" onClick={() => collapse(true)} className="shrink-0 px-1 py-2 text-[14px] text-muted transition-colors hover:text-ink">
+            닫기
+          </button>
+        )}
+        {open && items && (
+          <ul className={`absolute top-full z-50 mt-1 rounded-md border border-line bg-raise shadow-[0_12px_32px_rgba(16,16,24,0.12)] ${expanded ? 'inset-x-[var(--gut)] max-h-[60dvh] overflow-y-auto' : 'right-0 w-[320px] overflow-hidden'}`}>
+            {items.length === 0 && (
+              <li className="px-3 py-3 text-[12.5px] text-muted">리플릭스에 반응이 쌓인 작품 중에는 없습니다</li>
+            )}
+            {items.slice(0, 8).map((it) => (
+              <li key={it.contentId}>
+                <a
+                  href={titleHref(it.contentId)}
+                  onClick={() => { setOpen(false); setQ(''); if (expanded) collapse(false); engaged('search', 'select', { has_results: true }) }}
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-soft"
+                >
+                  <span className="h-9 w-6 shrink-0 overflow-hidden rounded-[3px] bg-sink">
+                    {it.posterUrl && <img src={it.posterUrl} alt="" className="size-full object-cover" />}
+                  </span>
+                  <span className="truncate text-[13px] font-bold text-ink">{it.title}</span>
+                  <span className="ml-auto shrink-0 text-[11px] text-muted">{it.contentType === 'MOVIE' ? '영화' : '시리즈'}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
   )
 }
 
