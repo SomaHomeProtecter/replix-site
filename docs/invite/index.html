@@ -96,8 +96,11 @@
     /* isMobileDevice:start */
     function isMobileDevice(env) {
       var e = env || {};
-      if (/Android|iPhone|iPad|iPod/i.test(e.ua || '')) return true;
+      var ua = e.ua || '';
+      if (/Android|iPhone|iPad|iPod/i.test(ua)) return true;
+      if (e.uaPlatform === 'Android') return true;
       if (e.platform === 'MacIntel' && (e.maxTouchPoints || 0) > 1) return true;
+      if (/Linux/.test(ua) && !/CrOS/.test(ua) && (e.maxTouchPoints || 0) > 0) return true;
       return e.uaMobile === true;
     }
     /* isMobileDevice:end */
@@ -117,7 +120,8 @@
       var url = NAV[pk].url(w) + '#replix-invite=' + encodeURIComponent(t);
       var nav = navigator;
       var device = { ua: nav.userAgent || '', platform: nav.platform || '', maxTouchPoints: nav.maxTouchPoints || 0,
-        uaMobile: nav.userAgentData ? nav.userAgentData.mobile === true : undefined };
+        uaMobile: nav.userAgentData ? nav.userAgentData.mobile === true : undefined,
+        uaPlatform: nav.userAgentData ? nav.userAgentData.platform : undefined };
       if (isMobileDevice(device)) {
         // 휴대폰: 자동 이동하지 않는다. 복사하는 링크는 이 초대 주소 그대로라 PC에서 열면 아래 PC 경로를 탄다.
         var anyway = document.getElementById('anyway');

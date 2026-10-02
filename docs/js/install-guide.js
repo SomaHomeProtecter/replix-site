@@ -13,14 +13,21 @@
    node 에서 import 하면 부트하지 않는다(scripts/test-install-guide.mjs 가 순수 함수를 검사한다). */
 
 /* ═══ 순수 함수 (node 테스트 대상) ═══════════════════════════════ */
-/* 확장을 설치할 수 없는 기기인가 — 안드로이드(휴대폰·태블릿)·iPhone·iPad·iPod. env = { ua, platform, maxTouchPoints, uaMobile }.
+/* 확장을 설치할 수 없는 기기인가 — 안드로이드(휴대폰·태블릿)·iPhone·iPad·iPod.
+   env = { ua, platform, maxTouchPoints, uaMobile, uaPlatform }(uaMobile·uaPlatform 은 UA-CH, 없으면 undefined).
    · UA 문자열을 먼저 본다 — UA-CH 의 mobile 은 안드로이드 태블릿에서 false 다.
    · iPadOS 사파리는 기본이 데스크톱 모드라 UA 가 Mac 과 같다 — 'MacIntel' 에 터치 지점이 있으면 iPad 다(Mac 은 터치가 없다).
-   · 터치 화면 Windows 노트북·크롬북은 확장을 깔 수 있으니 PC 다. 모르면 PC(지금 동작 그대로). */
+   · 큰 안드로이드 태블릿 크롬도 기본이 '데스크톱 사이트'라 UA 가 'X11; Linux x86_64'(Android 없음)이고 UA-CH 도 PC 처럼
+     보일 수 있다 — 리눅스인데 터치 지점이 있으면 안드로이드로 본다. 터치 화면 리눅스 PC 는 드물고, 잘못 잡혀도 시트에
+     웹 스토어 링크가 있어 막히지 않는다(반대로 놓치면 휴대폰 웹 스토어·넷플릭스로 가 막힌다).
+   · 크롬북(CrOS)·터치 화면 Windows 노트북은 확장을 깔 수 있으니 PC 다. 모르면 PC(지금 동작 그대로). */
 export function isMobileDevice(env) {
   var e = env || {};
-  if (/Android|iPhone|iPad|iPod/i.test(e.ua || '')) return true;
+  var ua = e.ua || '';
+  if (/Android|iPhone|iPad|iPod/i.test(ua)) return true;
+  if (e.uaPlatform === 'Android') return true;
   if (e.platform === 'MacIntel' && (e.maxTouchPoints || 0) > 1) return true;
+  if (/Linux/.test(ua) && !/CrOS/.test(ua) && (e.maxTouchPoints || 0) > 0) return true;
   return e.uaMobile === true;
 }
 /* install_guide_action 의 action 열거값 — 트래킹 플랜 §6 과 같다. */
@@ -53,7 +60,8 @@ var _copiedTimer = 0;
 function deviceEnv() {
   var n = navigator;
   return { ua: n.userAgent || '', platform: n.platform || '', maxTouchPoints: n.maxTouchPoints || 0,
-    uaMobile: n.userAgentData ? n.userAgentData.mobile === true : undefined };
+    uaMobile: n.userAgentData ? n.userAgentData.mobile === true : undefined,
+    uaPlatform: n.userAgentData ? n.userAgentData.platform : undefined };
 }
 function track(action) {
   try { if (window.ReplixAnalytics) window.ReplixAnalytics.track('install_guide_action', { action: action }); }

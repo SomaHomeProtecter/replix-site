@@ -20,6 +20,8 @@ const UA = {
   macChrome: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
   winChrome: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
   chromeOS: 'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+  // 큰 안드로이드 태블릿 크롬의 기본값 '데스크톱 사이트' — UA 에 Android 가 없다(리눅스 PC 와 같은 문자열).
+  linuxDesktop: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
 };
 const CASES = [
   [{ ua: UA.androidPhone, platform: 'Linux armv81', maxTouchPoints: 5, uaMobile: true }, true, '안드로이드 휴대폰'],
@@ -32,6 +34,12 @@ const CASES = [
   [{ ua: UA.winChrome, platform: 'Win32', maxTouchPoints: 10, uaMobile: false }, false, '터치 화면 Windows 노트북 — 설치할 수 있다'],
   [{ ua: UA.chromeOS, platform: 'Linux x86_64', maxTouchPoints: 10, uaMobile: false }, false, '크롬북 — 설치할 수 있다'],
   [{ ua: UA.winChrome, platform: 'Win32', maxTouchPoints: 0, uaMobile: true }, true, 'UA-CH 가 mobile 이라고 하면 믿는다'],
+  [{ ua: UA.linuxDesktop, platform: 'Linux x86_64', maxTouchPoints: 10, uaMobile: false, uaPlatform: 'Linux' }, true,
+    '안드로이드 태블릿 데스크톱 모드 — UA·UA-CH 모두 리눅스 PC 처럼 보여도 터치 지점이 있다'],
+  [{ ua: UA.linuxDesktop, platform: 'Linux x86_64', maxTouchPoints: 0, uaMobile: false, uaPlatform: 'Android' }, true,
+    'UA-CH 플랫폼이 Android 면 안드로이드다'],
+  [{ ua: UA.linuxDesktop, platform: 'Linux x86_64', maxTouchPoints: 0, uaMobile: false, uaPlatform: 'Linux' }, false,
+    '터치 없는 리눅스 PC — 설치할 수 있다'],
   [{ ua: '', platform: '', maxTouchPoints: 0 }, false, '모르면 PC — 지금 동작(웹 스토어로) 그대로'],
   [undefined, false, '정보가 아예 없어도 PC'],
 ];
