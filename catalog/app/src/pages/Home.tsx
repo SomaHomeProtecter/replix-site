@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { PlayIcon, ListPlusIcon, ArrowUpRightIcon } from '@phosphor-icons/react'
 import {
@@ -38,7 +38,7 @@ function Empty({ children }: { children: React.ReactNode }) {
    1위 = /catalog/home ranking[0](창별 누적 감상 시간). 지수 산식은 만들지 않기로 했으므로(2026-09-05)
    "지수 100" 대신 순위만 적는다. 파형(bars)·순간(moments)·길이는 같은 응답에 실려 온다 — 슬라이드가 따로 요청하지 않는다. */
 /* ═══ 빌보드 자동 전환 ═════════════════════════════════════════
-   상위 작품 몇 개를 일정 간격으로 돌린다(조현빈 2026-09-07). 마우스를 올리거나 포커스가 들어오면
+   상위 작품 몇 개를 일정 간격으로 돌린다(조현빈 2026-09-07). 레일에 마우스를 올리거나 포커스가 들어오면
    멈추고, 점을 누르면 그 작품으로 간다. 움직임 줄이기 설정이면 자동 전환은 하지 않는다. */
 const BILLBOARD_COUNT = 5
 const BILLBOARD_INTERVAL_MS = 7000
@@ -46,7 +46,10 @@ const BILLBOARD_INTERVAL_MS = 7000
 function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow[]; loading: boolean }) {
   const slides = items.slice(0, BILLBOARD_COUNT)
   const [idx, setIdx] = useState(0)
-  const [paused, setPaused] = useState(false)
+  // 멈춤 이유 둘을 따로 든다 — 하나로 합치면 레일에서 마우스가 나갈 때 키보드 포커스 멈춤까지 풀린다.
+  const [hoverPaused, setHoverPaused] = useState(false)
+  const [focusPaused, setFocusPaused] = useState(false)
+  const paused = hoverPaused || focusPaused
   const reduce = useReducedMotion()
   useEffect(() => { setIdx(0) }, [slides.length])
   /* 전환 시계는 진행 줄 애니메이션 하나다. 예전엔 setInterval 과 CSS 진행 줄이 따로 돌아, 마우스를 올렸다 떼면
@@ -60,7 +63,7 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
      간격·모서리 없이 붙인 한 기둥으로 두고 왼쪽 포스터보다 작게 — 레일은 보여주기가 아니라 꾸밈이라
      왼쪽 카드와 같은 형태로 나란히 서면 시선이 갈라지고 중복으로 읽힌다(시안 B). */
   const rail = slides.length > 1 ? (
-    <ol className="hidden h-[272px] flex-col self-center overflow-hidden rounded-[4px] md:flex" role="tablist" aria-label="빌보드 작품">
+    <ol className="hidden h-[272px] flex-col self-center overflow-hidden rounded-[4px] md:flex" role="tablist" aria-label="빌보드 작품" onMouseEnter={() => setHoverPaused(true)} onMouseLeave={() => setHoverPaused(false)}>
       {slides.map((w, i) => {
         const on = i === idx
         const poster = w.posterUrl ?? undefined
@@ -102,7 +105,11 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
   ) : null
 
   return (
-    <div className="relative border-b border-line bg-raise" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
+    /* 마우스 멈춤은 레일(작품 고르는 곳) 위에서만. 히어로 전체에 걸면 화면 폭을 다 차지하는 맨 위 영역이라 커서가
+       지나가기만 해도 줄이 멈췄다 가기를 반복해 버벅거렸다(2026-10-01 실측).
+       포커스 멈춤은 키보드로 들어온 포커스(:focus-visible)만. 마우스 클릭도 링크·버튼에 포커스를 남기는데, 그걸로
+       멈추면 클릭 한 번에 다른 곳을 누를 때까지 전환이 서 버린다. */
+    <div className="relative border-b border-line bg-raise" onFocusCapture={(e) => setFocusPaused((e.target as Element).matches(':focus-visible'))} onBlurCapture={() => setFocusPaused(false)}>
       <div className="wrap grid gap-8 py-9 md:grid-cols-[minmax(0,1fr)_168px] lg:grid-cols-[minmax(0,1fr)_184px] lg:gap-10">
         {/* 슬라이드 다섯 장을 모두 마운트해 같은 자리에 겹쳐 두고 투명도만 교차시킨다. 지웠다 다시 만들면
             그때마다 파형·순간을 새로 받아 빈 화면이 깜빡인다. 높이는 가장 큰 슬라이드에 맞춰 고정된다. */}
@@ -127,6 +134,137 @@ function Billboard({ items, live, loading }: { items: RankItem[]; live: LiveShow
       {autoplay && (
         <span key={idx} aria-hidden className="pointer-events-none absolute left-0 top-0 size-px opacity-0" style={{ animation: `rail-progress ${BILLBOARD_INTERVAL_MS}ms linear forwards`, animationPlayState: playState }} onAnimationEnd={next} />
       )}
+    </div>
+  )
+}
+
+/* ═══ 순간별 대표 채팅 말풍선(HP-124, 2026-10-02 조현빈 확정 — 시안 1·디자인 1) ═══ */
+const shown = (list: Moment[]) => list.filter((m) => m.quote)
+
+/** 히어로 파형 위에 순간마다 대표 채팅 말풍선을 하나씩 띄운다(HP-124, 2026-10-02 조현빈 확정).
+ *  · 크기: 반응 강도^2.5(최소 폭 36px·글자 9.5px).
+ *  · 꼬리: 좌우 대칭 삼각형, 말풍선 아랫변 어디에든 붙는다 — 그래서 몸통을 꼬리 기준 좌·우 어디로든 옮길 수 있다.
+ *    꼬리 끝은 막대 윗면 바로 위에 닿는다(별도 연결선 없음). 밀려 올라가도 막대에서 최대 LIFT 까지만 뜬다.
+ *  · 위치는 대략이면 된다: 꼬리 끝은 순간에서 좌우 ±26px(양옆 순간은 넘지 않음). 가장 뜨거운 순간은 자기 빨간 막대 기둥을
+ *    덮지 않는다(같은 빨강끼리 한 덩어리로 보이지 않게).
+ *  · 겹침: 말풍선끼리 작은 쪽 넓이의 30% 까지, 글이 시작하는 앞쪽 45% 는 가리지 않는다. 다른 말풍선의 꼬리도 가리지 않는다.
+ *  · 히트맵은 가려도 된다. 자리는 가장 뜨거운 순간이 먼저, 나머지는 오른쪽 순간부터 잡는다. */
+const FIT_HEADROOM = 28
+const TAIL = 7
+const LIFT = 18
+/** 말풍선 모양 — 둥근 사각형 + 아랫변 u 위치의 대칭 꼬리(끝 (u, h+TAIL), 끝은 살짝 둥글게). */
+function bubblePath(w: number, h: number, radius: number, u: number) {
+  const r = Math.min(radius, h / 2), T = TAIL, hw = 6.5
+  return `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h}`
+    + ` H ${u + hw} Q ${u + 2.2} ${h + 0.6} ${u + 0.9} ${h + T - 1.2} Q ${u} ${h + T + 0.3} ${u - 0.9} ${h + T - 1.2} Q ${u - 2.2} ${h + 0.6} ${u - hw} ${h}`
+    + ` H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`
+}
+/** 디자인 1(부드러운 카드): 테두리 없는 흰 바탕 + 두 겹 그림자, 휘어 내려가는 꼬리.
+ *  가장 뜨거운 순간은 강조색 + 빨간 글로우 그림자 — 같은 빨강의 막대 위에서 떠 보이게 한다(2026-10-02 확정). */
+function bubbleLook(hot: boolean) {
+  return hot
+    ? { radius: 8, fill: 'var(--color-accent)', color: '#fff', weight: 600, shadow: 'drop-shadow(0 3px 4px rgba(120,0,6,.35)) drop-shadow(0 10px 16px rgba(229,9,20,.45))' }
+    : { radius: 8, fill: 'var(--color-raise)', color: 'var(--color-ink)', weight: 500, shadow: 'drop-shadow(0 2px 3px rgba(16,16,24,.10)) drop-shadow(0 8px 18px rgba(16,16,24,.12))' }
+}
+/** 글자 폭 측정용 캔버스 하나를 모듈에서 공유한다(컴포넌트마다 만들지 않는다). */
+const measureCtx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null
+function textWidth(text: string, font: string) {
+  if (!measureCtx) return text.length * 11
+  measureCtx.font = font
+  return measureCtx.measureText(text).width
+}
+function QuoteBubblesFit({ list, duration, peak, values, waveH }: { list: Moment[]; duration: number; peak: Moment | null; values: number[]; waveH: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [W, setW] = useState(0)
+  const [font, setFont] = useState('sans-serif')
+  // 폭과 글꼴은 그린 뒤에 잰다(렌더 중 ref 를 읽지 않는다). 글꼴은 말풍선 폭을 글자 길이로 맞추는 데 쓴다.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    setFont(getComputedStyle(el).fontFamily)
+    const ro = new ResizeObserver(() => setW(el.clientWidth))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const H = FIT_HEADROOM + waveH, MINW = 36, n = values.length, OVERLAP = 0.3
+  const barTopAt = (x: number) => H - Math.max(0.02, values[Math.min(n - 1, Math.max(0, Math.floor((x / W) * n)))] ?? 0) * waveH
+  /** x = 꼬리 끝, u = 말풍선 왼쪽 끝에서 꼬리까지 */
+  type R = { m: Moment; x: number; u: number; left: number; top: number; w: number; h: number; fs: number; px: number; t: number }
+  const placed: R[] = []
+  if (W > 0) {
+    type B = { l: number; t: number; r: number; b: number }
+    const inter = (a: B, b: B) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t))
+    const area = (a: B) => (a.r - a.l) * (a.b - a.t)
+    const boxOf = (p: R): B => ({ l: p.left, t: p.top, r: p.left + p.w, b: p.top + p.h })
+    const tailOf = (p: R): B => ({ l: p.x - 6, t: p.top + p.h, r: p.x + 6, b: p.top + p.h + TAIL })
+    // 머리 = 글이 시작하는 앞쪽 45%. 겹침은 끝쪽(글 잘리는 쪽)에만 허용한다 — 머리가 가려지면 읽을 수 없다.
+    const headOf = (p: R): B => ({ l: p.left, t: p.top, r: p.left + p.w * 0.45, b: p.top + p.h })
+    // 가장 뜨거운 순간이 먼저 자리를 잡아 크기를 지키고, 나머지는 오른쪽 순간부터(연결선이 없어 순서 제약이 풀렸다).
+    const order = [...shown(list)].sort((a, b) => (b === peak ? 1 : 0) - (a === peak ? 1 : 0) || b.at - a.at)
+    const xs = order.map((q) => (q.at / duration) * W).sort((a, b) => a - b)
+    for (const m of order) {
+      const t = Math.pow(Math.max(0, Math.min(1, m.strength / 100)), 2.5)
+      const fs = 9.5 + 4 * t, h = Math.round(16 + 14 * t), px = Math.round(6 + 6 * t), x = (m.at / duration) * W
+      const want = Math.max(MINW, Math.min(Math.round(56 + 204 * t), Math.ceil(textWidth(m.quote ?? '', `${fs}px ${font}`) + px * 2 + 2)))
+      const prevX = [...xs].reverse().find((v) => v < x - 0.5) ?? -Infinity, nextX = xs.find((v) => v > x + 0.5) ?? Infinity
+      const offsets = (m === peak ? [10, -10, 18, -18, 26, -26] : [0, 8, -8, 16, -16, 24, -24])
+        .filter((d) => x + d > Math.max(0, prevX + 6) && x + d < Math.min(W, nextX - 6))
+      if (!offsets.length) offsets.push(0)
+      const peakBar = m === peak ? { l: x - 4, t: barTopAt(x) - 3, r: x + 4, b: H } : null
+      let found: R | null = null
+      // 1차: 겹침 30%·머리 보호까지 지키는 자리. 2차(못 찾으면): 말풍선끼리 겹침은 너그럽게, 꼬리 규칙만 지킨다.
+      for (const strict of [true, false]) {
+        search: for (const d of offsets) {
+          const tx = x + d
+          const seat = barTopAt(tx) - 2 // 꼬리 끝이 닿을 막대 윗면
+          for (let w = want; ; w = Math.max(MINW, w - 12)) {
+            // 꼬리를 아랫변 어디에 붙일지 — 왼쪽 가까이(글 시작 쪽)부터, 몸통을 왼쪽으로 밀며 오른쪽 끝까지.
+            const r = 8, uMin = Math.min(r + 7, w / 2), uMax = Math.max(uMin, w - r - 7)
+            const us: number[] = []
+            for (let u = Math.min(14, uMax); u <= uMax + 0.1; u += 12) us.push(u)
+            if (us[us.length - 1] < uMax) us.push(uMax)
+            for (const u of us) {
+              const left = tx - u
+              if (left < 0 || left + w > W) continue
+              const low = seat - TAIL - h // 꼬리 끝이 막대에 닿는 높이
+              // 막대가 높아 위 여유가 모자라면 맨 위부터(막대 윗부분을 덮는다). 위로는 LIFT 까지만 띄운다.
+              for (let top = Math.max(0, Math.min(low, H - h - TAIL)); top >= Math.max(0, low - LIFT); top -= 3) {
+                const c: R = { m, x: tx, u, left, top, w, h, fs, px, t }
+                const box = boxOf(c), tail = tailOf(c)
+                if (peakBar && (inter(box, peakBar) > 0 || inter(tail, peakBar) > 0)) continue
+                const clash = placed.some((p) => {
+                  const pb = boxOf(p)
+                  if (inter(box, tailOf(p)) > 0 || inter(tail, pb) > 0) return true
+                  if (!strict) return inter(box, headOf(p)) > 0.6 * area(headOf(p))
+                  return inter(box, pb) > OVERLAP * Math.min(area(box), area(pb)) || inter(box, headOf(p)) > 0 || inter(headOf(c), pb) > 0
+                })
+                if (!clash) { found = c; break search }
+              }
+            }
+            if (w === MINW) break
+          }
+        }
+        if (found) break
+      }
+      placed.push(found ?? { m, x, u: Math.min(14, want / 2), left: Math.min(Math.max(0, x - 14), W - want), top: 0, w: want, h, fs, px, t })
+    }
+  }
+  return (
+    <div ref={ref} className="pointer-events-none absolute inset-0 z-[1] hidden sm:block">
+      {placed.map((p) => {
+        const look = bubbleLook(p.m === peak)
+        return (
+          <div key={p.m.at} style={{ position: 'absolute', zIndex: Math.round(p.t * 100) }}>
+            <svg className="absolute overflow-visible" style={{ left: p.left, top: p.top, filter: look.shadow }} width={p.w} height={p.h + TAIL} aria-hidden>
+              <path d={bubblePath(p.w, p.h, look.radius, p.u)} fill={look.fill} />
+            </svg>
+            <div className="absolute flex items-center leading-none"
+              style={{ left: p.left, top: p.top, width: p.w, height: p.h, fontSize: p.fs, paddingInline: p.px, fontWeight: look.weight, color: look.color }}>
+              <span className="block min-w-0 truncate">{p.m.quote}</span>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -192,8 +330,12 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: RankItem | 
             <p className="mb-2.5 text-[12px] font-semibold text-muted">이 회차의 채팅 반응</p>
             {bars.duration > 0 ? (
               <>
-                <Waveform values={bars.values} height={104} className="hidden sm:flex"
-                  active={peak ? [peak.at / bars.duration - 0.016, peak.at / bars.duration + 0.016] : undefined} />
+                <div className="relative sm:pt-[28px]">
+                  {/* 말풍선 머리 위 여유(FIT_HEADROOM=28) — 모바일은 말풍선을 그리지 않으므로 여유도 두지 않는다. */}
+                  <QuoteBubblesFit list={list} duration={bars.duration} peak={peak} values={bars.values} waveH={104} />
+                  <Waveform values={bars.values} height={104} className="hidden sm:flex"
+                    active={peak ? [peak.at / bars.duration - 0.016, peak.at / bars.duration + 0.016] : undefined} />
+                </div>
                 <Waveform values={barsSm.values} height={72} className="sm:hidden"
                   active={peak ? [peak.at / bars.duration - 0.03, peak.at / bars.duration + 0.03] : undefined} />
                 <div className="relative mt-2 h-px bg-line">
