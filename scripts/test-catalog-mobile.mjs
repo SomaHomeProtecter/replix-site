@@ -58,6 +58,8 @@ assert.match(chrome, /engaged\('search', 'open'\)/, '계측 search/open 그대�
 assert.match(css, /@media \(max-width: 760px\) \{[\s\S]*?\.fill-grid\.rail-sm \{[^}]*overflow-x: auto/, '760px 이하 레일 CSS');
 assert.match(css, /\.fill-grid\.rail-sm > \* \{[^}]*scroll-snap-align: start/, '카드마다 스냅');
 assert.match(hooks, /matchMedia\(RAIL_QUERY\)/, '레일 판정은 RAIL_QUERY 한 곳');
+assert.equal((hooks.match(/matchMedia\(/g) || []).length, (hooks.match(/matchMedia\(RAIL_QUERY\)/g) || []).length,
+  '모든 matchMedia 가 RAIL_QUERY 를 쓴다(경계가 둘로 갈리지 않게)');
 const gridUse = (src) => (src.match(/className="fill-grid rail-sm"/g) || []).length;
 assert.equal(gridUse(home) + gridUse(title), 4, '항목을 숨기는 격자 넷이 레일을 쓴다');
 for (const [name, src] of [['Home.tsx', home], ['Title.tsx', title]]) {
