@@ -425,7 +425,7 @@ function WindowToggle({ value, onChange }: { value: Window; onChange: (w: Window
 }
 
 function Ranking({ items, loading, window, onWindow }: { items: RankItem[]; loading: boolean; window: Window; onWindow: (w: Window) => void }) {
-  /* 열 수는 폭이 정하고 줄은 두 줄 — 작품 선택의 폭을 위해 순위만 두 줄을 허용한다. */
+  /* 열 수는 폭이 정하고 줄은 두 줄 — 작품 선택의 폭을 위해 순위만 두 줄을 허용한다. 휴대폰 폭은 한 줄 가로 레일로 전 순위(HP-474). */
   const fill = useFillCount(150, 16, 2)
   return (
     <section id="ranking" className={`scroll-mt-[74px] ${SEC}`} aria-busy={loading}>
@@ -436,9 +436,9 @@ function Ranking({ items, loading, window, onWindow }: { items: RankItem[]; load
           {!loading && <EmptyNote>아직 순위가 없습니다.</EmptyNote>}
         </div>
       ) : (
-        <div ref={fill.ref} className="fill-grid" style={{ '--min': '150px', '--gx': '16px', '--gy': '24px' } as React.CSSProperties}>
+        <div ref={fill.ref} className="fill-grid rail-sm" style={{ '--min': '150px', '--gx': '16px', '--gy': '24px' } as React.CSSProperties}>
           {items.map((w, i) => (
-            <Reveal key={`${w.contentId}-${i}`} delay={Math.min(i, 6) * 0.03} hidden={i >= fill.count}>
+            <Reveal key={`${w.contentId}-${i}`} delay={Math.min(i, 6) * 0.03} hidden={i >= fill.limit}>
               <a href={titleHref(w.contentId, w.episodeId)} className="group block"
                 aria-label={`${i + 1}위 ${w.title}`}>
                 <div className="relative">
@@ -555,12 +555,12 @@ function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
   return (
     <section id="live" className={`scroll-mt-[74px] border-t border-line ${SEC}`}>
       <SectionHead title="지금 보는 중" />
-      <ul ref={fill.ref} className="fill-grid" style={{ '--min': '140px', '--gx': '16px', '--gy': '0px' } as React.CSSProperties}>
+      <ul ref={fill.ref} className="fill-grid rail-sm" style={{ '--min': '140px', '--gx': '16px', '--gy': '0px' } as React.CSSProperties}>
         {sorted.map((s, i) => {
           const hot = [...s.segments].sort((a, b) => b.viewers - a.viewers)[0]
           const href = watchUrl(s.platform, s.watchId, hot?.at)
           return (
-            <li key={s.showId} hidden={i >= fill.count}>
+            <li key={s.showId} hidden={i >= fill.limit}>
               <a href={href ?? undefined} target={href ? '_blank' : undefined} rel="noopener" className="group block" onClick={() => trackWatch(href, 'home_live')}>
                 <div className="relative">
                   <PosterSlot title={s.show} poster={s.posterUrl} />
@@ -584,7 +584,7 @@ const sum = (s: LiveShow) => s.segments.reduce((a, x) => a + x.viewers, 0)
    창이 '7d' 인 홈 응답을 쓴다 — 읽기 모델의 시간축 덕분에 이름 그대로 "이번 주"다(이전엔 전체 누적이었다). */
 function WeeklyMoments({ items, loading }: { items: RankItem[]; loading: boolean }) {
   const fill = useFillCount(300, 20, 1)
-  const heads = items.filter((w) => w.episodeId).slice(0, Math.max(fill.count, 1))
+  const heads = items.filter((w) => w.episodeId).slice(0, Math.max(fill.limit, 1))
   const rows = heads.map((w) => {
     const m = [...w.moments].sort((a, b) => b.strength - a.strength)[0]
     return m ? { key: `${w.episodeId}`, work: w.title, episode: w.episodeTitle ?? episodeLabel({ seasonNumber: w.seasonNumber, episodeNumber: w.episodeNumber }, w.contentType), at: fmtTime(m.at), quote: m.quote ?? '', poster: w.posterUrl, contentId: w.contentId } : null
@@ -614,9 +614,9 @@ function WeeklyMoments({ items, loading }: { items: RankItem[]; loading: boolean
     <section className={`border-t border-line ${SEC}`}>
       <SectionHead title="이번 주 인기 순간" />
       <div className="relative">
-        <ol ref={fill.ref} className="fill-grid" style={{ '--min': '300px', '--gx': '20px', '--gy': '0px' } as React.CSSProperties}>
+        <ol ref={fill.ref} className="fill-grid rail-sm" style={{ '--min': '300px', '--gx': '20px', '--gy': '0px', '--rail-w': '84%' } as React.CSSProperties}>
           {rows.map((c, i) => (
-            <li key={c.key} hidden={i >= fill.count} className={i > 0 ? 'border-l border-line pl-5' : ''}>
+            <li key={c.key} hidden={i >= fill.limit} className={i > 0 ? 'border-l border-line pl-5' : ''}>
               <a href={titleHref(c.contentId)} className="group flex gap-4">
                 <div className="relative w-[76px] shrink-0">
                   <PosterSlot title={c.work} poster={c.poster} className="transition-transform duration-300 ease-out-soft group-hover:-translate-y-0.5" />
