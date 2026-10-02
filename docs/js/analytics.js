@@ -358,7 +358,9 @@ export function setConsent(decision) {
 
 /* ═══ 동의 배너 ══════════════════════════════════════════════════
    스타일을 JS 에 두는 이유: 랜딩(css/*.css)과 카탈로그(Tailwind 인라인)가 다른 스타일 체계라 두 표면에서
-   같은 배너를 보이려면 이 파일이 자기 스타일을 들고 다녀야 한다. 색은 tokens.css 의 --screen-2·--accent 값. */
+   같은 배너를 보이려면 이 파일이 자기 스타일을 들고 다녀야 한다. 색은 tokens.css 의 --screen-2·--accent 값.
+   휴대폰 폭(560px 이하)에선 여백·글자·버튼만 줄여 높이를 낮춘다 — 고르기 전까지 화면 아래 1/3(242px/740px)을 덮었다(HP-478).
+   ⚠️ 문구는 줄이거나 접지 않는다: 옵트아웃 안내(HP-466)의 근거라 전부 보여야 한다. */
 var BANNER_CSS = '#rx-consent{position:fixed;left:16px;right:16px;bottom:16px;z-index:9999;max-width:680px;margin:0 auto;' +
   'padding:16px 18px;border-radius:14px;background:#15151b;color:#e8e8ec;box-shadow:0 12px 40px rgba(0,0,0,.35);' +
   'font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;gap:16px;align-items:center;flex-wrap:wrap}' +
@@ -367,7 +369,8 @@ var BANNER_CSS = '#rx-consent{position:fixed;left:16px;right:16px;bottom:16px;z-
   '#rx-consent button{font:inherit;font-weight:700;border:0;border-radius:9px;padding:9px 16px;cursor:pointer}' +
   '#rx-consent .rx-allow{background:#e50914;color:#fff}' +
   '#rx-consent .rx-deny{background:transparent;color:#cfcfd6;border:1px solid rgba(255,255,255,.22)}' +
-  '@media (max-width:560px){#rx-consent{left:8px;right:8px;bottom:8px}}';
+  '@media (max-width:560px){#rx-consent{left:8px;right:8px;bottom:8px;padding:12px 14px;gap:10px;font-size:12.5px;line-height:1.5;' +
+  'border-radius:12px}#rx-consent p{flex-basis:100%}#rx-consent button{padding:8px 14px}}';
 export function showBanner() {
   if (_banner) { _banner.style.display = 'flex'; return; }
   var st = document.createElement('style'); st.textContent = BANNER_CSS; document.head.appendChild(st);

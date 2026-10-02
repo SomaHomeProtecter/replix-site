@@ -107,10 +107,11 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
                           </a>
                         ))}
                       </div>
+                      {/* 회차 번호는 글자 높이(9~10px)만큼만 눌렸다 — 위아래 8px 를 더해 24px 이상으로, 음수 여백으로 배치는 그대로(HP-478). */}
                       <div className="mt-1.5 flex gap-[3px]">
                         {g.eps.map((e) => (
                           <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)} onClick={() => engaged('episode_list', 'select')}
-                            className={`num min-w-0 flex-1 whitespace-nowrap text-center font-mono leading-none hover:text-ink ${e.episodeNumber >= 100 ? 'text-[9px]' : 'text-[10px]'} ${e.episodeId === ep?.episodeId ? 'font-bold text-accent' : 'text-muted'}`}>
+                            className={`num min-w-0 flex-1 py-[8px] -my-[8px] whitespace-nowrap text-center font-mono leading-none hover:text-ink ${e.episodeNumber >= 100 ? 'text-[9px]' : 'text-[10px]'} ${e.episodeId === ep?.episodeId ? 'font-bold text-accent' : 'text-muted'}`}>
                             {e.episodeNumber || '·'}
                           </a>
                         ))}
@@ -286,9 +287,10 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
             <div className="px-1">
               <Waveform values={bars.values} height={64} active={m ? [m.at / bars.duration - 0.026, m.at / bars.duration + 0.026] : undefined} />
               <div className="relative mt-2 h-px bg-line2">
+                {/* 누르는 칸 24px(WCAG 2.5.8, HP-478, 종전 20px) — 보이는 점(6·9px)은 안쪽 span 이라 모양은 같다. */}
                 {moments.map((mm, i) => (
                   <button key={mm.at} type="button" onClick={() => { setSel(i); engaged('moments', 'select') }} aria-label={`${fmtTime(mm.at)} 순간 ${i + 1}`} aria-pressed={i === sel}
-                    className="absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2" style={{ left: `${(mm.at / bars.duration) * 100}%` }}>
+                    className="absolute top-1/2 size-6 -translate-x-1/2 -translate-y-1/2" style={{ left: `${(mm.at / bars.duration) * 100}%` }}>
                     <span className="mx-auto block rounded-full ring-4 ring-soft" style={{ width: i === sel ? 9 : 6, height: i === sel ? 9 : 6, background: i === sel ? 'var(--color-accent)' : 'var(--color-faint)' }} />
                   </button>
                 ))}
