@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { CaretDownIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { api, type ContentSearchItem } from '../api'
 import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
-import { noticeHref, titleHref } from '../App'
+import { ME_HREF, noticeHref, titleHref, type Route } from '../route-pure.js'
 import { engaged } from '../analytics'
 import { login, logout, takeAccountFocus, useAuth } from '../auth'
 import { dismissBand, pickBand, unreadCount, useNotices } from '../notices'
@@ -22,7 +22,7 @@ const NAV = [
 ]
 
 /* 원 시안과 같은 60px 한 줄 바, 좌우 48px 거터. */
-export function Nav({ current }: { current: 'home' | 'title' | 'notice' }) {
+export function Nav({ current }: { current: Route['page'] }) {
   /* 랜딩 .nav 와 같은 치수: sticky 66px, 같은 배경·블러, .wrap 안에 gap 26px, 로고 34px, 메뉴 14px gap 24px,
      오른쪽 끝 .btn--primary.btn--sm. 랜딩과 다른 것은 '홈으로' 버튼 하나뿐이다(작품 탐색에서 랜딩으로 돌아가는 길). */
   return (
@@ -124,9 +124,10 @@ export function NoticeBand() {
   )
 }
 
-/** 로그인 상태. 동의를 마친 회원은 닉네임(서버의 랜덤 닉네임)을 보이고, 누르면 작은 메뉴에서 로그아웃한다 —
+/** 로그인 상태. 동의를 마친 회원은 닉네임(서버의 랜덤 닉네임)을 보이고, 누르면 작은 메뉴 — 「내 활동」(#/me, HP-443)과 로그아웃.
  *  누르자마자 로그아웃되던 것(HP-421)은 실수 한 번에 확인 없이 로그아웃됐다(2026-09-24 김지호, HP-449).
- *  프로필·설정 화면은 두지 않는다(그건 확장의 몫). */
+ *  내 활동이 웹의 유일한 '내 것' 화면이고 입구는 이 메뉴뿐이다(HP-274 결정 12 — 섹션 내비는 "이 표면의 섹션만" 규칙과 충돌해 기각).
+ *  프로필·설정 화면은 여전히 두지 않는다(그건 확장의 몫) — 내 활동은 설정이 아니라 내가 남긴 것의 모아보기다. */
 function AuthButton() {
   const { ready, user } = useAuth()
   if (!ready) return null
@@ -144,7 +145,7 @@ function AccountMenu({ name }: { name: string }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const btn = useRef<HTMLButtonElement>(null)
-  const item = useRef<HTMLButtonElement>(null)
+  const item = useRef<HTMLAnchorElement>(null)   // 첫 항목(내 활동)이 열릴 때 포커스를 받는다
   /* 동의로 막 회원이 됐으면 이 버튼이 포커스를 받는다(동의 모달이 사라지며 body 로 떨어지지 않게). */
   useEffect(() => { if (takeAccountFocus()) btn.current?.focus() }, [])
   /* 열면 메뉴 항목에 포커스. 바깥을 누르거나, 포커스가 메뉴 밖 요소로 들어오거나(Tab), Esc 면 닫는다(Esc 는 포커스를
@@ -182,7 +183,14 @@ function AccountMenu({ name }: { name: string }) {
       </button>
       {open && (
         <div role="menu" aria-label="내 계정" className="absolute right-0 top-[calc(100%+10px)] z-50 min-w-[132px] rounded-md border border-line bg-raise p-1 shadow-[0_12px_32px_rgba(16,16,24,0.14)]">
-          <button ref={item} type="button" role="menuitem" onClick={logout} className="block w-full rounded-sm px-3 py-2 text-left text-[13.5px] text-ink hover:bg-soft">
+          {/* 내 활동(HP-443) — 로그아웃 위. 해시 이동이라 메뉴는 직접 닫는다(focusin 은 같은 문서 안 이동이라 안 온다).
+              링크는 Space 로 눌리지 않는다 — menuitem 은 Enter·Space 둘 다 받아야 해서(옆의 로그아웃 버튼과 같게) Space 를 클릭으로 바꾼다. */}
+          <a ref={item} href={ME_HREF} role="menuitem" onClick={() => { setOpen(false); engaged('my_activity', 'opened', { source: 'menu' }) }}
+            onKeyDown={(e) => { if (e.key === ' ') { e.preventDefault(); e.currentTarget.click() } }}
+            className="block w-full rounded-sm px-3 py-2 text-left text-[13.5px] text-ink hover:bg-soft">
+            내 활동
+          </a>
+          <button type="button" role="menuitem" onClick={logout} className="block w-full rounded-sm px-3 py-2 text-left text-[13.5px] text-ink hover:bg-soft">
             로그아웃
           </button>
         </div>

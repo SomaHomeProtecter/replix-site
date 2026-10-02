@@ -159,6 +159,9 @@ assert.match(cmt, /<li className="amp-mask /, '평가 한 건(닉네임·본문�
 assert.match(cmt, /<img src=\{c\.profileImageUrl\} alt="" className="amp-block /, '평가 작성자 프로필 사진은 블록');
 assert.match(read('catalog/app/src/pages/Title.tsx'), /<ol className="amp-mask /, '순간 화면의 채팅 목록(남의 채팅·닉네임) 글자 가림');
 assert.match(read('catalog/app/src/components/Chrome.tsx'), /<div ref=\{box\} className="amp-mask /, '로그인 계정 이름(닉네임) 메뉴 글자 가림');
+const me = read('catalog/app/src/pages/Me.tsx');
+assert.match(me, /<ol className="amp-mask /, '내 활동(#/me)의 채팅 목록 — 답글 원문(남의 글·닉네임)이 섞이므로 통째로 글자 가림(HP-443)');
+assert.match(me, /<div className="amp-mask /, '내 활동의 내 평가 한 건 — 작품 페이지의 평가와 같은 가림');
 assert.equal(a.SR_CONFIG.privacyConfig.defaultMaskLevel, 'medium', '검색창·평가 입력란·피드백 입력란은 medium 이 가린다');
 assert.match(src, /if \(_consent !== 'granted' \|\| !replayOn\(location\.hostname, location\.pathname, Date\.now\(\)\)\) \{ start\(\); return; \}/,
   '허용을 누르지 않았거나 랜딩·시행일 조건이 아니면 플러그인 스크립트를 받지도 않는다(옵트아웃 수집 중에도 녹화는 안 함)');

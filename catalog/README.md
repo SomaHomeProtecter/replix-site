@@ -24,6 +24,14 @@
   ⚠️ **Keycloak `replix-web` 의 Valid redirect URIs 에 `https://replix.tv/catalog/*` 가 등록돼야 로그인이 끝난다** —
   2026-09-14 기준 미등록(관리 콘솔 작업).
 
+## 2026-10-01 — 내 활동(HP-443)
+
+- **`#/me`** — 로그인한 사람이 남긴 평가(별점)와 채팅(답글 포함)을 작품별로 묶는다(HP-274 안 B). `pages/Me.tsx`. 데이터는
+  HP-441 `GET /users/me/activity`(카드마다 채팅 3개) · 'N개 더 보기' = `…/activity/contents/{id}`(그 작품 전량 ≤300).
+  가림·상대 날짜·상태 판정은 `app/src/activity-pure.js`(검사 `scripts/test-activity.mjs`) — 내 글은 가리지 않고, 남의 원문은
+  운영 가림·클린봇·차단·스포일러 신호 중 하나라도 있으면 "가려진 메시지". 쓰기·고치기는 작품 페이지 평가 칸에만(`#/title/{id}/review`).
+- 입구 = 헤더 닉네임 메뉴 「내 활동」(`Chrome.tsx`) · 확장의 「전체 활동 보기」(HP-442). 760px 이하에선 메뉴가 숨는 기존 구조라 입구가 없다(직접 링크는 열린다).
+
 ## 고치고 배포하기
 
 ```bash
@@ -34,7 +42,8 @@ npm run preview:file   # 빌드 → ../../docs/catalog/index.html 갱신 (이걸
 npm run shot           # 빌드 후 데스크톱·모바일 스크린샷을 ../shots 에 저장
 ```
 
-`docs/catalog/index.html` 은 file:// 로도 열린다(자기완결). 라우트는 `#/`(홈), `#/title/{contentId}[/ep/{episodeId}]`(상세).
+`docs/catalog/index.html` 은 file:// 로도 열린다(자기완결). 라우트는 `#/`(홈), `#/title/{contentId}[/ep/{episodeId}][/review]`(상세 · `/review` 는 평가 칸으로),
+`#/notice[/{id}]`(공지), `#/me`(내 활동, 로그인 전용). 규칙은 `app/src/route-pure.js`(검사 `scripts/test-route.mjs`).
 
 ## 구조
 

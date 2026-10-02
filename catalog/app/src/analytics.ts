@@ -32,7 +32,7 @@ export function loadAnalytics() {
 export function track(name: string, props?: Props) { call((b) => b.track(name, props)) }
 export function page(props?: Props) { call((b) => b.page(props)) }
 
-export type WatchFrom = 'title_hero' | 'moment' | 'home_billboard' | 'home_hot' | 'home_live'
+export type WatchFrom = 'title_hero' | 'moment' | 'home_billboard' | 'home_hot' | 'home_live' | 'my_activity'
 /** 재생 딥링크 클릭(W5 전환). watchUrl 은 넷플릭스만 만들므로 platform 은 그 사실을 그대로 적는다. */
 export function trackWatch(url: string | null, from: WatchFrom) {
   if (!url) return

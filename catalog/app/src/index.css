@@ -143,6 +143,13 @@ h3 {
   border-radius: 4px;
 }
 
+/* 프로그램으로만 포커스하는 제목(tabindex=-1 — 내 활동 진입 때 h1, HP-443)엔 링을 그리지 않는다. 위 규칙은
+   레이어 밖이라 Tailwind 의 focus:outline-none(레이어 안)을 이기므로 여기서 직접 끈다 — 키보드로 메뉴를 열고
+   들어오면 :focus-visible 이 참이 돼 제목에 빨간 테두리가 오류처럼 떴다(2026-10-01 실화면). */
+h1[tabindex="-1"]:focus-visible {
+  outline: none;
+}
+
 ::selection {
   background: rgba(229, 9, 20, 0.16);
 }

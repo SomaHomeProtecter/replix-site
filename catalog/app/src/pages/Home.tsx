@@ -13,7 +13,7 @@ import {
   type Window,
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
-import { titleHref } from '../App'
+import { titleHref } from '../route-pure.js'
 import { engaged, trackWatch } from '../analytics'
 import { Chip, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { EmptyNote, PosterGridSkeleton, RailSkeleton, RowsSkeleton, Shimmer } from '../components/skeleton'
