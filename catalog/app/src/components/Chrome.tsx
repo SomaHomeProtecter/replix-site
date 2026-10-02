@@ -17,7 +17,7 @@ const STORE = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebce
    사이트 수준 페이지(공지)는 섹션 묶음 밖 오른쪽 '홈으로'와 로그인 사이에 둔다(2026-09-16 김지호) — 섹션 링크가 아니라 규칙과 충돌하지 않는다. */
 const NAV = [
   { href: '#/ranking', label: '많이 본 작품' },
-  { href: '#/hot', label: '뜨거운 순간' },
+  { href: '#/hot', label: '하이라이트' },
   { href: '#/live', label: '지금 보는 중' },
 ]
 
@@ -289,7 +289,7 @@ export function Footer() {
           <div className="flex gap-10 text-[12.5px]">
             <ul className="space-y-1.5 text-muted">
               <li><a href="#/ranking" className="hover:text-ink">많이 본 작품</a></li>
-              <li><a href="#/hot" className="hover:text-ink">뜨거운 순간</a></li>
+              <li><a href="#/hot" className="hover:text-ink">하이라이트</a></li>
               <li><a href={noticeHref()} className="hover:text-ink" onClick={() => engaged('notice', 'opened', { source: 'footer' })}>공지</a></li>
               <li><button ref={feedbackBtn} type="button" onClick={() => setFeedback(true)} className="cursor-pointer hover:text-ink">피드백 보내기</button></li>
               <li><a href="/" className="hover:text-ink">Replix 홈</a></li>
