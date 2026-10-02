@@ -75,7 +75,7 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
               <div className="mt-1.5"><RatingSummary rating={rating} /></div>
             </div>
             <div>
-              <p className="text-[12px] font-semibold text-muted">가장 뜨거운 순간의 채팅</p>
+              <p className="text-[12px] font-semibold text-muted">반응이 가장 컸던 장면의 채팅</p>
               {peak?.quote ? (
                 <>
                   <p className="mt-1.5 text-[14px] font-bold leading-snug text-ink">“{decodeEntities(peak.quote)}”</p>
@@ -197,7 +197,7 @@ function EpisodeCard({ c, e, selected, i }: { c: CatalogContent; e: CatalogEpiso
           {e.heatShare > 0 && <span className="text-[11px] text-faint">채팅 반응 {e.heatShare}</span>}
         </div>
         <p className="mt-1 truncate text-[13px] text-ink2">
-          {top ? (<><span className={`num font-mono font-bold ${selected ? 'text-accent' : 'text-ink'}`}>{fmtTime(top.at)}</span> 가장 뜨거운 순간</>) : (e.title ?? ' ')}
+          {top ? (<><span className={`num font-mono font-bold ${selected ? 'text-accent' : 'text-ink'}`}>{fmtTime(top.at)}</span> 최고 반응 장면</>) : (e.title ?? ' ')}
         </p>
         <ul className="mt-3 flex min-h-[64px] flex-col gap-1.5 border-t border-line pt-3">
           {list.filter((x) => x.quote).map((x) => (
@@ -307,7 +307,7 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
                       className={`grid w-full grid-cols-[64px_1fr_auto] items-center gap-x-3 px-4 py-3 text-left transition-colors ${on ? 'bg-accentw' : 'hover:bg-soft'}`}>
                       <span className={`num font-mono text-[15px] font-bold ${on ? 'text-accent' : 'text-ink'}`}>{fmtTime(mm.at)}</span>
                       <span className="min-w-0">
-                        <span className="block truncate text-[14px] font-bold text-ink">순간 {i + 1}{i === peakIdx ? ' · 가장 뜨거움' : ''}</span>
+                        <span className="block truncate text-[14px] font-bold text-ink">순간 {i + 1}{i === peakIdx ? ' · 최고 반응' : ''}</span>
                         <span className="block truncate text-[12px] text-muted">{mm.quote ? `“${decodeEntities(mm.quote)}”` : '대표 채팅 없음'}</span>
                       </span>
                       <span className={`num font-mono text-[12px] ${on ? 'font-bold text-accent' : 'text-muted'}`} title="이 회차 안의 상대 강도">{mm.strength}</span>

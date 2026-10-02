@@ -344,10 +344,21 @@ export async function deleteMyComment(c: Comment): Promise<boolean> {
   return true
 }
 
+/** 영상 속 시점 — 60분 미만 `m:ss`, 이상 `h:mm:ss`(넷플릭스 재생바와 같은 꼴). `104:00` 처럼 분이 60을 넘으면 읽히지 않는다. */
 export function fmtTime(sec: number): string {
-  const m = Math.floor(sec / 60)
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
   const s = Math.floor(sec % 60)
-  return `${m}:${String(s).padStart(2, '0')}`
+  const ss = String(s).padStart(2, '0')
+  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
+}
+
+/** 길이(러닝타임) — `1시간 44분`·`48분`. 시점(fmtTime)과 꼴이 같으면 길이인지 위치인지 구분되지 않는다. */
+export function fmtDuration(sec: number): string {
+  const total = Math.round(sec / 60)
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  return h ? (m ? `${h}시간 ${m}분` : `${h}시간`) : `${m}분`
 }
 
 export function episodeLabel(e: { seasonNumber: number | null; episodeNumber: number | null }, contentType?: string): string {

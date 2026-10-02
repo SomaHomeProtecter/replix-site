@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { PlayIcon, ListPlusIcon, ArrowUpRightIcon } from '@phosphor-icons/react'
+import { PlayIcon, ListPlusIcon, ArrowUpRightIcon, ClockIcon } from '@phosphor-icons/react'
 import {
   api,
   decodeEntities,
   episodeLabel,
   fmtTime,
+  fmtDuration,
   watchUrl,
   type LiveShow,
   type Moment,
@@ -281,6 +282,10 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: RankItem | 
   const peak = list.reduce<Moment | null>((a, m) => (!a || m.strength > a.strength ? m : a), null)
   const play = top ? watchUrl(top.platform, top.platformEpisodeId, peak?.at) : null
   const epTitle = top ? (top.episodeTitle ?? (episodeLabel({ seasonNumber: top.seasonNumber, episodeNumber: top.episodeNumber }, top.contentType) || '대표 회차')) : ''
+  // 예능 회차 제목은 `2026-09-16 4일 차에…` 처럼 방영일로 시작하곤 한다 — 날짜는 떼어 `09.16` 으로 작게 보인다.
+  const epMatch = /^(\d{4})[-.](\d{2})[-.](\d{2})\s+(.+)$/.exec(epTitle)
+  const epDate = epMatch ? `${epMatch[2]}.${epMatch[3]}` : ''
+  const epName = epMatch ? epMatch[4] : epTitle
 
   if (!top) {
     const tone = loading ? 'skeleton' : 'bg-sink/60'
@@ -318,13 +323,27 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: RankItem | 
 
           <h1 className="mt-3 text-[38px] leading-[1.02] tracking-[-0.05em] lg:text-[44px]">{top.title}</h1>
 
-          <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono text-[13px] text-muted">
-            <span className="font-bold text-ink">{epTitle}</span>
-            {bars.duration > 0 && (<><Rule /><span className="num">{fmtTime(bars.duration)}</span></>)}
-            {list.length > 0 && (
-              <><Rule /><span className="font-bold text-accentd">뜨거운 순간 {list.length}</span></>
-            )}
-          </div>
+          {/* 작품명 → 회차(부제) → 수치 세 단으로 강약을 준다(2026-10-02 조현빈, 시안 A). 회차 제목 앞 날짜는 작게 낮춘다. */}
+          <p className="mt-2.5 text-[17px] font-semibold tracking-[-0.02em] text-ink2 [text-wrap:balance]">
+            {epDate && <span className="num mr-2 text-[13px] font-medium text-faint">{epDate}</span>}
+            {epName}
+          </p>
+          {(bars.duration > 0 || list.length > 0) && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-muted">
+              {bars.duration > 0 && (
+                <span className="inline-flex items-center gap-1.5"><ClockIcon size={14} aria-hidden /><span className="num">{fmtDuration(bars.duration)}</span></span>
+              )}
+              {bars.duration > 0 && list.length > 0 && <span className="text-line2" aria-hidden>·</span>}
+              {list.length > 0 && (
+                <span className="inline-flex items-center gap-[7px] rounded-full bg-accentw py-1 pl-2 pr-2.5 font-bold text-accentd">
+                  <span className="inline-flex gap-[3px]" aria-hidden>
+                    <i className="size-[5px] rounded-full bg-accent" /><i className="size-[5px] rounded-full bg-accent opacity-35" /><i className="size-[5px] rounded-full bg-accent opacity-35" />
+                  </span>
+                  하이라이트 {list.length}곳
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="mt-6">
             <p className="mb-2.5 text-[12px] font-semibold text-muted">이 회차의 채팅 반응</p>
@@ -435,7 +454,7 @@ function Ranking({ items, loading, window, onWindow }: { items: RankItem[]; load
   )
 }
 
-/* ═══ 이 회차의 뜨거운 순간 — 포스터 + 트랙리스트 ═══════════ */
+/* ═══ 이 회차의 하이라이트 — 포스터 + 트랙리스트 ═══════════ */
 function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveShow[]; loading: boolean }) {
   const episodeId = top?.episodeId ?? null
   const show = live.find((s) => s.showId === String(episodeId)) ?? null
@@ -444,7 +463,7 @@ function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveSh
   if (!top || !episodeId) {
     return (
       <section id="hot" className={`scroll-mt-[74px] border-t border-line ${SEC}`} aria-busy={loading}>
-        <SectionHead title="이 회차의 뜨거운 순간" />
+        <SectionHead title="이 회차의 하이라이트" />
         <div className="grid gap-6 md:grid-cols-[168px_1fr] md:gap-8 lg:grid-cols-[200px_1fr] lg:gap-10">
           <div className={`${loading ? 'skeleton' : 'bg-sink/60'} w-[96px] rounded-md md:w-full`} style={{ aspectRatio: '2 / 3' }} aria-hidden />
           <div>
@@ -458,7 +477,7 @@ function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveSh
 
   return (
     <section id="hot" className={`scroll-mt-[74px] border-t border-line ${SEC}`}>
-      <SectionHead title="이 회차의 뜨거운 순간" />
+      <SectionHead title="이 회차의 하이라이트" />
       <div className="grid gap-6 md:grid-cols-[168px_1fr] md:gap-8 lg:grid-cols-[200px_1fr] lg:gap-10">
         <div className="flex gap-4 md:block">
           <a href={titleHref(top.contentId, episodeId)} className="block w-[96px] shrink-0 md:w-full">
@@ -501,7 +520,7 @@ function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveSh
                       </span>
                       <span className="mt-0.5 block truncate text-[12.5px] text-muted">{m.quote ? `“${decodeEntities(m.quote)}”` : '대표 채팅 없음'}</span>
                     </span>
-                    <span className={`text-[11.5px] ${on ? 'font-bold text-accent' : 'text-faint'}`}>{on ? '가장 뜨거움' : ''}</span>
+                    <span className={`text-[11.5px] ${on ? 'font-bold text-accent' : 'text-faint'}`}>{on ? '최고 반응' : ''}</span>
                   </Row>
                 </li>
               )
