@@ -33,7 +33,7 @@ function ChatRow({ w, c }: { w: MyActivityWork; c: MyActivityChat }) {
   const body = (
     <>
       <span className="text-[12px] font-bold text-ink2">{episodeLabel(c, w.contentType) || '회차'}</span>
-      <span className="num rounded-sm bg-accentw px-1.5 py-0.5 text-center font-mono text-[11px] text-accent">{fmtTime(c.playbackTime)}</span>
+      <span className="num whitespace-nowrap rounded-sm bg-accentw px-1.5 py-0.5 text-center font-mono text-[11px] text-accent">{fmtTime(c.playbackTime)}</span>
       <span className="min-w-0 text-[13.5px] text-ink">
         {c.parentId && (
           <span className="block truncate text-[12px] text-muted">
@@ -47,7 +47,7 @@ function ChatRow({ w, c }: { w: MyActivityWork; c: MyActivityChat }) {
       </span>
     </>
   )
-  const cls = 'grid grid-cols-[48px_54px_1fr] items-baseline gap-3 bg-raise px-3.5 py-2.5'
+  const cls = 'grid grid-cols-[48px_62px_1fr] items-baseline gap-3 bg-raise px-3.5 py-2.5'
   return (
     <li>
       {url ? (
@@ -70,14 +70,15 @@ function SceneChip({ w, sc }: { w: MyActivityWork; sc: MyActivityScene }) {
     <>
       <span className="text-[12px] font-bold text-ink2">{episodeLabel(sc, w.contentType) || '회차'}</span>
       <span className="num font-mono text-[11.5px] text-accent">{fmtTime(sc.slotStart)}</span>
-      <span className="inline-flex gap-1.5">
+      <span className="inline-flex flex-wrap gap-1.5">
         {emojisOf(sc).map((e) => (
           <span key={e.emoji}>{e.emoji}<b className="num ml-px font-mono text-[11px] font-semibold text-muted">{e.count}</b></span>
         ))}
       </span>
     </>
   )
-  const cls = 'inline-flex items-center gap-2 rounded-full border border-line bg-raise px-[11px] py-1.5 text-[12.5px] text-ink2'
+  // 좁은 폭(휴대폰)에선 칩 안에서 줄바꿈한다 — 이모지 6종·두 자리 수면 한 줄이 목록보다 넓어져 잘렸다(HP-471 최종 리뷰, 360px +41px).
+  const cls = 'inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-0.5 rounded-full border border-line bg-raise px-[11px] py-1.5 text-[12.5px] text-ink2'
   return (
     <li>
       {url ? (
@@ -100,14 +101,16 @@ function LikedRow({ w, l }: { w: MyActivityWork; l: MyActivityLiked }) {
   const body = (
     <>
       <span className="text-[12px] font-bold text-ink2">{episodeLabel(l, w.contentType) || '회차'}</span>
-      <span className="num rounded-sm bg-accentw px-1.5 py-0.5 text-center font-mono text-[11px] text-accent">{fmtTime(l.playbackTime)}</span>
+      <span className="num whitespace-nowrap rounded-sm bg-accentw px-1.5 py-0.5 text-center font-mono text-[11px] text-accent">{fmtTime(l.playbackTime)}</span>
       <span className="min-w-0 text-[13.5px] text-ink">
-        <span className="mr-2 whitespace-nowrap text-[12.5px] font-bold text-ink2">{v.who}</span>
+        {/* 이름은 잘리지 않게 줄바꿈을 허용하고(nowrap 이면 ol 의 overflow-hidden 이 글자 중간을 자른다) 본문과 공백으로 뗀다 —
+            keep-all 이 "수달가려진"을 한 어절로 묶지 않게, 스크린리더가 이름·본문을 붙여 읽지 않게(HP-471 최종 리뷰). */}
+        <span className="mr-1 text-[12.5px] font-bold text-ink2">{v.who}</span>{' '}
         {v.text === null ? <span className="italic text-faint">{HIDDEN_PARENT}</span> : decodeEntities(v.text)}
       </span>
     </>
   )
-  const cls = 'grid grid-cols-[48px_54px_1fr] items-baseline gap-3 bg-raise px-3.5 py-2.5'
+  const cls = 'grid grid-cols-[48px_62px_1fr] items-baseline gap-3 bg-raise px-3.5 py-2.5'
   return (
     <li>
       {url ? (
@@ -130,7 +133,10 @@ function WorkCard({ w, onDeleted }: { w: MyActivityWork; onDeleted: () => void }
   const [busy, setBusy] = useState<CardSection | null>(null)
   const [moreErr, setMoreErr] = useState<{ sec: CardSection; text: string } | null>(null)
   const [delErr, setDelErr] = useState<string | null>(null)
+  /* 받는 동안 버튼을 disabled 로 잠그지 않는다 — disabled 가 되는 순간 포커스가 body 로 떨어져 키보드 사용자가 길을 잃는다
+     (HP-471 최종 리뷰). aria-disabled 로 알리고 여기서 막아 두 번 받지 않는다. */
   const toggle = async (sec: CardSection) => {
+    if (busy) return
     if (open[sec]) { setOpen((o) => ({ ...o, [sec]: false })); return }
     if (full) { setOpen((o) => ({ ...o, [sec]: true })); return }
     setBusy(sec); setMoreErr(null)
@@ -161,8 +167,8 @@ function WorkCard({ w, onDeleted }: { w: MyActivityWork; onDeleted: () => void }
   const errLine = (sec: CardSection) => moreErr?.sec === sec && <p role="alert" className="mt-1.5 text-[12.5px] text-accentd">{moreErr.text}</p>
   const rowMore = (sec: CardSection, label: string | null) => label && (
     <li>
-      <button type="button" onClick={() => toggle(sec)} disabled={busy !== null} aria-expanded={open[sec]}
-        className="w-full bg-raise px-3.5 py-2.5 text-center text-[12.5px] font-bold text-muted hover:text-ink disabled:opacity-60">
+      <button type="button" onClick={() => toggle(sec)} aria-disabled={busy !== null} aria-expanded={open[sec]}
+        className="w-full bg-raise px-3.5 py-2.5 text-center text-[12.5px] font-bold text-muted hover:text-ink aria-disabled:opacity-60">
         {busy === sec ? '불러오는 중…' : label}
       </button>
     </li>
@@ -202,8 +208,8 @@ function WorkCard({ w, onDeleted }: { w: MyActivityWork; onDeleted: () => void }
           {scenes.map((sc) => <SceneChip key={`${sc.episodeId}:${sc.slotStart}`} w={w} sc={sc} />)}
           {more && (
             <li>
-              <button type="button" onClick={() => toggle('scenes')} disabled={busy !== null} aria-expanded={open.scenes}
-                className="rounded-full border border-dashed border-line2 px-[11px] py-1.5 text-[12px] font-bold text-muted hover:text-ink disabled:opacity-60">
+              <button type="button" onClick={() => toggle('scenes')} aria-disabled={busy !== null} aria-expanded={open.scenes}
+                className="rounded-full border border-dashed border-line2 px-[11px] py-1.5 text-[12px] font-bold text-muted hover:text-ink aria-disabled:opacity-60">
                 {busy === 'scenes' ? '불러오는 중…' : more}
               </button>
             </li>
@@ -343,8 +349,9 @@ export default function Me() {
               휴대폰(HP-474 이후 입구가 있다)에서도 한 줄 — 칸 여백·글자만 줄이고 이름은 두 줄로 접힌다. */}
           <div className="mt-5 flex overflow-hidden rounded-md border border-line bg-raise">
             {summaryCells(s).map(([n, k]) => (
-              <div key={k} className="min-w-0 flex-1 border-l border-line px-2.5 py-3 first:border-l-0 sm:px-5 sm:py-4">
-                <p className="num font-mono text-[20px] font-extrabold leading-none tracking-tight text-ink sm:text-[24px]">{n}</p>
+              <div key={k} className="min-w-0 flex-1 border-l border-line px-1.5 py-3 first:border-l-0 sm:px-5 sm:py-4">
+                {/* 숫자는 쪼개지지 않는다(360px 에서 "12/34" — HP-471 최종 리뷰) — 휴대폰은 글자를 줄이고 칸 여백을 좁힌다. */}
+                <p className="num whitespace-nowrap font-mono text-[18px] font-extrabold leading-none tracking-tight text-ink sm:text-[24px]">{n}</p>
                 <p className="mt-1.5 text-[11px] leading-snug text-muted sm:text-[12.5px]">{k}</p>
               </div>
             ))}

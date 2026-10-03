@@ -213,9 +213,31 @@ assert.match(me, /watchUrl\(w\.platform, l\.platformEpisodeId, l\.playbackTime\)
 assert.ok((me.match(/\{url \? \(/g) || []).length >= 3, 'ChatRow·SceneChip·LikedRow 모두 url null 분기');
 // 요약 = summaryCells(1차 서버면 세 칸) · 휴대폰에서 칸 여백을 줄인다 · 칩은 줄바꿈.
 assert.match(me, /summaryCells\(s\)\.map/);
-assert.match(me, /px-2\.5 py-3 first:border-l-0 sm:px-5 sm:py-4/);
+assert.match(me, /px-1\.5 py-3 first:border-l-0 sm:px-5 sm:py-4/);
 assert.match(me, /<ul className="mt-2 flex flex-wrap gap-1\.5">/);
 // 2차 필드는 phase2Of 로만 읽는다(직접 읽으면 1차 서버에서 깨진다).
 assert.doesNotMatch(me, /w\.scenes|w\.liked\b|w\.sceneCount|w\.likedCount|full\.scenes|full\.liked\b/);
+
+// ── 최종 리뷰 반영(2026-10-03) — 휴대폰 폭(HP-474 이후 입구가 있다)·키보드. 측정 = 360·390px headless(리뷰 하네스) ──
+const likedRowSrc = me.slice(me.indexOf('function LikedRow'), me.indexOf('/** 작품 카드'));
+const sceneChipSrc = me.slice(me.indexOf('function SceneChip'), me.indexOf('function LikedRow'));
+// ① 좋아요 작성자 이름은 잘리지 않고(nowrap 금지 — ol 의 overflow-hidden 이 글자 중간을 자른다) 본문과 공백으로 떨어진다
+//    (keep-all 이 "수달가려진"을 한 어절로 묶어 단어 중간이 끊기고, 스크린리더가 이름·본문을 붙여 읽지 않게).
+assert.doesNotMatch(likedRowSrc, /whitespace-nowrap text-\[12\.5px\]/);
+assert.match(likedRowSrc, /\{v\.who\}<\/span>\{' '\}/);
+// ② 장면 칩은 좁은 폭에서 칩 안에서 줄바꿈한다(이모지 6종·두 자리 수가 목록 밖으로 넘쳐 잘리지 않게).
+assert.match(sceneChipSrc, /'inline-flex max-w-full flex-wrap items-center/);
+assert.match(sceneChipSrc, /<span className="inline-flex flex-wrap gap-1\.5">/);
+// ③ 요약 숫자는 두 줄로 쪼개지지 않는다("12/34").
+assert.match(me, /<p className="num whitespace-nowrap font-mono text-\[18px\]/);
+// ④ 1시간 넘는 시각(h:mm:ss)이 알약 안에서 접히지 않는다 — 채팅·좋아요 줄 시각 열 62px + nowrap(1차 ChatRow 에서 물려받은 결함까지).
+assert.equal((me.match(/grid-cols-\[48px_62px_1fr\]/g) || []).length, 2, '채팅·좋아요 줄 시각 열 62px');
+assert.doesNotMatch(me, /grid-cols-\[48px_54px_1fr\]/);
+assert.equal((me.match(/num whitespace-nowrap rounded-sm bg-accentw/g) || []).length, 2, '시각 알약 nowrap');
+// ⑤ '더 보기'는 받는 동안 disabled 로 잠그지 않는다 — disabled 가 되는 순간 포커스가 body 로 떨어져 키보드 사용자가 길을 잃는다.
+//    aria-disabled 로 알리고 toggle 안에서 막는다(두 번 받지 않는 성질은 그대로).
+assert.doesNotMatch(me, /\sdisabled=\{busy/);                                                      // aria-disabled 는 허용
+assert.match(me, /if \(busy\) return/);
+assert.equal((me.match(/aria-disabled=\{busy !== null\}/g) || []).length, 2, '줄·칩 더 보기 둘 다');
 
 console.log('scripts/test-activity.mjs: 통과');
