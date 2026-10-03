@@ -7,13 +7,15 @@ import {
   SPOILER_TAG, HIDDEN_PARENT, REPLY_FALLBACK, TRUNCATED_NOTE, EXPIRED, FAILED, MORE_FAILED, DELETE_FAILED,
   hasSpoilerSignal, isLeakScore, parentView, snip, relativeDay, lastActivityLabel, activityPageState, moreLabel, capNote, averageLabel, chatsCount, askLine,
   deleteErrorText, moreErrorText,
+  SCENES_PREVIEW, LIKED_PREVIEW, SCENE_SLOT_SEC, SCENES_HEAD, LIKED_HEAD,
+  phase2Of, summaryCells, cardSections, askText, scenesSummary, likedSummary, sceneEndSec, emojisOf, likedView,
 } from '../catalog/app/src/activity-pure.js';
 
 // 상수 — HP-441 과 짝(미리보기 3 · 한 작품 300), 스포일러 하한 3(Title.tsx 순간 인용과 같다).
 assert.equal(PREVIEW, 3); assert.equal(CHATS_CAP, 300); assert.equal(SPOILER_CUT, 3); assert.equal(LEAK_SCORE, 10);
 
 // 문구 — 프로토타입(2026-10-01 확정) 그대로. "반응"이 아니라 "채팅"(HP-274 결정 11), 꼬리표는 "스포일러"(HP-441).
-assert.equal(LEDE, '내가 남긴 평가와 채팅을 작품별로 모았습니다. 나만 볼 수 있어요.');
+assert.equal(LEDE, '내가 남긴 평가와 채팅, 반응한 장면과 좋아요한 채팅을 작품별로 모았습니다. 나만 볼 수 있어요.');
 assert.equal(GATE_LEDE, '내가 남긴 평가와 채팅은 로그인하면 볼 수 있어요.');
 assert.equal(EMPTY_TITLE, '아직 남긴 평가나 채팅이 없어요');
 assert.match(EMPTY_BODY, /작품별로 모입니다/);
@@ -25,7 +27,8 @@ assert.equal(SPOILER_TAG, '스포일러');
 assert.doesNotMatch(SPOILER_TAG, /표시/);
 assert.equal(HIDDEN_PARENT, '가려진 메시지');
 assert.equal(REPLY_FALLBACK, '↳ 답글');
-for (const s of [LEDE, GATE_LEDE, EMPTY_TITLE, EMPTY_BODY, CHATS_HEAD, NO_CHATS]) assert.doesNotMatch(s, /반응/);
+// "반응"은 장면 반응(2차 섹션) 전용이다(HP-274 결정 11) — 1차 채팅 문구엔 여전히 쓰지 않는다.
+for (const s of [GATE_LEDE, EMPTY_TITLE, EMPTY_BODY, CHATS_HEAD, NO_CHATS]) assert.doesNotMatch(s, /반응/);
 assert.ok(TRUNCATED_NOTE && EXPIRED && FAILED && MORE_FAILED);
 
 // 스포일러 신호 — 미채점(null)은 신호 아님(fail-open, 확장 HP-109 와 같다). 하한 3 이상, 문자열 숫자도 읽는다.
@@ -117,5 +120,70 @@ assert.equal(moreErrorText(404), MORE_FAILED); assert.equal(moreErrorText(500), 
 assert.equal(averageLabel(null), '—'); assert.equal(averageLabel(4.5), '4.5'); assert.equal(averageLabel(4), '4.0');
 assert.equal(chatsCount(7, 2), '7개 · 2개 회차');
 assert.equal(askLine(5), '채팅은 5개 남겼는데 별점은 아직이에요.');
+
+// ── 2차(HP-471 · HP-191 결정 1~5) ──
+// 상수 — HP-469 미리보기(장면 6 · 좋아요 3)·30초 구간과 짝. 섹션 이름은 프로토타입 그대로.
+assert.equal(SCENES_PREVIEW, 6); assert.equal(LIKED_PREVIEW, 3); assert.equal(SCENE_SLOT_SEC, 30);
+assert.equal(SCENES_HEAD, '반응한 장면'); assert.equal(LIKED_HEAD, '좋아요한 채팅');
+
+// 2차 필드 — 1차 서버 응답(필드 없음)이면 0·빈 배열(릴리스 순서가 어긋나도 1차 카드 그대로). 음수·숫자 아님도 0.
+assert.deepEqual(phase2Of({ chatCount: 2 }), { sceneCount: 0, reactionCount: 0, scenes: [], likedCount: 0, liked: [] });
+assert.deepEqual(phase2Of(null), { sceneCount: 0, reactionCount: 0, scenes: [], likedCount: 0, liked: [] });
+const SC = { episodeId: 7, seasonNumber: 1, episodeNumber: 1, platformEpisodeId: '81739046', slotStart: 300, emojis: [{ emoji: '❤️', count: 5 }] };
+const LK = { id: 'm1', episodeId: 7, seasonNumber: 1, episodeNumber: 1, platformEpisodeId: '81739046', playbackTime: 312.4, createdAt: '2026-10-02T10:00:00Z',
+  displayName: '졸린 수달', message: '이 장면 때문에 정주행함', moderationStatus: 'visible', spoilerScore: null, blockedByMe: false, mine: false };
+assert.deepEqual(phase2Of({ sceneCount: 3, reactionCount: 9, scenes: [SC], likedCount: 1, liked: [LK] }),
+  { sceneCount: 3, reactionCount: 9, scenes: [SC], likedCount: 1, liked: [LK] });
+assert.deepEqual(phase2Of({ sceneCount: -1, reactionCount: 'x', scenes: 'no', likedCount: NaN, liked: null }),
+  { sceneCount: 0, reactionCount: 0, scenes: [], likedCount: 0, liked: [] });
+
+// 요약(결정 4) — 다섯 칸. 1차 서버(2차 칸 둘 다 없음)면 1차 세 칸만 — 없는 값을 0으로 그리면 "반응한 장면 0"이라는 다른 사실이 된다.
+assert.deepEqual(summaryCells({ ratedWorks: 2, averageRating: 4.5, chatCount: 7, reactedScenes: 3, likedChats: 1 }),
+  [['2', '평가한 작품'], ['4.5', '내 평균 별점'], ['7', '남긴 채팅'], ['3', '반응한 장면'], ['1', '좋아요한 채팅']]);
+assert.deepEqual(summaryCells({ ratedWorks: 0, averageRating: null, chatCount: 7 }),
+  [['0', '평가한 작품'], ['—', '내 평균 별점'], ['7', '남긴 채팅']]);
+assert.deepEqual(summaryCells({ ratedWorks: 1, averageRating: 4, chatCount: 0, reactedScenes: 2 }),
+  [['1', '평가한 작품'], ['4.0', '내 평균 별점'], ['0', '남긴 채팅'], ['2', '반응한 장면'], ['0', '좋아요한 채팅']]);
+
+// 섹션 순서(결정 1) — 채팅 → 장면 → 좋아요, 0개 섹션은 뺀다. 빈 배열 = 1차 "아직 채팅을 남기지 않았어요" 한 줄(평가만 있는 작품).
+assert.deepEqual(cardSections({ chatCount: 2, sceneCount: 3, likedCount: 1 }), ['chats', 'scenes', 'liked']);
+assert.deepEqual(cardSections({ chatCount: 0, sceneCount: 3, likedCount: 0 }), ['scenes']);
+assert.deepEqual(cardSections({ chatCount: 0, sceneCount: 0, likedCount: 2 }), ['liked']);
+assert.deepEqual(cardSections({ chatCount: 0, sceneCount: 0, likedCount: 0 }), []);
+
+// 평가 권유(결정 5) — 채팅이 있으면 1차 문구, 없으면 반응 이벤트 수, 그것도 없으면 좋아요 수. 근거가 없으면 null(빈 권유 없음).
+assert.equal(askText({ chatCount: 5, reactionCount: 9, likedCount: 2 }), '채팅은 5개 남겼는데 별점은 아직이에요.');
+assert.equal(askText({ chatCount: 0, reactionCount: 9, likedCount: 2 }), '장면에 반응을 9번 남겼는데 별점은 아직이에요.');
+assert.equal(askText({ chatCount: 0, reactionCount: 0, likedCount: 2 }), '채팅에 좋아요를 2번 눌렀는데 별점은 아직이에요.');
+assert.equal(askText({ chatCount: 0, reactionCount: 0, likedCount: 0 }), null);
+
+// 섹션 머리 숫자(프로토타입) · 장면 끝 · 이모지(깨진 항목만 거른다 — 서버 순서·값 그대로).
+assert.equal(scenesSummary(3, 9), '3개 장면 · 반응 9번');
+assert.equal(likedSummary(4), '4개');
+assert.equal(sceneEndSec(300), 330); assert.equal(sceneEndSec(0), 30);
+assert.deepEqual(emojisOf({ emojis: [{ emoji: '❤️', count: 2 }, { emoji: '😂', count: 0 }, null, { emoji: '', count: 1 }, { emoji: '👍', count: 1 }] }),
+  [{ emoji: '❤️', count: 2 }, { emoji: '👍', count: 1 }]);
+assert.deepEqual(emojisOf({}), []); assert.deepEqual(emojisOf(null), []);
+
+// 좋아요 가림(결정 3) — 답글 원문과 같은 판정(parentView). 작성자 이름은 가려도 남는다. 내 글에 누른 좋아요(mine)는 그대로.
+const L = (o) => ({ ...LK, ...o });
+assert.deepEqual(likedView(L()), { who: '졸린 수달', text: '이 장면 때문에 정주행함' });
+assert.deepEqual(likedView(L({ message: null })), { who: '졸린 수달', text: null });                 // 운영 가림(blinded)
+assert.deepEqual(likedView(L({ moderationStatus: 'blocked_profanity' })), { who: '졸린 수달', text: null });
+assert.deepEqual(likedView(L({ moderationStatus: undefined })), { who: '졸린 수달', text: null });   // 모르는 상태 = 가림(fail-closed)
+assert.deepEqual(likedView(L({ blockedByMe: true })), { who: '졸린 수달', text: null });
+assert.deepEqual(likedView(L({ spoilerScore: 3 })), { who: '졸린 수달', text: null });
+assert.equal(likedView(L({ spoilerScore: 2 })).text, '이 장면 때문에 정주행함');
+assert.equal(likedView(L({ mine: true, spoilerScore: 10, moderationStatus: 'blocked_profanity' })).text, '이 장면 때문에 정주행함');
+assert.deepEqual(likedView(L({ displayName: '탈퇴한 사용자' })), { who: '탈퇴한 사용자', text: '이 장면 때문에 정주행함' });
+for (const o of [{}, { message: null }, { blockedByMe: true }, { spoilerScore: 3 }, { mine: true, message: null }]) {
+  assert.deepEqual(likedView(L(o)), parentView(L(o)));                                              // 판정은 한 곳
+}
+
+// 더 보기 — 장면은 미리보기 6 기준(결정 2), 채팅·좋아요는 3(기본값 그대로).
+assert.equal(moreLabel(6, false, SCENES_PREVIEW), null); assert.equal(moreLabel(9, false, SCENES_PREVIEW), '3개 더 보기');
+assert.equal(moreLabel(9, true, SCENES_PREVIEW), '접기');
+assert.equal(moreLabel(4, false, LIKED_PREVIEW), '1개 더 보기'); assert.equal(moreLabel(4, false), '1개 더 보기');
+assert.equal(capNote(301), '최근 회차부터 300개까지만 보여요.');                                   // 장면·좋아요 펼침에도 같은 안내
 
 console.log('scripts/test-activity.mjs: 통과');
