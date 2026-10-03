@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { CaretDownIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { api, type ContentSearchItem } from '../api'
 import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
+// TMDB 로고 — 랜딩 푸터와 같은 원본 파일(HP-386). vite-plugin-singlefile 이 Replix 로고처럼 번들 안에 싣는다.
+import tmdbLogo from '../../../../docs/assets/logo/tmdb-primary-short-blue.svg'
 import { ME_HREF, noticeHref, titleHref, type Route } from '../route-pure.js'
 import { engaged } from '../analytics'
 import { login, logout, takeAccountFocus, useAuth } from '../auth'
@@ -376,11 +378,19 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        {/* TMDB 약관 §3 이 요구하는 출처 표시. 문구는 약관에 지정된 원문이다. */}
-        <p className="mt-6 text-[11.5px] leading-relaxed text-faint">
-          포스터 이미지 출처: TMDB. This product uses TMDB and the TMDB APIs but is not
-          endorsed, certified, or otherwise approved by TMDB.
-        </p>
+        {/* TMDB 약관 §3 이 요구하는 출처 표시 — TMDB 로고로 사용을 밝히고 지정 문구(약관 원문)를 둔다(HP-386).
+            로고 = themoviedb.org/about/logos-attribution 의 'Primary short (blue)' SVG 원본(docs/assets/logo/tmdb-primary-short-blue.svg,
+            랜딩과 같은 파일 — SHA-256 이 TMDB 파일명 지문 8e7b30f7… 과 일치). 브랜드 지침: 색·비율 변경·뒤집기·회전 금지,
+            앱 브랜드보다 덜 두드러지게(위 워드마크 28px > 로고 12px). */}
+        <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11.5px] leading-relaxed text-faint">
+          <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0" aria-label="TMDB">
+            <img src={tmdbLogo} alt="TMDB" width={92} height={12} className="block h-3 w-auto" />
+          </a>
+          <p>
+            포스터 이미지 출처: TMDB. This product uses TMDB and the TMDB APIs but is not
+            endorsed, certified, or otherwise approved by TMDB.
+          </p>
+        </div>
       </div>
       <FeedbackModal open={feedback} onClose={closeFeedback} />
     </footer>
