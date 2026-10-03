@@ -2,6 +2,9 @@
 // 규칙을 `catalog/app/src/activity-pure.js`(타입 없는 ESM)로 분리해 node 로 직접 돌린다.
 // 실행: node scripts/test-activity.mjs
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import {
   SPOILER_CUT, LEAK_SCORE, PREVIEW, CHATS_CAP, LEDE, GATE_LEDE, EMPTY_TITLE, EMPTY_BODY, EMPTY_ACTION, CHATS_HEAD, NO_CHATS, ASK_ACTION,
   SPOILER_TAG, HIDDEN_PARENT, REPLY_FALLBACK, TRUNCATED_NOTE, EXPIRED, FAILED, MORE_FAILED, DELETE_FAILED,
@@ -185,5 +188,34 @@ assert.equal(moreLabel(6, false, SCENES_PREVIEW), null); assert.equal(moreLabel(
 assert.equal(moreLabel(9, true, SCENES_PREVIEW), '접기');
 assert.equal(moreLabel(4, false, LIKED_PREVIEW), '1개 더 보기'); assert.equal(moreLabel(4, false), '1개 더 보기');
 assert.equal(capNote(301), '최근 회차부터 300개까지만 보여요.');                                   // 장면·좋아요 펼침에도 같은 안내
+
+// ── 화면 배선(Me.tsx) — TSX 는 node 로 못 돌려 소스로 고정한다(test-catalog-mobile.mjs 와 같은 방식) ──
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const me = readFileSync(resolve(root, 'catalog/app/src/pages/Me.tsx'), 'utf8');
+// 섹션은 cardSections 순서로만 그린다(결정 1) · 섹션이 하나도 없을 때만 NO_CHATS.
+assert.match(me, /cardSections\(\{ chatCount: w\.chatCount, sceneCount: p2\.sceneCount, likedCount: p2\.likedCount \}\)/);
+assert.match(me, /sections\.length \? sections\.map\(\(sec\) => renderSec\[sec\]\(\)\) : <p[^>]*>\{NO_CHATS\}<\/p>/);
+// 평가 권유는 askText(결정 5) — 근거가 없으면 상자도 없다.
+assert.match(me, /askText\(\{ chatCount: w\.chatCount, reactionCount: p2\.reactionCount, likedCount: p2\.likedCount \}\)/);
+// '더 보기'는 한 작품 보기 응답 하나를 세 섹션이 함께 쓴다 — 호출 자리는 하나.
+assert.equal((me.match(/api\.myActivityWork\(/g) || []).length, 1, 'myActivityWork 호출은 한 곳');
+// 장면 = 칩 6 + 더 보기, 누르면 구간 시작(slotStart) — 1차와 같은 watchUrl·trackWatch, url 없으면 링크 없이.
+assert.match(me, /p2\.scenes\.slice\(0, SCENES_PREVIEW\)/);
+assert.match(me, /moreLabel\(s2\.sceneCount, open\.scenes, SCENES_PREVIEW\)/);
+assert.match(me, /watchUrl\(w\.platform, sc\.platformEpisodeId, sc\.slotStart\)/);
+assert.match(me, /capNote\(s2\.sceneCount\)/);
+// 좋아요 = 3 + 더 보기, likedView 판정, 목록은 세션 리플레이 가림(HP-457).
+assert.match(me, /p2\.liked\.slice\(0, LIKED_PREVIEW\)/);
+assert.match(me, /likedView\(l\)/);
+assert.match(me, /<ol className="amp-mask[^"]*">\s*\{liked\.map\(\(l\) => <LikedRow/);
+assert.match(me, /watchUrl\(w\.platform, l\.platformEpisodeId, l\.playbackTime\)/);
+// 넷플릭스가 아니거나 회차 id 가 없으면(url null) 세 줄 모두 링크 없이 글자만.
+assert.ok((me.match(/\{url \? \(/g) || []).length >= 3, 'ChatRow·SceneChip·LikedRow 모두 url null 분기');
+// 요약 = summaryCells(1차 서버면 세 칸) · 휴대폰에서 칸 여백을 줄인다 · 칩은 줄바꿈.
+assert.match(me, /summaryCells\(s\)\.map/);
+assert.match(me, /px-2\.5 py-3 first:border-l-0 sm:px-5 sm:py-4/);
+assert.match(me, /<ul className="mt-2 flex flex-wrap gap-1\.5">/);
+// 2차 필드는 phase2Of 로만 읽는다(직접 읽으면 1차 서버에서 깨진다).
+assert.doesNotMatch(me, /w\.scenes|w\.liked\b|w\.sceneCount|w\.likedCount|full\.scenes|full\.liked\b/);
 
 console.log('scripts/test-activity.mjs: 통과');
