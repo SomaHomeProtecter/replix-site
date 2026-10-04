@@ -1,228 +1,191 @@
-/* ═══ 함께 보는 방식 (다크) ═══════════════════════════════════
-   히어로와 같은 문법으로 직접 그린 두 개의 제품 화면(카드).
-   왼쪽 공개 에피소드방은 붐비고 빠르다 - 탄막이 흐르고 이모지가
-   떠오르고 숫자가 오른다. 오른쪽 그룹방은 조용하고 따뜻하다 -
-   초대장이 놓여 있고 말이 드문드문 온다. 두 방의 차이를 설명
-   문장이 아니라 리듬과 온도로 보여 준다. 영상 자리는 사진 대신
-   익명의 빛(그라디언트)으로 그린다 - 실제 작품 화면을 쓰면
-   저작권과 허위 표시가 걸리고, 사진은 이 페이지의 그린 UI 와
-   결이 달라 조잡해진다. */
+/* ═══ 함께 보는 방식 (밝은 지면) ═══════════════════════════════
+   HP-496(2026-10-04 조현빈 결정, 시안 다섯 개 중 B안). 흰 지면에 두 장의 제품
+   카드를 나란히 놓는다 — 왼쪽 공개 채팅은 그린 장면 위로 탄막·이모지가 흐르는
+   붐비는 방, 오른쪽 그룹방은 이름 있는 사람끼리의 메신저.
+   값은 시안 B 그대로다. 시안과 다른 것은 배경(흰 지면 + 위아래 선)뿐이고(같은 날
+   조현빈 결정), 시안에 없던 것은 페이지에 붙이며 더한 세 가지다 — 휴대폰 폭의
+   위아래 여백(다른 구획과 같은 리듬), 아주 좁은 폭에서 '초대 링크' 접기, 설명 줄
+   수가 달라져도 두 카드의 위아래를 맞추는 바닥 붙임.
+   장면은 사진이 아니라 직접 그린 그림이다 — 실제 작품 화면을 쓰면 저작권과 허위
+   표시가 걸린다(워크스페이스 §7). 옛 어두운 '시네마' 화면은 git 이력에 있다. */
+
+/* #faq 도 쓰는 흰 띠 — 이 파일에 있지만 함께 보기 전용이 아니다 */
 .band-white { background: var(--raise); }
-.cinema {
-  position: relative; overflow: hidden; isolation: isolate;
-  background: #07070c;
-  padding-block: clamp(64px, 7.5vw, 104px);
-}
-/* 두 방의 온도를 배경이 먼저 말한다 - 왼쪽 붉은 열기, 오른쪽 따뜻한 불빛 */
-.cinema::before { content: ""; position: absolute; left: -16%; top: -8%;
-  width: 64vw; height: 78%; pointer-events: none;
-  background: radial-gradient(46% 52% at 50% 50%, rgba(229,9,20,.12), transparent 70%); }
-.cinema::after { content: ""; position: absolute; right: -18%; bottom: -14%;
-  width: 64vw; height: 80%; pointer-events: none;
-  background: radial-gradient(46% 52% at 50% 50%, rgba(255,157,74,.09), transparent 70%); }
 
-.cinema-head { position: relative; z-index: 2; text-align: center; }
-.cin-eyebrow { display: block; margin-bottom: 13px;
-  font-family: var(--mono); font-size: clamp(10.5px, .86vw, 12.5px); font-weight: 700;
-  letter-spacing: .24em; color: #ff5b63; }
-.cinema-head h2 { color: #fff; font-size: clamp(26px, 3.4vw, 46px); }
-.cinema-head p { max-width: 48ch; margin: 15px auto 0; color: rgba(255,255,255,.7);
-  font-size: clamp(14px, 1.1vw, 16px); line-height: 1.74; }
+/* 위아래 이웃(#intro·#scenes)이 같은 밝은 계열이라 머리카락 선으로 경계를 긋는다.
+   줄 높이는 시안처럼 기본값(normal)에서 시작해 시안이 정한 곳만 정한다 — 페이지
+   본문의 1.62 를 물려받으면 이름·칩·시스템 줄이 시안보다 높아진다. */
+.rm { padding-block: 120px 128px; border-block: 1px solid var(--line); line-height: normal; }
+/* 본문 폭도 시안대로 — 페이지 공통 .wrap(최대 1320, 여백 최소 18)보다 조금 좁다 */
+.rm > .wrap { max-width: 1280px; padding-inline: clamp(20px, 4.4vw, 64px); }
 
-/* ── 두 방 카드 ─────────────────────────────────────────────── */
-.rooms { position: relative; z-index: 2; margin-top: clamp(32px, 3.8vw, 52px);
-  display: grid; grid-template-columns: 1fr 1fr; gap: clamp(26px, 3.8vw, 64px);
-  align-items: stretch;
-  /* 카드가 본문 폭(1320px)을 넘어 좌우로 뻗는다 - 화면이 넓으면 한쪽당
-     최대 100px 씩. 좁은 화면에선 clamp 가 0 이라 wrap 폭 그대로다. */
-  margin-inline: calc(-1 * clamp(0px, (100vw - 1320px) / 2, 100px)); }
-@media (max-width: 920px) { .rooms { grid-template-columns: 1fr; gap: 34px; } }
+/* ── 머리: 왼쪽 제목, 오른쪽 소개 — 좁으면 위아래로 ── */
+.rm-head, .rm-grid { display: grid; gap: 48px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
+.rm-head { align-items: end;
+  padding-bottom: 48px; margin-bottom: 56px; border-bottom: 1px solid var(--line); }
+.rm-eyebrow { display: block; font-size: 14px; font-weight: 700; letter-spacing: -.01em;
+  color: var(--accent); }
+.rm-head h2 { margin-top: 14px; font-size: clamp(34px, 4.2vw, 58px);
+  letter-spacing: -.05em; line-height: 1.04; }
+.rm-head p { max-width: 34ch; font-size: 17px; line-height: 1.7; color: var(--ink-2); }
 
-.room { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
-/* 두 카드는 살짝 마주 보는 책처럼 3D 로 벌려 놓는다 - 바깥 모서리가
-   가깝고 안쪽이 물러나며, 방의 색으로 물든 테두리·그림자가 깊이를
-   만든다. 공개방 = 레드, 그룹방 = 호박색. */
-.room-screen { flex: 1; display: flex; flex-direction: column;
-  border: 1px solid rgba(255,255,255,.07); }
-.room--pub .room-screen { border-color: rgba(229,9,20,.24);
-  box-shadow: 0 2px 5px rgba(0,0,0,.5), 0 30px 60px -22px rgba(0,0,0,.85),
-              0 44px 110px -36px rgba(229,9,20,.32); }
-.room--grp .room-screen { border-color: rgba(255,181,107,.22);
-  background: linear-gradient(180deg, #141009, #0b0908);
-  box-shadow: 0 2px 5px rgba(0,0,0,.5), 0 30px 60px -22px rgba(0,0,0,.85),
-              0 44px 110px -36px rgba(255,157,74,.26); }
-@media (min-width: 921px) {
-  .room--pub .room-screen { transform: perspective(1600px) rotateY(7deg);
-    transform-origin: left center; }
-  .room--grp .room-screen { transform: perspective(1600px) rotateY(-7deg);
-    transform-origin: right center; }
-}
-.room > figcaption { text-align: center; font-size: 14.5px;
-  color: rgba(255,255,255,.62); line-height: 1.7; padding-inline: 10px; }
-/* 히어로 패널의 입력줄을 빌려 쓰되 카드 크기에 맞게 한 단계 키운다 */
-.room-screen .panel-input { padding: 13px 17px; font-size: 12.5px; }
+/* ── 두 칸: 번호·이름·설명 아래 카드 ── */
+.rm-col { margin: 0; min-width: 0; display: flex; flex-direction: column; }
+.rm-idx { display: block; font-family: var(--mono); font-size: 15px; font-weight: 700;
+  font-variant-numeric: tabular-nums; color: #c4c4cc; }
+.rm-title { margin-top: 10px; display: flex; align-items: center; gap: 10px;
+  font-size: 28px; letter-spacing: -.04em; line-height: normal; }
+.rm-tag { padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0; }
+.rm-tag--live { background: #fdf1f1; color: #d00d18; }
+.rm-tag--invite { background: #eaf5ef; color: #0b7a52; }
+.rm-cap p { margin: 10px 0 28px; font-size: 16px; line-height: 1.7; color: var(--ink-2); }
 
-/* 카드 머리 - 방 이름과 상태. 히어로 패널 헤더와 같은 문법이되,
-   방의 색으로 옅게 물들여 정체를 한 번 더 말한다. */
-.room-head { display: flex; align-items: center; gap: 10px; padding: 15px 19px;
-  border-bottom: 1px solid var(--s-line); }
-.room--pub .room-head { background: linear-gradient(180deg, rgba(229,9,20,.14), rgba(229,9,20,.02)); }
-.room--grp .room-head { background: linear-gradient(180deg, rgba(255,160,70,.12), rgba(255,160,70,.02)); }
-.room-name { display: inline-flex; align-items: center; gap: 8px;
-  font-size: 15.5px; font-weight: 800; letter-spacing: -.02em; }
-.room--pub .room-name { color: #ff5b63; }
-.room--grp .room-name { color: #ffcf9e; }
-.room-name svg { flex: 0 0 auto; }
-.room-dot { width: 7px; height: 7px; border-radius: 50%; background: #ff3b41;
-  flex: 0 0 auto; animation: cin-pulse 2.4s var(--ease) infinite; }
-@keyframes cin-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(255,59,65,.5); }
-  70%  { box-shadow: 0 0 0 7px rgba(255,59,65,0); }
-  100% { box-shadow: 0 0 0 0 rgba(255,59,65,0); }
-}
-.room-meta { margin-left: auto; display: inline-flex; align-items: center; gap: 9px;
-  font-size: 13.5px; color: var(--s-muted); }
-.room-meta b { font-family: var(--mono); font-weight: 600; color: var(--s-text); }
-.avs { display: flex; }
-.avs i { width: 23px; height: 23px; border-radius: 50%; margin-left: -7px;
-  border: 2px solid #0b0b0f; display: grid; place-items: center;
-  font-style: normal; font-size: 10px; font-weight: 800; color: #fff; }
-.avs i:first-child { margin-left: 0; }
-.avs .a1 { background: linear-gradient(135deg, #7c5cff, #4f46e5); }
-.avs .a2 { background: linear-gradient(135deg, #ff7a59, #d43737); }
-.avs .a3 { background: linear-gradient(135deg, #2dd4bf, #0d9488); }
-.avs .plus { background: #2a2a35; color: rgba(255,255,255,.8); }
+/* ── 카드 = 익스텐션 패널(라이트) ──
+   --x-* 는 시안 B 의 값이고, 시안은 익스텐션 styles.css 라이트 테마
+   (#replix-root[data-rx-theme="light"])의 --rx-bg · --rx-surface · --rx-text ·
+   --rx-text-name · --rx-muted · --rx-accent-text · --rx-live-text 에서 가져왔다.
+   익스텐션 색이 바뀌어도 여기까지 따라 바꿀 의무는 없다.
+   margin-top:auto = 바닥 붙임 — 두 설명의 줄 수가 같으면(시안 폭) 아무 효과가 없다.
+   높이 562·44 = 시안의 560·42 + 위아래 테두리 2 — 시안은 테두리를 높이 밖에 더하고
+   (content-box) 이 사이트는 안에 넣는다(border-box, tokens.css). */
+.rm-card {
+  --x-bg: #f2f2f6; --x-surface: #ffffff;
+  --x-line: rgba(16,16,24,.08); --x-line-2: rgba(16,16,24,.1);
+  --x-text: #1b1b20; --x-name: #565662; --x-muted: #6a6a75; --x-hint: #8a8a95;
+  --x-red: #d00d18; --x-live: #0b8a5c;
+  height: 562px; margin-top: auto; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 20px; background: var(--x-bg); border: 1px solid var(--x-line);
+  box-shadow: 0 1px 2px rgba(16,16,24,.05), 0 28px 56px -32px rgba(16,16,24,.28);
+  color: var(--x-text); }
+.rm-card p { margin: 0; }
+.rm-card svg { display: block; flex: 0 0 auto; }
+.rm-mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
-/* 영상 자리 - 익명의 장면. 공개방은 푸른 밤 위로 오르는 열기,
-   그룹방은 스탠드 불빛의 온기. 사진 대신 빛으로만 그린다. */
-.room-stage { position: relative; overflow: hidden; aspect-ratio: 16 / 7.2;
-  border-bottom: 1px solid var(--s-line); }
-.room--pub .room-stage { background:
-  radial-gradient(95% 85% at 50% 112%, rgba(229,9,20,.32), transparent 64%),
-  radial-gradient(64% 52% at 50% 36%, rgba(63,86,178,.4), transparent 72%),
-  linear-gradient(180deg, #0a0d1d, #05060c); }
-/* 비네트 - 화면답게 가장자리를 살짝 조인다 */
-.room-stage::after { content: ""; position: absolute; inset: 0; pointer-events: none;
-  box-shadow: inset 0 0 64px rgba(0,0,0,.55); }
-
-/* 공개방 탄막 - 익스텐션의 탄막 모드가 이 방에선 늘 흐른다 */
-.room-dm { position: absolute; inset: 0; pointer-events: none; }
-.room-dm i { position: absolute; left: 102%; white-space: nowrap; font-style: normal;
-  font-size: 13.5px; font-weight: 600; color: rgba(255,255,255,.72);
-  text-shadow: 0 1px 8px rgba(0,0,0,.85);
-  animation: room-dm linear infinite; }
-.room-dm i:nth-child(1) { top: 12%; animation-duration: 10s; }
-.room-dm i:nth-child(2) { top: 27%; animation-duration: 13s; animation-delay: 2s; }
-.room-dm i:nth-child(3) { top: 42%; animation-duration: 11s; animation-delay: 4.5s; }
-.room-dm i:nth-child(4) { top: 57%; animation-duration: 12s; animation-delay: 6.5s; }
-.room-dm i:nth-child(5) { top: 20%; animation-duration: 14s; animation-delay: 8.5s; }
-@keyframes room-dm { to { left: -80%; } }
-
-/* 스테이지 하단 재생 줄 - 두 방 모두 같은 지점(32:47)을 보고 있다 */
-.room-ctrl { position: absolute; left: 16px; right: 16px; bottom: 13px; z-index: 4;
-  display: flex; align-items: center; gap: 11px; color: rgba(255,255,255,.85); }
-.room-ctrl svg { flex: 0 0 auto; width: 13px; height: 13px; }
-.room-track { position: relative; flex: 1; height: 3px; border-radius: 2px;
-  background: rgba(255,255,255,.2); }
-.room-track i { position: absolute; inset: 0 auto 0 0; width: 62%;
-  border-radius: 2px; background: var(--accent); }
-.room-track i::after { content: ""; position: absolute; top: 50%; right: -4px;
-  width: 9px; height: 9px; border-radius: 50%; background: var(--accent);
-  transform: translateY(-50%); box-shadow: 0 0 8px rgba(229,9,20,.7); }
-.room-time { font-family: var(--mono); font-size: 11.5px; }
-
-/* ── 그룹방: UI 문법 자체가 다르다 ──────────────────────────────
-   공개방이 '영상 위 익명의 함성'이라면 그룹방은 '이름 있는 메신저'.
-   큰 영상 대신 얇은 '함께 보는 중' 줄, 초대장 배너(HP-186),
-   아바타·이름·시각이 붙는 대화, 입력 중 표시로 구성한다. */
-.gwatch { display: flex; align-items: center; gap: 11px; padding: 13px 19px;
-  border-bottom: 1px solid var(--s-line); font-size: 12.5px; color: var(--s-muted); }
-.gwatch svg { flex: 0 0 auto; color: #ffcf9e; }
-.gwatch b { font-weight: 700; color: var(--s-text); letter-spacing: -.02em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gwatch .room-time { color: var(--s-muted); }
-
-.ginvite { display: flex; align-items: center; gap: 11px; margin: 15px 19px 0;
-  padding: 11px 14px; border-radius: 12px;
-  background: rgba(255,160,70,.08); border: 1px dashed rgba(255,181,107,.35);
-  font-size: 13px; color: var(--s-body); }
-.ginvite svg { flex: 0 0 auto; color: #ffcf9e; }
-.ginvite b { color: #fff; font-weight: 700; }
-.ginvite .num { font-family: var(--mono); color: var(--s-muted); }
-.ginvite-btn { margin-left: auto; padding: 7px 15px; border-radius: 9px; flex: 0 0 auto;
-  background: rgba(255,160,70,.16); border: 1px solid rgba(255,181,107,.45);
-  font-size: 12.5px; font-weight: 700; color: #ffcf9e; }
-
-.gchat { flex: 1; padding: 15px 19px 12px; display: grid; gap: 12px;
-  align-content: start; justify-items: start; }
-.grow { display: flex; gap: 10px; align-items: flex-start; max-width: 100%; }
-.gav { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; margin-top: 2px;
+/* 아바타 — 채도를 낮춘 바탕(--bg)과 같은 색상의 짙은 글자(--fg) */
+.rm-av { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%;
   display: grid; place-items: center; font-style: normal;
-  font-size: 12px; font-weight: 800; color: #fff; }
-.gbody { min-width: 0; display: grid; gap: 5px; justify-items: start; }
-.gmeta { display: flex; align-items: baseline; gap: 7px; }
-.gname { font-size: 12.5px; font-weight: 700; color: var(--s-text); }
-.gtime { font-family: var(--mono); font-size: 10px; color: var(--s-dim); }
-.gchat .cin-msg { border-radius: 4px 14px 14px 14px; padding: 8px 13px; }
-/* 시스템 이벤트 줄 - 익스텐션의 .rx-sys(선-알약-선)를 그대로 옮긴 것.
-   그룹방은 재생이 동기화되므로(HP-184) 재생/정지/입장이 대화 사이에
-   흐른다. 색도 익스텐션과 같다: 재생 = 초록, 정지 = 본문색, 입장 = 회색. */
-.gsys { justify-self: stretch; display: flex; align-items: center; gap: 8px; }
-.gsys i { flex: 1; height: 1px; background: var(--s-line); font-style: normal; }
-.gsys b { display: inline-flex; align-items: center; white-space: nowrap;
-  font-size: 11.5px; font-weight: 600; padding: 4px 12px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.03);
-  color: var(--s-muted); }
-.gsys--play b { color: #5ce8b6; border-color: rgba(52,216,163,.35);
-  background: rgba(52,216,163,.07); }
-.gsys--pause b { color: var(--s-body); }
-.gtyping { display: inline-flex; gap: 5px; padding: 12px 14px;
-  border-radius: 4px 14px 14px 14px;
-  background: #1a1310; border: 1px solid rgba(255,181,107,.24); }
-.gtyping i { width: 6px; height: 6px; border-radius: 50%; background: var(--s-muted);
-  animation: gdot 1.2s ease-in-out infinite; }
-.gtyping i:nth-child(2) { animation-delay: .15s; }
-.gtyping i:nth-child(3) { animation-delay: .3s; }
-@keyframes gdot { 0%,60%,100% { opacity: .35; transform: none; }
-  30% { opacity: 1; transform: translateY(-3px); } }
+  font-size: 11.5px; font-weight: 700; background: var(--bg); color: var(--fg); }
 
-/* 방 안의 말 - 이름표 없는 말소리(히어로 말풍선과 같은 문법).
-   자리는 고정하고 스크립트가 안의 말만 갈아 끼운다. 여러 사람이
-   흩어져 말하는 방이므로 2열로 좌우를 오가며 찬다 - 한쪽 벽만
-   타고 오르면 나머지 폭이 비어 어색하다. */
-.room-feed { flex: 1; padding: 15px 19px 8px; display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 12px;
-  justify-items: start; align-content: start; }
-.cin-msg { display: inline-flex; align-items: center; gap: 8px; max-width: 100%;
-  padding: 9px 15px; border-radius: 16px; white-space: nowrap;
-  background: #15151d; border: 1px solid rgba(255,255,255,.08);
-  font-size: 13.5px; font-weight: 600; color: #e6e6ee;
-  opacity: 0; transform: translateY(7px) scale(.98);
-  transition: opacity .44s var(--ease), transform .44s var(--ease); }
-.cin-msg.on { opacity: 1; transform: none; }
-.cin-msg i { font-style: normal; font-size: 12.5px; }
-.cin-side--grp .cin-msg { background: #1a1310; border-color: rgba(255,181,107,.24); }
+/* ── 공개 채팅: 그린 장면 ── */
+.rm-stage { flex: 0 0 172px; position: relative; overflow: hidden; }
+.rm-night { position: absolute; inset: 0;
+  background: linear-gradient(180deg, #0c1229 0%, #17203f 64%, #241a34 100%); }
+.rm-moon { position: absolute; right: 16%; top: 16%; width: 36px; height: 36px;
+  border-radius: 50%; background: #eee6cf; box-shadow: 0 0 40px rgba(238,230,207,.35); }
+.rm-ridge { position: absolute; left: 0; width: 100%; }
+.rm-ridge--far { bottom: 16%; height: 34%; fill: #0b0f22; }
+.rm-ridge--near { bottom: 0; height: 26%; fill: #05060c; }
 
-/* 카드 발치 - 공개방의 오르는 반응 수 */
-.room-foot { display: flex; align-items: center; gap: 9px; padding: 12px 19px 17px; }
-.cin-react { display: inline-flex; align-items: center; gap: 7px;
-  padding: 7px 13px; border-radius: 12px; color: #fff;
-  font-family: var(--mono); font-size: 12px; font-weight: 700; }
-.cin-react--a { background: rgba(200,12,24,.9); }
-.cin-react--b { background: rgba(190,110,16,.9); }
-.cin-react--c { background: rgba(38,38,52,.92); border: 1px solid rgba(255,255,255,.14); }
-.cin-react > span { font-size: 13px; line-height: 1; }
+/* 탄막 — 시안은 left 를 100% → -60% 로 옮긴다. 같은 움직임을 transform 으로 낸다:
+   레인이 장면 폭만큼이라 translateX(100%) → (-60%) 가 left 100% → -60% 와 같다
+   (left 를 움직이면 매 프레임 레이아웃을 다시 잡는다). */
+.rm-dm { position: absolute; left: 0; top: var(--y); width: 100%; white-space: nowrap;
+  font-size: 13px; font-weight: 600; color: rgba(255,255,255,.92);
+  text-shadow: 0 1px 6px rgba(0,0,0,.9);
+  transform: translateX(100%);
+  animation: rm-dm var(--dur, 11s) linear var(--wait, 0s) infinite; }
+@keyframes rm-dm { from { transform: translateX(100%); } to { transform: translateX(-60%); } }
 
-/* 공개방 스테이지에서 떠오르는 이모지 */
-.room-stage .floaters { z-index: 3; }
-.room-stage .floater { bottom: 40px; font-size: 19px; }
-
-/* ── 모바일 대응 ── */
-@media (max-width: 480px) {
-  .cinema { padding-block: clamp(48px, 6vw, 72px); }
-  .cinema-head h2 { font-size: clamp(22px, 6vw, 32px); }
-  .cinema-head p { font-size: 14px; }
-  .room-screen { border-radius: 10px; }
-  .rooms { gap: 28px; }
-  .room figcaption { font-size: 13px; }
+/* 떠오르는 이모지 */
+.rm-flt { position: absolute; bottom: 38px; font-size: 16px; opacity: 0;
+  animation: rm-rise 3.2s ease-out infinite; }
+@keyframes rm-rise {
+  0%   { transform: translateY(0) scale(.7); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translateY(-110px) scale(1); opacity: 0; }
 }
+
+/* 재생바 — 지금 32:47 */
+.rm-bar { position: absolute; left: 16px; right: 16px; bottom: 14px; height: 3px;
+  border-radius: 2px; background: rgba(255,255,255,.25); }
+.rm-bar i { position: absolute; inset: 0 auto 0 0; width: 62%;
+  border-radius: 2px; background: var(--accent); }
+.rm-bar i::after { content: ""; position: absolute; right: -5px; top: 50%;
+  width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+  transform: translateY(-50%); }
+
+/* ── 공개 채팅: 장면 머리로 묶인 채팅 ── */
+.rm-feed { flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 12px 18px;
+  display: flex; flex-direction: column; gap: 11px; }
+.rm-scn { display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; color: var(--x-muted); }
+.rm-scn svg { width: 9px; height: 9px; fill: currentColor; }
+.rm-msg { display: flex; gap: 10px; align-items: flex-start; }
+.rm-msg > div, .rm-them > div { min-width: 0; }
+.rm-msg b, .rm-them b { display: block; font-size: 12px; font-weight: 600; color: var(--x-name); }
+.rm-msg p { margin-top: 1px; font-size: 13.5px; line-height: 1.5; }
+.rm-like { margin-left: auto; padding-top: 2px; display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--x-muted); }
+.rm-like svg { width: 11px; height: 11px; fill: var(--x-red); }
+
+/* '지금' 줄 — 지금 재생 위치와 함께 보는 사람 수 */
+.rm-now { flex: 0 0 auto; display: flex; align-items: center; gap: 7px; padding: 10px 18px;
+  border-top: 1px solid var(--x-line); background: var(--x-bg);
+  font-size: 11.5px; color: var(--x-muted); }
+.rm-live { width: 7px; height: 7px; border-radius: 50%; background: var(--x-live); }
+.rm-now .rm-mono { color: var(--x-text); }
+.rm-count { margin-left: auto; }
+
+.rm-input { flex: 0 0 auto; margin: 0 14px 14px; height: 44px; padding: 0 14px;
+  display: flex; align-items: center; border-radius: 12px;
+  background: var(--x-surface); border: 1px solid var(--x-line-2);
+  font-size: 12.5px; color: var(--x-hint); white-space: nowrap; overflow: hidden; }
+
+/* ── 그룹방: 상태판(방 이름 · 회차 · 상태 칩) + 함께 보는 사람 ── */
+.rm-rhead { flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px 12px 12px; background: var(--x-surface); border-bottom: 1px solid var(--x-line); }
+.rm-back { width: 16px; height: 16px; fill: none; stroke: var(--x-muted);
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rm-rname { min-width: 0; }
+.rm-rname b { display: block; font-size: 15px; font-weight: 700; letter-spacing: -.02em;
+  color: var(--ink); }
+.rm-rname span { display: block; margin-top: 1px; font-size: 11.5px; color: var(--x-muted); }
+.rm-sync { margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px; background: #e8f5ef; border: 1px solid #bfe3d2;
+  font-size: 11px; font-weight: 700; color: #0b7a52; white-space: nowrap; }
+.rm-sync svg { width: 10px; height: 10px; fill: none; stroke: currentColor;
+  stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.rm-crew { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+  background: var(--x-surface); border-bottom: 1px solid var(--x-line); }
+.rm-mate { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px;
+  border-radius: 999px; background: var(--x-bg);
+  font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.rm-mate .rm-av { width: 22px; height: 22px; font-size: 10px; }
+.rm-invite { margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.rm-invite svg { width: 13px; height: 13px; fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; }
+
+/* ── 그룹방: 메신저 — 시스템 줄은 테두리 없이 아이콘 + 문구, 내 말은 오른쪽 붉은 말풍선 ── */
+.rm-msgs { flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px; }
+.rm-sys { display: flex; align-items: center; justify-content: center; gap: 5px;
+  font-size: 11px; font-weight: 500; color: var(--x-muted); }
+.rm-sys svg { width: 9px; height: 9px; fill: currentColor; }
+.rm-them { display: flex; gap: 8px; align-items: flex-start; max-width: 82%; }
+.rm-them b { margin-bottom: 4px; }
+.rm-bub { padding: 9px 13px; border-radius: 4px 16px 16px 16px;
+  font-size: 13.5px; line-height: 1.45;
+  background: var(--x-surface); border: 1px solid var(--x-line); }
+.rm-mine { align-self: flex-end; max-width: 78%; padding: 9px 13px;
+  border-radius: 16px 4px 16px 16px; font-size: 13.5px; line-height: 1.45; background: #fde7e8; }
+.rm-react { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;
+  padding: 2px 8px; border-radius: 999px; background: var(--x-surface);
+  border: 1px solid var(--x-line-2); font-size: 11px; color: var(--ink-2); }
+.rm-stamp { align-self: flex-end; margin-top: -4px; font-size: 10.5px; color: var(--x-hint); }
+
+/* 화면 밖에선 멈춘다 — js/rooms.js 가 .rm-off 를 붙였다 뗀다 */
+.rm-off .rm-dm, .rm-off .rm-flt { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .rm-dm { animation: none; transform: translateX(14%); }
+  .rm-flt { animation: none; }
+}
+
+/* ── 휴대폰 폭 — 시안에 없던 폭이라 페이지 리듬과 깨짐 방지만 더한다 ── */
+@media (max-width: 480px) {
+  .rm { padding-block: clamp(48px, 8vh, 72px); } /* 다른 구획(.pad)과 같은 휴대폰 여백 */
+}
+/* 이름표 셋이 먼저다 — 아주 좁으면 '초대 링크'가 카드 밖으로 잘리므로 접는다 */
+@media (max-width: 360px) { .rm-invite { display: none; } }
