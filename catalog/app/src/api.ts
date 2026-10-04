@@ -156,7 +156,7 @@ export type Comment = {
 export type CommentPage = { items: Comment[]; hasMore: boolean; rating: Rating }
 export type CommentSort = 'recent' | 'top'
 
-/* ── 내 활동(HP-441 — 소비: 웹 #/me HP-443 · 확장 HP-442). 로그인 필수(Cache-Control: private).
+/* ── 내 활동(HP-441 — 소비: 웹 #/me HP-443 · 익스텐션 HP-442). 로그인 필수(Cache-Control: private).
    서버는 가림을 판정하지 않는다 — 화면이 activity-pure.js 규칙으로 판정할 원값만 싣는다. 모양은 BE MyActivityDtos 와 1:1. */
 export type MyActivitySummary = { ratedWorks: number; averageRating: number | null; chatCount: number }
 /** 답글의 원문(남의 글). message 는 운영 가림이면 null. mine = 내 글에 이어 단 답글(가리지 않는다). */
@@ -197,7 +197,7 @@ export type MyActivityWork = {
 }
 export type MyActivity = { summary: MyActivitySummary; truncated: boolean; works: MyActivityWork[] }
 
-/* ── 피드백(HP-426) — 세 레포(BE·확장·웹) 공통 계약, 비로그인도 보낼 수 있다(Authorization 있으면 user_id 연결).
+/* ── 피드백(HP-426) — 세 레포(BE·익스텐션·웹) 공통 계약, 비로그인도 보낼 수 있다(Authorization 있으면 user_id 연결).
    이 화면(웹, 카탈로그)은 특정 회차 위에서 뜨지 않으므로 contentId·episodeId·appVersion·platform 은 항상 null(feedback-pure.js). */
 export type FeedbackCategory = 'ANNOY' | 'BUG' | 'IDEA' | 'PRAISE'
 export type FeedbackCreate = {

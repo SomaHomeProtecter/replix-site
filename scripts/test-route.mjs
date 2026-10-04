@@ -15,7 +15,7 @@ assert.deepEqual(parseRoute('#/notice/12/'), { page: 'notice', noticeId: 12 });
 assert.deepEqual(parseRoute('#/notice/12?utm=x'), { page: 'notice', noticeId: 12 });
 assert.deepEqual(parseRoute('#/notices'), { page: 'home', anchor: 'notices' });
 
-// 작품 — 회차 선택은 그대로, '/review' 가 붙으면 평가 칸으로(HP-443 · 확장 HP-442 가 여는 링크).
+// 작품 — 회차 선택은 그대로, '/review' 가 붙으면 평가 칸으로(HP-443 · 익스텐션 HP-442 가 여는 링크).
 assert.deepEqual(parseRoute('#/title/5'), { page: 'title', contentId: 5, episodeId: null, review: false });
 assert.deepEqual(parseRoute('#/title/5/ep/7'), { page: 'title', contentId: 5, episodeId: 7, review: false });
 assert.deepEqual(parseRoute('#/title/5/ep/7#moments'), { page: 'title', contentId: 5, episodeId: 7, review: false }); // 회차 카드가 붙이는 섹션 앵커

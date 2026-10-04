@@ -10,7 +10,7 @@ const read = (p) => readFileSync(resolve(root, p), 'utf8');
 // node 에는 window 가 없다 → 모듈이 부트(배너·SDK)하지 않아야 import 자체가 성공한다.
 const a = await import('../docs/js/analytics.js');
 
-// 환경 판정 — 운영 도메인만 prod, 미리보기·로컬·file 은 dev(확장 config.js 와 같은 두 프로젝트).
+// 환경 판정 — 운영 도메인만 prod, 미리보기·로컬·file 은 dev(익스텐션 config.js 와 같은 두 프로젝트).
 assert.equal(a.envOf('replix.tv'), 'prod');
 assert.equal(a.envOf('www.replix.tv'), 'prod');
 assert.equal(a.envOf('localhost'), 'dev');
@@ -191,8 +191,9 @@ assert.match(src, /function track\(name, props\) \{\s*send\(function \(a\) \{ a\
 assert.doesNotMatch(src, /setUserId|identify\(/, '웹 계측은 사람을 식별하지 않는다(옵트아웃의 전제)');
 assert.match(privacy, /화면 조작 기록은[^.]*명시적으로 동의한 경우에만/, '리플레이는 동의한 경우에만이라는 약속을 유지한다');
 assert.match(privacy, /다른 이용자가 쓴 평가·채팅과\s+닉네임/, '처리방침이 작품 탐색 녹화에서 가리는 것을 밝힌다');
-assert.doesNotMatch(privacy, /작품 탐색 화면과 확장\s+프로그램에서는 기록하지 않습니다/, '작품 탐색도 녹화한다 — 옛 문구가 남으면 방침이 거짓말');
-assert.match(privacy, /확장 프로그램의 이용 분석[^.]*명시적으로 동의한 경우에만/, '확장은 동의 유지(웹스토어 정책·회원 식별값 결합)');
+// 옛 문구는 '확장 프로그램'이라 불렀다(2026-10-04부터 '익스텐션') — 어느 표기로 되살아나도 잡는다.
+assert.doesNotMatch(privacy, /작품 탐색 화면과 (?:확장\s+프로그램|익스텐션)에서는 기록하지 않습니다/, '작품 탐색도 녹화한다 — 옛 문구가 남으면 방침이 거짓말');
+assert.match(privacy, /익스텐션의 이용 분석[^.]*명시적으로 동의한 경우에만/, '익스텐션은 동의 유지(웹스토어 정책·회원 식별값 결합)');
 // GA 도 동의 뒤 동적 로드만, 철회하면 전송을 막고 쿠키를 지운다.
 assert.doesNotMatch(index, /googletagmanager|gtag\(/, 'GA 도 동의 뒤 스크립트로만 로드한다(정적 태그 금지)');
 assert.doesNotMatch(read('docs/catalog/index.html'), /googletagmanager/, '카탈로그 산출물에도 정적 GA 태그 금지');

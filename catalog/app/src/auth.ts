@@ -1,11 +1,11 @@
 /* 카탈로그 로그인(HP-124). 읽기는 전부 공개이고, 로그인은 작품 댓글·별점을 쓸 때만 필요하다.
-   확장과 같은 Keycloak(realm replix, 클라이언트 replix-web)에 브라우저 SPA 방식(Authorization Code + PKCE)으로
+   익스텐션과 같은 Keycloak(realm replix, 클라이언트 replix-web)에 브라우저 SPA 방식(Authorization Code + PKCE)으로
    붙는다. 정적 사이트라 서버 세션이 없고, 토큰은 메모리에만 둔다(keycloak-js 가 갱신한다).
 
    해시 라우터(#/title/…)와 부딪히지 않도록 응답은 query 로 받는다(responseMode). 세션 확인은 사용자가 한 번이라도
    로그인한 적이 있을 때만(localStorage 표시) 조용히(iframe) 시도한다 — 처음 온 방문자에게 Keycloak 왕복을 시키지 않는다.
 
-   로그인만으로는 Replix 회원이 아니다(HP-449). 확장과 같이 약관·처리방침에 동의해야 계정이 생긴다 — 로그인 뒤 동의
+   로그인만으로는 Replix 회원이 아니다(HP-449). 익스텐션과 같이 약관·처리방침에 동의해야 계정이 생긴다 — 로그인 뒤 동의
    여부를 조회만 하고(계정을 만들지 않는 API), 미동의면 동의 모달을 띄운다. 동의 저장이 곧 계정 생성이고, 그 전에는
    계정 API(내 평가·쓰기·좋아요·로그인 상태의 피드백)에 토큰을 싣지 않는다 — 실으면 BE findOrCreate 가 동의 없이 계정을
    만든다. 화면의 이름은 서버의 랜덤 닉네임(HP-236)이다 — 토큰의 이메일·실명을 쓰지 않는다. */
@@ -119,7 +119,7 @@ async function getJson<T>(path: string, token: string): Promise<T> {
 const CONSENT_PATH = '/api/v1/users/me/legal-consents'
 
 /** 로그인 뒤 한 번 — 동의 여부를 조회만 하고(계정을 만들지 않는 API), 동의했으면 회원 정보를, 아니면 동의 모달을 연다.
- *  조회가 실패하면 미동의로 본다(확장과 같다) — 기능을 열지 않고 모달을 보이며, 이미 동의한 사람이면 저장이 멱등이다. */
+ *  조회가 실패하면 미동의로 본다(익스텐션과 같다) — 기능을 열지 않고 모달을 보이며, 이미 동의한 사람이면 저장이 멱등이다. */
 async function resolveAccount(justLoggedIn: boolean) {
   const gen = ++accountGen
   setAccount({ kind: 'checking' })
@@ -153,7 +153,7 @@ export function takeAccountFocus(): boolean {
 }
 
 /** 동의 저장 = 계정 생성. 실패하면 서버 오류 코드를 돌려준다 — 문서가 갱신됐으면(OUTDATED_LEGAL_DOCUMENTS) 서버의
- *  새 버전을 다시 읽어 두므로, 화면은 체크를 풀고 새 문서에 다시 동의받는다(확장과 같다). */
+ *  새 버전을 다시 읽어 두므로, 화면은 체크를 풀고 새 문서에 다시 동의받는다(익스텐션과 같다). */
 export async function acceptConsent(): Promise<{ ok: boolean; code?: string }> {
   if (account.kind !== 'consent') return { ok: false }
   const { versions } = account
@@ -196,7 +196,7 @@ export function declineConsent() {
   kc?.logout({ redirectUri: location.href.split('?')[0] })
 }
 
-/* 로그인 제공자(HP-447). 순서·문구는 확장(HP-71, Replix-extension config.js PROVIDERS)과 같다. id 는 Keycloak
+/* 로그인 제공자(HP-447). 순서·문구는 익스텐션(HP-71, Replix-extension config.js PROVIDERS)과 같다. id 는 Keycloak
    IdP alias 와 **정확히** 같아야 한다 — kc_idp_hint 로 그대로 나가 그 IdP 로 직행한다. */
 export type Provider = 'google' | 'kakao' | 'naver'
 export const PROVIDERS: readonly { id: Provider; label: string }[] = [

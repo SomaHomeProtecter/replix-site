@@ -54,7 +54,7 @@
   transform: translateX(-50%) rotate(45deg); }
 
 /* 지금 이 회차를 보고 있는 사람들이 어느 구간에 모여 있는지.
-   확장에서는 presence 가 모은 재생 위치를 구간으로 묶어 준다(HP-164·HP-192).
+   익스텐션에서는 presence 가 모은 재생 위치를 구간으로 묶어 준다(HP-164·HP-192).
    붉은 파형이 '쌓인 반응'이라면 이 줄은 '지금 이 순간'이라 초록으로 가른다. */
 .hm-live { position: relative; height: 26px; margin-top: 11px; }
 .hm-live-pod { position: absolute; top: 0; transform: translateX(-50%);
@@ -136,7 +136,7 @@
 /* ═══ 반응이 몰린 구간 — 단순화 버전 (#scenes, 2026-08-12) ═══════
    위의 인터랙티브 히트맵(#scenes-legacy, 감춤)을 대체한 정적 구성.
    밝은 배경에 제목·설명, 시각물만 어두운 카드(파형이 다크에서만 사는 색이라).
-   파형 = 랜딩 기존 빨간 막대, 핀 = 확장 실물 "N명 시청 중" 크림 알약
+   파형 = 랜딩 기존 빨간 막대, 핀 = 익스텐션 실물 "N명 시청 중" 크림 알약
    (Replix-extension styles.css .rx-vm-pill 의 색·질감을 옮김). */
 
 .pulse-head { text-align: center; margin-bottom: 44px; }

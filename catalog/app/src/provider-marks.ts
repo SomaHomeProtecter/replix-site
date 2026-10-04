@@ -1,4 +1,4 @@
-/* 소셜 로그인 버튼 심벌(HP-447) — 확장의 PROVIDER_ICONS(Replix-extension features/auth-ui.js, HP-71 D절)를 그대로 옮겼다.
+/* 소셜 로그인 버튼 심벌(HP-447) — 익스텐션의 PROVIDER_ICONS(Replix-extension features/auth-ui.js, HP-71 D절)를 그대로 옮겼다.
    세 개 모두 각 사 공식 애셋에서 추출한 값이다: 구글 = 공식 signin-assets.zip 의 G(96×96 PNG, assets/google-g.png),
    카카오 = kakao_login_original.psd 의 벡터 마스크, 네이버 = NAVER_login_KR.ai 의 N 경로.
    ⚠️ 손으로 다시 그리거나 "간단한 SVG 로 정리"하지 말 것 — 세 사 가이드 모두 심벌의 형태·비율·색 변경을 금지하고,

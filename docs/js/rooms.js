@@ -32,7 +32,7 @@ function runChats(kind, ms) {
   }, ms);
 }
 
-/* 떠오르는 이모지. 확장에 실제로 있는 반응이라 여기서도 같은 모양으로 쓴다 */
+/* 떠오르는 이모지. 익스텐션에 실제로 있는 반응이라 여기서도 같은 모양으로 쓴다 */
 var CIN_EMO = ["🔥", "😂", "😭", "👏", "😱"];
 function spawnEmoji(host) {
   if (!host) return;
