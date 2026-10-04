@@ -1,5 +1,5 @@
 // 피드백 순수 규칙(HP-426) — React·DOM 없이 node 로 검사한다(scripts/test-feedback.mjs).
-// 서버 계약(POST /api/v1/feedback)·문구는 웹 쪽 것만 다룬다 — 확장 쪽 안내 문구·저장소 키는 다른 레포(Replix-extension).
+// 서버 계약(POST /api/v1/feedback)·문구는 웹 쪽 것만 다룬다 — 익스텐션 쪽 안내 문구·저장소 키는 다른 레포(Replix-extension).
 
 const WEB_NOTE = '이메일은 받지 않고 답장은 따로 안 드려요. 답을 받고 싶으면 replix.contact@gmail.com으로 보내 주세요.'
 

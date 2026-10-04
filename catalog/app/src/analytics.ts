@@ -38,7 +38,7 @@ export function trackWatch(url: string | null, from: WatchFrom) {
   if (!url) return
   track('watch_link_clicked', { platform: 'netflix', from, has_timestamp: /[?&]t=\d/.test(url) })
 }
-/** catalog_engaged{feature, action} — 기능 사용을 잘게 쪼개지 않고 하나로 묶는다(확장 feature_engaged 와 같은 이유). */
+/** catalog_engaged{feature, action} — 기능 사용을 잘게 쪼개지 않고 하나로 묶는다(익스텐션 feature_engaged 와 같은 이유). */
 export function engaged(feature: string, action: string, extra?: Props) {
   track('catalog_engaged', { feature, action, ...(extra ?? {}) })
 }

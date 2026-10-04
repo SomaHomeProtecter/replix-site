@@ -31,7 +31,7 @@ assert.deepEqual(b.followUpsShown(['BLOCKS_SCREEN']), { coveredBy: true, wantedS
 assert.deepEqual(b.followUpsShown(['FEW_CHATS', 'NO_MY_OTT']), { coveredBy: false, wantedServices: true });
 assert.deepEqual(b.followUpsShown([]), { coveredBy: false, wantedServices: false });
 
-// ── 주소 값: 확장이 삭제 주소에 붙인 버전(v)·설치 후 경과일(d). 형식이 틀리면 버린다 —
+// ── 주소 값: 익스텐션이 삭제 주소에 붙인 버전(v)·설치 후 경과일(d). 형식이 틀리면 버린다 —
 //    그대로 보내면 서버가 400 VALIDATION_FAILED로 설문 전체를 거절해, 고른 사유까지 잃는다.
 const none = { appVersion: null, installDays: null };
 assert.deepEqual(b.parseParams('?v=0.12.0&d=3'), { appVersion: '0.12.0', installDays: 3 });

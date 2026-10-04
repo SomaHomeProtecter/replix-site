@@ -2,11 +2,11 @@
 // 타입은 activity-pure.d.ts 에서 붙인다. 문구 정본은 HP-274 프로토타입(카탈로그 탭, 2026-10-01 확정) — 여기 상수가 그 값이다.
 
 /** 웹이 남의 원문에서 '스포일러 신호'로 보는 점수 하한. Title.tsx 의 순간 채팅 인용이 같은 값으로 걸러 왔다(옛 SPOILER_CUT).
- *  지금 서버(v6.6 누설 이분)는 0 아니면 10 을 주지만 옛 연속 점수(v5, 1~9)가 남아 있어, 확장이 가릴 수 있던 가장 민감한
- *  컷(3)을 하한으로 둔다 — 웹은 사용자의 확장 가림 설정을 모르므로 남의 원문은 이 이상이면 가린다. */
+ *  지금 서버(v6.6 누설 이분)는 0 아니면 10 을 주지만 옛 연속 점수(v5, 1~9)가 남아 있어, 익스텐션이 가릴 수 있던 가장 민감한
+ *  컷(3)을 하한으로 둔다 — 웹은 사용자의 익스텐션 가림 설정을 모르므로 남의 원문은 이 이상이면 가린다. */
 export const SPOILER_CUT = 3;
-/** 서버가 누설로 판정한 점수(BE LEAK_SCORE · 확장 spoiler.js LEAK_CUT). 내 채팅의 "스포일러" 꼬리표는 이것만 본다 —
- *  확장 내 활동(HP-442 isLeak)과 같은 줄에 붙어야 하기 때문이다(옛 3~9 는 확장 피드도 가리지 않는다). */
+/** 서버가 누설로 판정한 점수(BE LEAK_SCORE · 익스텐션 spoiler.js LEAK_CUT). 내 채팅의 "스포일러" 꼬리표는 이것만 본다 —
+ *  익스텐션 내 활동(HP-442 isLeak)과 같은 줄에 붙어야 하기 때문이다(옛 3~9 는 익스텐션 피드도 가리지 않는다). */
 export const LEAK_SCORE = 10;
 /** 전체 보기가 작품마다 싣는 미리보기 수(HP-441 PREVIEW) — '더 보기' 기준. */
 export const PREVIEW = 3;
@@ -24,9 +24,9 @@ export const NO_CHATS = '이 작품에서는 아직 채팅을 남기지 않았�
 export const ASK_ACTION = '이 작품 평가하기';
 /** "내가 표시함"이라 쓰지 않는다 — 작성자 표시도 10점으로 저장돼 서버가 AI 판정과 구분하지 못한다(HP-441). */
 export const SPOILER_TAG = '스포일러';
-/** 확장 피드 replyRefHtml(chat.js)과 같은 문구. */
+/** 익스텐션 피드 replyRefHtml(chat.js)과 같은 문구. */
 export const HIDDEN_PARENT = '가려진 메시지';
-/** 원문이 사라진 답글 — 확장과 같은 문구. */
+/** 원문이 사라진 답글 — 익스텐션과 같은 문구. */
 export const REPLY_FALLBACK = '↳ 답글';
 export const TRUNCATED_NOTE = '활동이 많아 오래된 회차 일부는 세지 않았어요.';
 /** Comments.tsx 의 401 문구와 같다. */
@@ -36,7 +36,7 @@ export const FAILED = '내 활동을 불러오지 못했어요. 잠시 뒤 다�
 export const MORE_FAILED = '더 불러오지 못했어요. 잠시 뒤 다시 눌러 주세요.';
 export const DELETE_FAILED = '지우지 못했어요. 잠시 뒤 다시 시도해 주세요.';
 
-/** 미채점(null)은 신호가 아니다(fail-open — 확장 HP-109 정책과 같다). */
+/** 미채점(null)은 신호가 아니다(fail-open — 익스텐션 HP-109 정책과 같다). */
 export function hasSpoilerSignal(score) {
   if (score == null) return false;
   const n = Number(score);
@@ -51,9 +51,9 @@ export function isLeakScore(score) {
 }
 
 /** 답글 원문 한 줄. null = 원문이 없다('↳ 답글'). text null = 가려진 메시지 — 작성자 이름은 남긴다(누구에게 단 답글인지는
- *  읽혀야 스레드가 보인다, 확장과 같다). 내 글에 이어 단 답글(parent.mine)은 가리지 않는다(HP-274 결정 5). 남의 글은
+ *  읽혀야 스레드가 보인다, 익스텐션과 같다). 내 글에 이어 단 답글(parent.mine)은 가리지 않는다(HP-274 결정 5). 남의 글은
  *  운영 가림(message null)·공개 아님(moderationStatus ≠ 'visible' — 클린봇 차단 등, 모르는 상태도 가린다: Title.tsx 순간
- *  인용과 같은 fail-closed)·내가 차단한 작성자·스포일러 신호 중 하나라도 있으면 가린다 — 웹은 확장의 스포일러 민감도·클린봇
+ *  인용과 같은 fail-closed)·내가 차단한 작성자·스포일러 신호 중 하나라도 있으면 가린다 — 웹은 익스텐션의 스포일러 민감도·클린봇
  *  설정을 모르므로 가장 보수적으로 판정한다. */
 export function parentView(parent) {
   if (!parent) return null;
@@ -66,7 +66,7 @@ export function parentView(parent) {
   return { who, text: hidden ? null : parent.message };
 }
 
-/** 원문 일부 — 확장 피드의 참조 스니펫과 같은 길이(24자). */
+/** 원문 일부 — 익스텐션 피드의 참조 스니펫과 같은 길이(24자). */
 export function snip(text, max = 24) {
   const t = text == null ? '' : String(text);
   return t.length > max ? t.slice(0, max) + '…' : t;

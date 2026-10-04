@@ -34,13 +34,13 @@ assert.equal(REPLY_FALLBACK, '↳ 답글');
 for (const s of [GATE_LEDE, EMPTY_TITLE, EMPTY_BODY, CHATS_HEAD, NO_CHATS]) assert.doesNotMatch(s, /반응/);
 assert.ok(TRUNCATED_NOTE && EXPIRED && FAILED && MORE_FAILED);
 
-// 스포일러 신호 — 미채점(null)은 신호 아님(fail-open, 확장 HP-109 와 같다). 하한 3 이상, 문자열 숫자도 읽는다.
+// 스포일러 신호 — 미채점(null)은 신호 아님(fail-open, 익스텐션 HP-109 와 같다). 하한 3 이상, 문자열 숫자도 읽는다.
 assert.equal(hasSpoilerSignal(null), false); assert.equal(hasSpoilerSignal(undefined), false);
 assert.equal(hasSpoilerSignal(0), false); assert.equal(hasSpoilerSignal(2), false);
 assert.equal(hasSpoilerSignal(3), true); assert.equal(hasSpoilerSignal(10), true); assert.equal(hasSpoilerSignal('7'), true);
 assert.equal(hasSpoilerSignal('x'), false);
 
-// 내 채팅 꼬리표 — 서버 누설 판정(10)만. 옛 연속 점수 3~9 는 확장 피드도 가리지 않으므로 꼬리표도 없다(두 화면이 같은 줄에 붙인다).
+// 내 채팅 꼬리표 — 서버 누설 판정(10)만. 옛 연속 점수 3~9 는 익스텐션 피드도 가리지 않으므로 꼬리표도 없다(두 화면이 같은 줄에 붙인다).
 assert.equal(isLeakScore(null), false); assert.equal(isLeakScore(undefined), false);
 assert.equal(isLeakScore(3), false); assert.equal(isLeakScore(9), false);
 assert.equal(isLeakScore(10), true); assert.equal(isLeakScore('10'), true); assert.equal(isLeakScore('x'), false);
@@ -65,7 +65,7 @@ assert.deepEqual(parentView(P({ mine: true, spoilerScore: 10, moderationStatus: 
 assert.deepEqual(parentView(P({ mine: true, message: null })), { who: '졸린 수달', text: null });
 assert.equal(parentView(P({ displayName: null })).who, '');
 
-// 스니펫 — 확장 피드와 같은 24자.
+// 스니펫 — 익스텐션 피드와 같은 24자.
 assert.equal(snip('짧은 글'), '짧은 글');
 assert.equal(snip('a'.repeat(24)), 'a'.repeat(24));
 assert.equal(snip('a'.repeat(25)), 'a'.repeat(24) + '…');

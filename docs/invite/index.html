@@ -1,8 +1,8 @@
 <!doctype html>
 <!-- HP-186 초대 스텁 (C안, 2026-07-24 김지호 확정) — https://replix.tv/invite?w=<watch id>&t=<초대 토큰>
-     역할: 미설치자를 넷플릭스 해당 회차로 보낸다(설치자는 확장 background가 이 페이지 도달 전에 가로챔).
+     역할: 미설치자를 넷플릭스 해당 회차로 보낸다(설치자는 익스텐션 background가 이 페이지 도달 전에 가로챔).
      자동 이동 + 수동 버튼(인앱 브라우저가 자동 리다이렉트를 막는 경우 대비) + 파라미터 오류 안내.
-     휴대폰은 자동 이동하지 않는다(HP-477) — 초대는 대개 메신저로 받아 휴대폰에서 열리는데, 휴대폰엔 확장이 없어
+     휴대폰은 자동 이동하지 않는다(HP-477) — 초대는 대개 메신저로 받아 휴대폰에서 열리는데, 휴대폰엔 익스텐션이 없어
      넷플릭스로 보내면 Replix 안내 없이 초대가 끊긴다. 'PC 크롬에서 같이 봐요' 안내와 링크 복사를 보여 준다.
      계약 정본 = Jira HP-186 코멘트 11185 · HP-87 코멘트 11191. HP-87 랜딩이 완성되면 이 파일을
      랜딩형 초대 페이지로 교체한다(URL·파라미터 불변). 외부 리소스 0 — 단일 파일 유지. -->
@@ -78,9 +78,9 @@
     <p class="sub">초대한 친구에게 새 링크를 받아 주세요</p>
   </main>
   <script>
-    // 플랫폼별 재생 URL (HP-318). 조립 규칙의 정본은 확장의 `replix-net.js` PLATFORM_NAV이고
-    // 여기는 그 사본이다 — 이 페이지는 확장 코드에 닿을 수 없는 정적 웹 표면이라 어쩔 수 없다.
-    // ⚠ 플랫폼을 추가하면 세 곳을 함께 고쳐야 한다: replix-net.js · 확장 background.js · 이 파일.
+    // 플랫폼별 재생 URL (HP-318). 조립 규칙의 정본은 익스텐션의 `replix-net.js` PLATFORM_NAV이고
+    // 여기는 그 사본이다 — 이 페이지는 익스텐션 코드에 닿을 수 없는 정적 웹 표면이라 어쩔 수 없다.
+    // ⚠ 플랫폼을 추가하면 세 곳을 함께 고쳐야 한다: replix-net.js · 익스텐션 background.js · 이 파일.
     var NAV = {
       netflix: {
         name: '넷플릭스',
@@ -91,7 +91,7 @@
         url: function (id) { return 'https://www.disneyplus.com/play/' + encodeURIComponent(id); },
       },
     };
-    // 확장을 설치할 수 없는 기기인가(HP-477). 정본은 docs/js/install-guide.js 의 isMobileDevice 이고 여기는 사본이다 —
+    // 익스텐션을 설치할 수 없는 기기인가(HP-477). 정본은 docs/js/install-guide.js 의 isMobileDevice 이고 여기는 사본이다 —
     // 외부 리소스 0 원칙이라 import 하지 못한다. 고치면 둘 다(scripts/test-install-guide.mjs 가 같은 사례로 대조한다).
     /* isMobileDevice:start */
     function isMobileDevice(env) {
@@ -116,7 +116,7 @@
     }
     if (w && t && pk) {
       // 토큰은 해시(#)로 나른다 — fragment는 서버로 전송되지 않아 OTT 쪽이 토큰을 보지 못하고,
-      // 설치된 확장(content script)만 읽는다. encodeURIComponent는 URL 조립 방어(값은 base64url).
+      // 설치된 익스텐션(content script)만 읽는다. encodeURIComponent는 URL 조립 방어(값은 base64url).
       var url = NAV[pk].url(w) + '#replix-invite=' + encodeURIComponent(t);
       var nav = navigator;
       var device = { ua: nav.userAgent || '', platform: nav.platform || '', maxTouchPoints: nav.maxTouchPoints || 0,

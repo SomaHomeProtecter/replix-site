@@ -3,13 +3,13 @@ import { PROVIDERS, closeLogin, loginWith, useLoginChooser, type Provider } from
 import { GOOGLE_G, KAKAO_MARK, NAVER_MARK } from '../provider-marks'
 
 /* ═══ 로그인 제공자 선택(HP-447) ═════════════════════════════
-   확장의 로그인 모달(HP-71 B′)과 같은 형태 — 가운데 카드에 Google·카카오·네이버 세 버튼을 같은 규격으로 둔다
+   익스텐션의 로그인 모달(HP-71 B′)과 같은 형태 — 가운데 카드에 Google·카카오·네이버 세 버튼을 같은 규격으로 둔다
    (구글 동등 노출 요건: 높이 40px·글꼴 14px/500·모서리 8px). 컨테이너 색과 심벌은 각 사 가이드 값이다.
    모달 틀(바깥 클릭·Esc 로 닫기, 포커스 가둠, 뒤 스크롤 잠금)은 FeedbackModal 과 같은 방식이다.
-   확장에 있는 '처음이면 약관 동의로 이어져요' 안내는 옮기지 않는다 — 웹에는 그 단계가 없다(HP-449). */
+   익스텐션에 있는 '처음이면 약관 동의로 이어져요' 안내는 옮기지 않는다 — 웹에는 그 단계가 없다(HP-449). */
 
 /* 컨테이너 색 = 각 사 가이드 값. 네이버는 공식 로그인 버튼 값 #03A94D 다 — 흔히 쓰이는 #03C75A 는 네이버 클라우드 SSO
-   색이라 로그인 버튼에 쓰면 가이드 위반이다(확장 styles.css 와 같은 근거). 구글은 흰 바탕이라 밝기 필터로는 hover 가
+   색이라 로그인 버튼에 쓰면 가이드 위반이다(익스텐션 styles.css 와 같은 근거). 구글은 흰 바탕이라 밝기 필터로는 hover 가
    보이지 않아 배경을 직접 바꾼다. */
 const TONE: Record<Provider, string> = {
   google: 'border border-[#747775] bg-white text-[#1f1f1f] hover:bg-[#f2f3f4]',

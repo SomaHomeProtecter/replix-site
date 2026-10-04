@@ -3,8 +3,8 @@ import { acceptConsent, declineConsent, useConsentRequired } from '../auth'
 import { acceptErrorMessage, canAccept } from '../consent-pure.js'
 
 /* ═══ 약관·처리방침 동의(HP-449) ═════════════════════════════
-   로그인만으로는 Replix 계정이 아니다 — 확장(features/consent.js)과 같은 두 필수 항목에 동의해야 계정이 생긴다.
-   문구는 확장과 같게 두되 '채팅' 자리에 웹의 기능(별점·한마디)을 적는다. 바깥 클릭·Esc 로는 닫지 않는다 — 동의 여부는
+   로그인만으로는 Replix 계정이 아니다 — 익스텐션(features/consent.js)과 같은 두 필수 항목에 동의해야 계정이 생긴다.
+   문구는 익스텐션과 같게 두되 '채팅' 자리에 웹의 기능(별점·한마디)을 적는다. 바깥 클릭·Esc 로는 닫지 않는다 — 동의 여부는
    버튼으로 명시적으로 고르게 한다. '동의하지 않음'은 로그인 전으로 되돌리며 Keycloak 세션까지 끝내므로(auth.declineConsent)
    Esc 한 번의 실수로 로그아웃되지 않게 Esc 에는 걸지 않는다.
    모달 틀(포커스 가둠·뒤 스크롤 잠금)은 FeedbackModal·LoginModal 과 같은 방식이다. */

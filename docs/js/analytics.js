@@ -7,7 +7,7 @@
    ② SDK 는 허용 뒤 동적으로 붙이고, 그 전 호출은 큐에 쌓아 로드 뒤 보낸다.
    ③ 자동수집(pageViews·pageUrlEnrichment·form)은 끈다 — 전체 URL 이 실리면 /catalog 해시의 작품 ID 나
       쿼리가 새 나간다. page_path 는 cleanPath 로 직접 정제한다(라우트 이름까지만).
-   ④ IP 는 끈다 — 처리방침 수집 항목에 없다. 확장(HTTP API, ip 미전송)과 같은 수준으로 맞춘다.
+   ④ IP 는 끈다 — 처리방침 수집 항목에 없다. 익스텐션(HTTP API, ip 미전송)과 같은 수준으로 맞춘다.
    ⑤ 세션 리플레이(HP-457)는 **랜딩·작품 탐색**, 시행일부터, [허용] 뒤에만 붙인다 — 아래 REPLAY_FROM 참조.
    ⑥ Google Analytics(HP-465)도 **같은 동의 뒤에만**, 처리방침 시행일부터 붙인다 — 아래 GA_FROM 참조. 자동 수집 값
       (전체 URL·문서 제목·전체 리퍼러)을 정리된 값으로 덮어 Amplitude 와 같은 금지 목록(트래킹 플랜 §2)을 지킨다.
@@ -19,7 +19,7 @@ export var CONSENT_KEY = 'replix_web_analytics_consent_v1';
    거부는 버전과 무관하게 계속 존중한다(parseConsent). */
 export var CONSENT_VERSION = 4;
 export var SDK_URL = 'https://cdn.amplitude.com/libs/analytics-browser-2.45.8-min.js.gz';
-/* 확장 config.js 와 같은 두 프로젝트(쓰기 전용 클라이언트 키 — 읽기·삭제 불가). 표면은 surface 속성으로 가른다. */
+/* 익스텐션 config.js 와 같은 두 프로젝트(쓰기 전용 클라이언트 키 — 읽기·삭제 불가). 표면은 surface 속성으로 가른다. */
 export var API_KEYS = { prod: '6f7bcf8fc37e9f93d442f943c23b6861', dev: 'fa98652a9c62152eaab56eb423b707ab' };
 /* ─── 세션 리플레이(HP-457) ───────────────────────────────────────
    화면 조작(스크롤·클릭·화면 구성 변화)을 재생 가능한 형태로 기록한다. 세 가지를 고정한다:

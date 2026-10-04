@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { CaretDownIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { api, type ContentSearchItem } from '../api'
 import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
+// TMDB 로고 — 랜딩 푸터와 같은 원본 파일(HP-386). vite-plugin-singlefile 이 Replix 로고처럼 번들 안에 싣는다.
+import tmdbLogo from '../../../../docs/assets/logo/tmdb-primary-short-blue.svg'
 import { ME_HREF, noticeHref, titleHref, type Route } from '../route-pure.js'
 import { engaged } from '../analytics'
 import { login, logout, takeAccountFocus, useAuth } from '../auth'
@@ -32,7 +34,7 @@ export function Nav({ current }: { current: Route['page'] }) {
      · 761~1,239px: 섹션 링크를 숨기고(푸터·홈 스크롤로 닿는다) 검색은 돋보기로 접는다, 간격 18px. 경계가 1,240px 인 이유 —
        그보다 좁으면 늘 열린 검색창이 눌려(1,100px 에서 73px, '작'만 보였다) 1,240px 에서야 200px 가 된다(2026-10-02 실측).
      · 760px 이하(휴대폰): 로고 · '작품' · 돋보기 · 로그인(로그인 뒤엔 닉네임 메뉴). 설치 버튼·'홈으로'·공지는 숨긴다 —
-       휴대폰엔 확장을 깔 수 없고(설치 안내는 HP-477), 랜딩으로는 로고가, 공지로는 공지 띠·푸터가 간다. 360px 미만은 로고를 28px 로. */
+       휴대폰엔 익스텐션을 깔 수 없고(설치 안내는 HP-477), 랜딩으로는 로고가, 공지로는 공지 띠·푸터가 간다. 360px 미만은 로고를 28px 로. */
   return (
     <header
       className="sticky top-0 z-40 flex h-[66px] items-center border-b border-line"
@@ -64,7 +66,7 @@ export function Nav({ current }: { current: Route['page'] }) {
         <NoticeLink current={current === 'notice'} />
         <AuthButton />
         <a href={STORE} target="_blank" rel="noopener" className="btn btn--primary btn--sm hidden shrink-0 min-[761px]:inline-flex" data-cta="catalog_nav">
-          크롬 확장프로그램 설치하기
+          크롬 익스텐션 설치하기
         </a>
       </div>
     </header>
@@ -137,7 +139,7 @@ export function NoticeBand() {
  *  내 활동이 웹의 유일한 '내 것' 화면이고 입구는 이 메뉴뿐이다(HP-274 결정 12 — 섹션 내비는 "이 표면의 섹션만" 규칙과 충돌해 기각).
  *  휴대폰에서도 보인다 — 결정 12 의 '760px 이하에선 입구 없음'은 2026-10-02 김지호가 재개해 고쳤다(HP-474): 휴대폰 로그인
  *  사용자가 로그아웃도 내 활동 진입도 못 했다.
- *  프로필·설정 화면은 여전히 두지 않는다(그건 확장의 몫) — 내 활동은 설정이 아니라 내가 남긴 것의 모아보기다. */
+ *  프로필·설정 화면은 여전히 두지 않는다(그건 익스텐션의 몫) — 내 활동은 설정이 아니라 내가 남긴 것의 모아보기다. */
 function AuthButton() {
   const { ready, user } = useAuth()
   if (!ready) return null
@@ -370,17 +372,25 @@ export function Footer() {
             <ul className="space-y-1.5 text-muted">
               <li><a href="/privacy" className="hover:text-ink">개인정보처리방침</a></li>
               <li><a href="/terms" className="hover:text-ink">이용약관</a></li>
-              <li><a href={STORE} target="_blank" rel="noopener" className="hover:text-ink" data-cta="catalog_footer">크롬 확장프로그램 설치</a></li>
+              <li><a href={STORE} target="_blank" rel="noopener" className="hover:text-ink" data-cta="catalog_footer">크롬 익스텐션 설치</a></li>
               {/* 방문 통계 동의를 다시 묻는다 — /js/analytics.js 가 위임 처리. 처리방침 §6 이 약속한 철회 경로. */}
               <li><a href="#" data-analytics-settings className="hover:text-ink">분석 설정</a></li>
             </ul>
           </div>
         </div>
-        {/* TMDB 약관 §3 이 요구하는 출처 표시. 문구는 약관에 지정된 원문이다. */}
-        <p className="mt-6 text-[11.5px] leading-relaxed text-faint">
-          포스터 이미지 출처: TMDB. This product uses TMDB and the TMDB APIs but is not
-          endorsed, certified, or otherwise approved by TMDB.
-        </p>
+        {/* TMDB 약관 §3 이 요구하는 출처 표시 — TMDB 로고로 사용을 밝히고 지정 문구(약관 원문)를 둔다(HP-386).
+            로고 = themoviedb.org/about/logos-attribution 의 'Primary short (blue)' SVG 원본(docs/assets/logo/tmdb-primary-short-blue.svg,
+            랜딩과 같은 파일 — SHA-256 이 TMDB 파일명 지문 8e7b30f7… 과 일치). 브랜드 지침: 색·비율 변경·뒤집기·회전 금지,
+            앱 브랜드보다 덜 두드러지게(위 워드마크 28px > 로고 12px). */}
+        <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11.5px] leading-relaxed text-faint">
+          <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0" aria-label="TMDB">
+            <img src={tmdbLogo} alt="TMDB" width={92} height={12} className="block h-3 w-auto" />
+          </a>
+          <p>
+            포스터 이미지 출처: TMDB. This product uses TMDB and the TMDB APIs but is not
+            endorsed, certified, or otherwise approved by TMDB.
+          </p>
+        </div>
       </div>
       <FeedbackModal open={feedback} onClose={closeFeedback} />
     </footer>

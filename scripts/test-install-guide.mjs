@@ -10,7 +10,7 @@ const read = (p) => readFileSync(resolve(root, p), 'utf8');
 // node 에는 window 가 없다 → 모듈이 부트(클릭 가로채기·시트)하지 않아야 import 자체가 성공한다.
 const g = await import('../docs/js/install-guide.js');
 
-// 확장을 설치할 수 없는 기기 판정 — 실제 UA 문자열로 본다.
+// 익스텐션을 설치할 수 없는 기기 판정 — 실제 UA 문자열로 본다.
 const UA = {
   androidPhone: 'Mozilla/5.0 (Linux; Android 14; SM-S918N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36',
   androidTablet: 'Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
@@ -26,7 +26,7 @@ const UA = {
 const CASES = [
   [{ ua: UA.androidPhone, platform: 'Linux armv81', maxTouchPoints: 5, uaMobile: true }, true, '안드로이드 휴대폰'],
   [{ ua: UA.androidTablet, platform: 'Linux armv81', maxTouchPoints: 10, uaMobile: false }, true,
-    '안드로이드 태블릿 — UA-CH mobile 은 false 지만 확장을 깔 수 없다'],
+    '안드로이드 태블릿 — UA-CH mobile 은 false 지만 익스텐션을 깔 수 없다'],
   [{ ua: UA.iphone, platform: 'iPhone', maxTouchPoints: 5 }, true, 'iPhone'],
   [{ ua: UA.ipadDesktopMode, platform: 'MacIntel', maxTouchPoints: 5 }, true, 'iPadOS 사파리(데스크톱 모드 UA = Mac 과 같음)'],
   [{ ua: UA.kakaotalk, platform: 'Linux armv81', maxTouchPoints: 5 }, true, '카카오톡 인앱 브라우저'],

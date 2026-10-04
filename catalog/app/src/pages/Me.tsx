@@ -5,7 +5,7 @@
    `GET /users/me/activity/contents/{id}`(≤300, 커서 없음). 정렬은 API 순서 하나(마지막 활동순, HP-274 결정 14 — 토글 없음).
    가림·상대 날짜·상태 판정은 activity-pure.js(노드 검사 scripts/test-activity.mjs). 내 글은 가리지 않고 남의 원문만 가린다.
    쓰기·고치기는 작품 페이지의 평가 칸(#/title/{id}/review)에만 있다 — 여기선 지우기만, 작품 페이지와 같은 확인(Comments.tsx).
-   들어오는 길 = 헤더 닉네임 메뉴 「내 활동」(Chrome.tsx) · 확장의 「전체 활동 보기」(HP-442). */
+   들어오는 길 = 헤더 닉네임 메뉴 「내 활동」(Chrome.tsx) · 익스텐션의 「전체 활동 보기」(HP-442). */
 import { useCallback, useState, type ReactElement } from 'react'
 import { EyeSlashIcon, HeartIcon, TrashIcon } from '@phosphor-icons/react'
 import { api, ApiError, decodeEntities, deleteMyComment, episodeLabel, fmtTime, watchUrl, type MyActivityChat, type MyActivityLiked, type MyActivityScene, type MyActivityWork } from '../api'
@@ -313,7 +313,7 @@ export default function Me() {
     if (el && (!document.activeElement || document.activeElement === document.body)) el.focus({ preventScroll: true })
   }, [])
 
-  /* 로그인 전(확장의 「전체 활동 보기」로 들어온 경우가 대부분 — 헤더 메뉴는 로그인해야 생긴다)과 세션 만료·동의 전(401·403)은
+  /* 로그인 전(익스텐션의 「전체 활동 보기」로 들어온 경우가 대부분 — 헤더 메뉴는 로그인해야 생긴다)과 세션 만료·동의 전(401·403)은
      같은 자리에서 로그인으로 보낸다. 동의 전이면 ConsentModal 이 위에 떠 있다(auth.ts). */
   if (view === 'gate' || view === 'expired') {
     return (
