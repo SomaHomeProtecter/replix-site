@@ -146,7 +146,7 @@ export function askLine(chatCount) {
 export const SCENES_PREVIEW = 6;
 /** 좋아요한 채팅 미리보기 수(HP-469) — 채팅과 같은 3개(결정 3). */
 export const LIKED_PREVIEW = 3;
-/** 장면 = 30초 구간(HP-469 · 확장 sceneSlotStart(t, 30) · HP-403 배지와 같은 정의). 칩은 시작만 싣고 끝은 툴팁에. */
+/** 장면 = 30초 구간(HP-469 · 익스텐션 sceneSlotStart(t, 30) · HP-403 배지와 같은 정의). 칩은 시작만 싣고 끝은 툴팁에. */
 export const SCENE_SLOT_SEC = 30;
 export const SCENES_HEAD = '반응한 장면';
 export const LIKED_HEAD = '좋아요한 채팅';
