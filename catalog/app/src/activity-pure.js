@@ -14,7 +14,7 @@ export const PREVIEW = 3;
 export const CHATS_CAP = 300;
 
 // ── 문구(프로토타입 그대로) ──
-export const LEDE = '내가 남긴 평가와 채팅을 작품별로 모았습니다. 나만 볼 수 있어요.';
+export const LEDE = '내가 남긴 평가와 채팅, 반응한 장면과 좋아요한 채팅을 작품별로 모았습니다. 나만 볼 수 있어요.';
 export const GATE_LEDE = '내가 남긴 평가와 채팅은 로그인하면 볼 수 있어요.';
 export const EMPTY_TITLE = '아직 남긴 평가나 채팅이 없어요';
 export const EMPTY_BODY = '넷플릭스에서 Replix로 채팅을 남기거나, 작품 페이지에서 별점을 남기면 여기에 작품별로 모입니다.';
@@ -122,10 +122,10 @@ export function moreErrorText(status) {
   return authLost(status) ? EXPIRED : MORE_FAILED;
 }
 
-/** '더 보기' 버튼 문구. 미리보기(3)로 다 보이면 null. 펼쳤으면 '접기'. */
-export function moreLabel(chatCount, open) {
-  if (!(chatCount > PREVIEW)) return null;
-  return open ? '접기' : (chatCount - PREVIEW) + '개 더 보기';
+/** '더 보기' 버튼 문구. 미리보기(채팅·좋아요 3 · 장면 6)로 다 보이면 null. 펼쳤으면 '접기'. */
+export function moreLabel(count, open, preview = PREVIEW) {
+  if (!(count > preview)) return null;
+  return open ? '접기' : (count - preview) + '개 더 보기';
 }
 /** 한 작품 보기 상한을 넘는 작품을 펼쳤을 때의 안내(없으면 null). */
 export function capNote(chatCount) {
@@ -139,4 +139,74 @@ export function chatsCount(chatCount, episodeCount) {
 }
 export function askLine(chatCount) {
   return '채팅은 ' + chatCount + '개 남겼는데 별점은 아직이에요.';
+}
+
+// ── 2차(HP-471 · HP-191 결정 1~5) — 반응한 장면 · 좋아요한 채팅. 데이터 = HP-469(같은 두 API에 필드만 늘었다) ──
+/** 전체 보기가 작품마다 싣는 장면 미리보기 수(HP-469) — 웹은 칩 6개 + 더 보기(결정 2). */
+export const SCENES_PREVIEW = 6;
+/** 좋아요한 채팅 미리보기 수(HP-469) — 채팅과 같은 3개(결정 3). */
+export const LIKED_PREVIEW = 3;
+/** 장면 = 30초 구간(HP-469 · 익스텐션 sceneSlotStart(t, 30) · HP-403 배지와 같은 정의). 칩은 시작만 싣고 끝은 툴팁에. */
+export const SCENE_SLOT_SEC = 30;
+export const SCENES_HEAD = '반응한 장면';
+export const LIKED_HEAD = '좋아요한 채팅';
+
+/** 2차 필드만 꺼낸다 — 1차 서버 응답(필드 없음)이면 0·빈 배열. 화면은 이것으로만 읽어 1차 서버에서도 깨지지 않는다
+ *  (릴리스 순서 = BE 2차 → 이 웹이라 운영에선 늘 있지만, 순서가 어긋나도 1차 카드 그대로 보이게 하는 안전망). */
+export function phase2Of(work) {
+  const w = work || {};
+  const count = (x) => (Number.isFinite(x) && x > 0 ? x : 0);
+  const list = (x) => (Array.isArray(x) ? x : []);
+  return { sceneCount: count(w.sceneCount), reactionCount: count(w.reactionCount), scenes: list(w.scenes),
+    likedCount: count(w.likedCount), liked: list(w.liked) };
+}
+
+/** 요약 숫자 줄(결정 4) — [값, 이름] 다섯 칸. 1차 서버(2차 칸 둘 다 없음)면 1차 세 칸만 — 없는 값을 0으로 그리면
+ *  "반응한 장면 0"이라는 다른 사실이 된다. 하나만 없으면 0(서버는 둘을 함께 싣는다). */
+export function summaryCells(s) {
+  const base = [[String(s.ratedWorks), '평가한 작품'], [averageLabel(s.averageRating), '내 평균 별점'], [String(s.chatCount), '남긴 채팅']];
+  if (s.reactedScenes == null && s.likedChats == null) return base;
+  return base.concat([[String(s.reactedScenes ?? 0), SCENES_HEAD], [String(s.likedChats ?? 0), LIKED_HEAD]]);
+}
+
+/** 카드의 섹션(결정 1 순서 — 평가 다음 내 채팅 → 반응한 장면 → 좋아요한 채팅), 0개 섹션은 뺀다.
+ *  빈 배열 = 1차 NO_CHATS 한 줄(평가만 있는 작품 — 프로토타입 webCard 의 `body || me-none`). */
+export function cardSections({ chatCount, sceneCount, likedCount }) {
+  const out = [];
+  if (chatCount > 0) out.push('chats');
+  if (sceneCount > 0) out.push('scenes');
+  if (likedCount > 0) out.push('liked');
+  return out;
+}
+
+/** 평가가 없는 카드의 권유(결정 5) — 채팅이 있으면 1차 문구, 없으면 장면 반응 횟수, 그것도 없으면 좋아요 수.
+ *  null = 권유할 근거가 없다(서버는 활동 없는 작품을 싣지 않아 평소엔 오지 않는다 — 와도 빈 권유를 그리지 않는다). */
+export function askText({ chatCount, reactionCount, likedCount }) {
+  if (chatCount > 0) return askLine(chatCount);
+  if (reactionCount > 0) return '장면에 반응을 ' + reactionCount + '번 남겼는데 별점은 아직이에요.';
+  if (likedCount > 0) return '채팅에 좋아요를 ' + likedCount + '번 눌렀는데 별점은 아직이에요.';
+  return null;
+}
+
+/** 반응한 장면 섹션 머리 숫자 — "N개 장면 · 반응 M번"(프로토타입). */
+export function scenesSummary(sceneCount, reactionCount) {
+  return sceneCount + '개 장면 · 반응 ' + reactionCount + '번';
+}
+/** 좋아요한 채팅 섹션 머리 숫자 — "N개". */
+export function likedSummary(likedCount) {
+  return likedCount + '개';
+}
+/** 장면 끝(초) — 칩 툴팁의 "시작~끝". */
+export function sceneEndSec(slotStart) {
+  return (Number(slotStart) || 0) + SCENE_SLOT_SEC;
+}
+/** 칩에 그릴 이모지 — 서버가 ❤️ 😂 😮 😢 😡 👍 순서·횟수 > 0으로 싣는다. 모양이 깨진 항목만 거른다(빈 칩 조각 방지). */
+export function emojisOf(scene) {
+  const list = scene && Array.isArray(scene.emojis) ? scene.emojis : [];
+  return list.filter((e) => e && typeof e.emoji === 'string' && e.emoji !== '' && Number(e.count) > 0);
+}
+/** 좋아요한 채팅 한 줄의 가림(결정 3) — 남의 글이라 답글 원문과 **같은 판정**(parentView: 운영 가림·공개 아님·차단·스포일러
+ *  신호면 text null = "가려진 메시지", 작성자 이름은 남긴다, 내 글에 누른 좋아요(mine)는 그대로). 판정을 한 곳에 두려고 그대로 부른다. */
+export function likedView(liked) {
+  return parentView(liked);
 }

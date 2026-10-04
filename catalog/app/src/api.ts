@@ -158,7 +158,8 @@ export type CommentSort = 'recent' | 'top'
 
 /* ── 내 활동(HP-441 — 소비: 웹 #/me HP-443 · 익스텐션 HP-442). 로그인 필수(Cache-Control: private).
    서버는 가림을 판정하지 않는다 — 화면이 activity-pure.js 규칙으로 판정할 원값만 싣는다. 모양은 BE MyActivityDtos 와 1:1. */
-export type MyActivitySummary = { ratedWorks: number; averageRating: number | null; chatCount: number }
+/** 요약 숫자 줄. reactedScenes·likedChats 는 2차(HP-469) — 1차 서버엔 없어 optional(화면은 activity-pure summaryCells 로만 읽는다). */
+export type MyActivitySummary = { ratedWorks: number; averageRating: number | null; chatCount: number; reactedScenes?: number; likedChats?: number }
 /** 답글의 원문(남의 글). message 는 운영 가림이면 null. mine = 내 글에 이어 단 답글(가리지 않는다). */
 export type MyActivityParent = {
   id: string
@@ -183,6 +184,32 @@ export type MyActivityChat = {
   parentId: string | null       // 답글이면 원문 id
   parent: MyActivityParent | null   // 원문이 사라졌으면 null("↳ 답글")
 }
+/** 반응한 장면 하나(HP-469) = (회차, 30초 구간). slotStart = 구간 시작(초 — 누르면 여기로). emojis 는 ❤️ 😂 😮 😢 😡 👍 순서·횟수 > 0. */
+export type MyActivityScene = {
+  episodeId: number
+  seasonNumber: number
+  episodeNumber: number
+  platformEpisodeId: string
+  slotStart: number
+  emojis: { emoji: string; count: number }[]
+}
+/** 내가 좋아요한 채팅 하나(HP-469). 남의 글이라 Parent 와 같은 원값 규칙 — message 는 운영 가림이면 null, displayName 은
+ *  신원 현재값(탈퇴 = "탈퇴한 사용자"), 가림은 화면(activity-pure likedView). mine = 내 메시지에 누른 좋아요(가리지 않는다). */
+export type MyActivityLiked = {
+  id: string
+  episodeId: number
+  seasonNumber: number
+  episodeNumber: number
+  platformEpisodeId: string
+  playbackTime: number
+  createdAt: string
+  displayName: string
+  message: string | null
+  moderationStatus: string
+  spoilerScore: number | null
+  blockedByMe: boolean
+  mine: boolean
+}
 export type MyActivityWork = {
   contentId: number
   title: string
@@ -194,6 +221,12 @@ export type MyActivityWork = {
   chatCount: number               // 잘리기 전 전량
   episodeCount: number
   chats: MyActivityChat[]         // 전체 보기 = 앞 3개 · 한 작품 보기 = ≤300
+  /* 2차(HP-469) — 1차 서버엔 없다. 화면은 activity-pure phase2Of 로만 읽는다(optional 이라 직접 쓰면 tsc 가 막는다). */
+  sceneCount?: number             // 반응한 장면 수(잘리기 전 전량)
+  reactionCount?: number          // 반응 이벤트 수 — 평가 권유 문구
+  scenes?: MyActivityScene[]      // 전체 보기 = 앞 6개 · 한 작품 보기 = ≤300
+  likedCount?: number             // 좋아요한 채팅 수(유효한 것만)
+  liked?: MyActivityLiked[]       // 전체 보기 = 앞 3개 · 한 작품 보기 = ≤300
 }
 export type MyActivity = { summary: MyActivitySummary; truncated: boolean; works: MyActivityWork[] }
 
