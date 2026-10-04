@@ -23,7 +23,7 @@ function esc(s) {
 }
 
 /* 이미지 주소는 https만 통과시킨다 — src에 다른 스킴이 실리는 길을 아예 막는다.
-   (확장의 '실시간 인기 장면'도 같은 규칙을 쓴다.) */
+   (익스텐션의 '실시간 인기 장면'도 같은 규칙을 쓴다.) */
 function safeHttps(u) {
   return (typeof u === "string" && u.indexOf("https://") === 0) ? u : null;
 }

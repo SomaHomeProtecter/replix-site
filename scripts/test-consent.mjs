@@ -7,10 +7,10 @@ import {
   versionsFrom, consentBody, canAccept, nicknameOf, acceptErrorMessage,
 } from '../catalog/app/src/consent-pure.js';
 
-// 출처는 web — BE 가 허용하는 집합({extension, web}, HP-449)의 웹 값. 확장 값을 흉내 내면 증적이 거짓이 된다.
+// 출처는 web — BE 가 허용하는 집합({extension, web}, HP-449)의 웹 값. 익스텐션 값을 흉내 내면 증적이 거짓이 된다.
 assert.equal(CONSENT_SOURCE, 'web');
 
-// versionsFrom — 서버가 요구하는 버전을 쓴다. 조회 실패(null)·빈 값이면 번들 상수(확장과 같은 값).
+// versionsFrom — 서버가 요구하는 버전을 쓴다. 조회 실패(null)·빈 값이면 번들 상수(익스텐션과 같은 값).
 assert.deepEqual(
   versionsFrom({ requiredTermsVersion: '2027-01-01', requiredPrivacyVersion: '2027-02-02' }),
   { termsVersion: '2027-01-01', privacyVersion: '2027-02-02' },
@@ -39,7 +39,7 @@ assert.equal(nicknameOf({ displayName: '   ', email: 'a@b.c' }), null);
 assert.equal(nicknameOf({ email: 'a@b.c' }), null);
 assert.equal(nicknameOf(null), null);
 
-// acceptErrorMessage — 문서가 갱신됐으면 다시 체크해 달라고, 그 밖은 연결 문제로(확장과 같은 문구).
+// acceptErrorMessage — 문서가 갱신됐으면 다시 체크해 달라고, 그 밖은 연결 문제로(익스텐션과 같은 문구).
 assert.match(acceptErrorMessage('OUTDATED_LEGAL_DOCUMENTS'), /약관이 갱신됐어요/);
 assert.match(acceptErrorMessage(undefined), /저장하지 못했어요/);
 assert.match(acceptErrorMessage('INVALID_CONSENT_SOURCE'), /저장하지 못했어요/);

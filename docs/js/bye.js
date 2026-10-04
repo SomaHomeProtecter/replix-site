@@ -1,11 +1,11 @@
-/* 삭제 설문(HP-458) — 확장을 지우면 크롬이 여는 replix.tv/bye 의 규칙과 화면 연결.
-   · 확장 background 가 chrome.runtime.setUninstallURL 로 이 주소를 건다. 붙이는 값은 비식별 둘뿐이다 —
-     v = 확장 버전, d = 설치 후 경과일(일). 기기·계정 식별값은 싣지 않는다(익명 설문이라는 약속).
+/* 삭제 설문(HP-458) — 익스텐션을 지우면 크롬이 여는 replix.tv/bye 의 규칙과 화면 연결.
+   · 익스텐션 background 가 chrome.runtime.setUninstallURL 로 이 주소를 건다. 붙이는 값은 비식별 둘뿐이다 —
+     v = 익스텐션 버전, d = 설치 후 경과일(일). 기기·계정 식별값은 싣지 않는다(익명 설문이라는 약속).
    · 서버 계약 = POST /api/v1/feedback, trigger=UNINSTALL(Replix-be HP-458 — Confluence [API] MVP API 명세 §8.2).
      사유만 골라도 접수하고, 후속 선택은 해당 사유가 있을 때만 받는다. 짜임새가 어긋나면 서버가 설문 전체를
      400으로 거절하므로, 보내기 전에 여기서 맞춘다(buildPayload).
    · 익명으로 보낸다 — 이 사이트에 로그인해 있어도 토큰·쿠키를 싣지 않는다(화면이 "익명으로 보내져요"라고 약속한다).
-   · 계측(조회·제출)은 아직 싣지 않는다. 웹 분석은 동의(배너 [허용]) 뒤에만 도는데, 확장을 지운 직후 페이지에서
+   · 계측(조회·제출)은 아직 싣지 않는다. 웹 분석은 동의(배너 [허용]) 뒤에만 도는데, 익스텐션을 지운 직후 페이지에서
      동의를 어떻게 다룰지 정하지 않았다. 제출은 서버가 사유 코드와 함께 남기므로 집계는 운영 콘솔로 한다.
    node 에서 import 하면 부트하지 않는다(scripts/test-bye.mjs 가 순수 함수를 검사한다). */
 
@@ -48,7 +48,7 @@ export var THANKS = '의견 감사합니다. 리플릭스를 더 낫게 고쳐 �
 var VERSION_RE = /^[0-9A-Za-z.\-]{1,20}$/;
 var MAX_DAYS = 3650;
 
-/** 확장이 붙인 주소 값. 형식이 틀리면 null 로 버린다 — 고른 사유까지 잃게 두느니 그 값만 빼고 보낸다. */
+/** 익스텐션이 붙인 주소 값. 형식이 틀리면 null 로 버린다 — 고른 사유까지 잃게 두느니 그 값만 빼고 보낸다. */
 export function parseParams(search) {
   var q = new URLSearchParams(search || '');
   var v = q.get('v');

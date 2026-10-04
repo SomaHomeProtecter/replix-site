@@ -2,7 +2,7 @@
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
-> (확장의 `Replix-extension/docs/analytics/tracking-plan.md`와 같은 원칙. 세 표면을 가로로 합친 뷰는
+> (익스텐션의 `Replix-extension/docs/analytics/tracking-plan.md`와 같은 원칙. 세 표면을 가로로 합친 뷰는
 > `Replix-workspace/docs/analytics/replix-amplitude-taxonomy.xlsx`.)
 >
 > 상태: **구현 완료 · dev 검증**(HP-415) · 대상: 랜딩 `replix.tv/` + 작품 탐색 `replix.tv/catalog/`
@@ -13,7 +13,7 @@
 
 ## 0. 왜 문서가 먼저인가
 
-확장 문서 §0 과 같다. `track('install_cta_clicked')`가 "버튼을 누른 순간"인지 "새 탭이 열린 순간"인지
+익스텐션 문서 §0 과 같다. `track('install_cta_clicked')`가 "버튼을 누른 순간"인지 "새 탭이 열린 순간"인지
 6개월 뒤에도 알 수 있어야 숫자를 믿고, 믿어야 대시보드를 본다. 그래서 이벤트마다 **파일·함수 단위 발화 시점**을 적는다.
 
 ## 1. 이 계측으로 답하려는 질문
@@ -29,17 +29,17 @@
 | W8 | 랜딩 방문자가 **화면을 실제로 어떻게 쓰나**? (어디서 멈추고, 무엇을 누르려다 마는가) | 이벤트는 '무엇을 했나'만 말한다. 왜 CTA 앞에서 떠나는지는 화면을 봐야 보인다 — 세션 리플레이(§9) |
 | W7 | 작품 탐색에서 로그인을 시작한 사람 중 **동의까지 마쳐 회원이 되는** 비율은? 어느 제공자로? | 로그인·동의 흐름(HP-447·HP-449)의 이탈 지점. 가입은 동의 저장 시점이라 웹 가입이 여기서 처음 잡힌다 |
 
-⚠️ 베타 규모에서 비율은 노이즈다(확장 문서 §1 과 같은 경고). W1·W5 의 퍼센트보다 "어느 CTA 가 0건인가" 같은 유무가 먼저 값을 한다.
+⚠️ 베타 규모에서 비율은 노이즈다(익스텐션 문서 §1 과 같은 경고). W1·W5 의 퍼센트보다 "어느 CTA 가 0건인가" 같은 유무가 먼저 값을 한다.
 
 ## 2. 절대 보내지 않는 것 (금지 목록)
 
-확장 §2 의 다섯 항목(채팅 본문 · 이메일/이름/프로필 URL · 작품명·회차명·플랫폼 ID · 재생 위치 · 토큰)에 **웹에서 셋을 더한다.**
+익스텐션 §2 의 다섯 항목(채팅 본문 · 이메일/이름/프로필 URL · 작품명·회차명·플랫폼 ID · 재생 위치 · 토큰)에 **웹에서 셋을 더한다.**
 
 | 금지 | 이유 |
 | --- | --- |
 | **우리 `contentId`·`episodeId`** | 공개 카탈로그라도 기기와 묶이면 "무엇을 봤나"가 된다. 인기 작품은 서버 로그·DB 로 답한다 |
 | **검색어** | 검색어는 곧 작품명이다 |
-| **IP 기반 위치** | 처리방침 수집 항목에 IP 가 없다. `trackingOptions.ipAddress = false`. 확장(HTTP API)도 `ip` 를 싣지 않아 위치가 안 잡힌다 — 웹을 그 수준에 맞춘다 |
+| **IP 기반 위치** | 처리방침 수집 항목에 IP 가 없다. `trackingOptions.ipAddress = false`. 익스텐션(HTTP API)도 `ip` 를 싣지 않아 위치가 안 잡힌다 — 웹을 그 수준에 맞춘다 |
 | 전체 URL(쿼리·해시 원문) | `/invite?w=..&t=<토큰>`, `/catalog/#/title/<id>` — SDK 자동 페이지뷰·URL 보강을 끄고 `page_path` 를 직접 정제한다(§7) |
 
 > `/invite` 는 **계측하지 않는다.** 쿼리에 초대 토큰이 실리고(README 계약 "분석 도구로 보내지 않는다"),
@@ -58,7 +58,7 @@
 | 재허용 | 같은 페이지에서 거부 뒤 다시 허용하면 `setOptOut(false)` + `reset()` — **새 device_id**. 철회 전 식별값과 이어지지 않는다. 리플레이도 새 식별자로 다시 붙는다. **옵트아웃 수집 중 허용**은 철회가 아니므로 device_id 그대로, 리플레이만 더한다(`_revoked`) |
 | 버전 | `version` 이 바뀌면 다시 묻는다(문안·범위·받는 곳이 바뀌었을 때 올린다). **2 = 랜딩 세션 리플레이**(HP-457) — 배너 문구가 화면 조작 기록을 밝힌다 · **3 = Google Analytics**(HP-465) — 배너 문구가 Google 을 밝힌다(`bannerText`) |
 
-처리방침 §6 문안이 이 동작을 약속한다: "확장 프로그램 **또는 웹사이트(replix.tv)** 에서 명시적으로 동의한 경우에만 … 웹사이트 하단의 '분석 설정'에서 변경".
+처리방침 §6 문안이 이 동작을 약속한다: "익스텐션 **또는 웹사이트(replix.tv)** 에서 명시적으로 동의한 경우에만 … 웹사이트 하단의 '분석 설정'에서 변경".
 
 ## 4. 신원 (identity)
 
@@ -67,17 +67,17 @@
 | `device_id` | SDK 가 만드는 UUID | SDK 쿠키(`AMP_<키 앞 10자>`), `replix.tv` 도메인 — 랜딩·카탈로그가 같은 기기로 묶인다 |
 | `user_id` | **없음** | 작품 탐색에 로그인이 있지만(HP-421·HP-447·HP-449) 회원 식별값은 싣지 않는다 — 동의 배너(§3)가 기기 식별값만 고지한다 |
 
-- ⚠️ **웹↔확장 기기 연결은 아직 없다.** 랜딩의 device_id 와 확장의 device_id(`chrome.storage`)는 다른 값이라
-  "랜딩 → 설치 → 첫 채팅" 퍼널은 한 사람으로 이어지지 않는다. 확장이 `replix.tv` 쿠키를 읽어 승계하는 것은 후속 결정.
-  지금은 표면별 전환(W1: 방문→CTA 클릭, 확장 Q1: 설치→채팅)을 각각 본다.
+- ⚠️ **웹↔익스텐션 기기 연결은 아직 없다.** 랜딩의 device_id 와 익스텐션의 device_id(`chrome.storage`)는 다른 값이라
+  "랜딩 → 설치 → 첫 채팅" 퍼널은 한 사람으로 이어지지 않는다. 익스텐션이 `replix.tv` 쿠키를 읽어 승계하는 것은 후속 결정.
+  지금은 표면별 전환(W1: 방문→CTA 클릭, 익스텐션 Q1: 설치→채팅)을 각각 본다.
 - `initial_utm_*`·`initial_referring_domain` 등 어트리뷰션 사용자 속성은 SDK 가 자동으로 붙인다(W2).
 
 ## 5. 공통 속성 (모든 이벤트에 자동 부착 — `commonProps()`)
 
 | 속성 | 예 | 왜 |
 | --- | --- | --- |
-| `env` | `prod` \| `dev` | 호스트명으로 판정 — `replix.tv` 만 prod, 미리보기·localhost·file 은 dev. 확장과 같은 두 프로젝트 |
-| `surface` | `web_landing` \| `web_catalog` | 확장(`extension`)과 한 프로젝트에 섞이므로 표면을 가른다 |
+| `env` | `prod` \| `dev` | 호스트명으로 판정 — `replix.tv` 만 prod, 미리보기·localhost·file 은 dev. 익스텐션과 같은 두 프로젝트 |
+| `surface` | `web_landing` \| `web_catalog` | 익스텐션(`extension`)과 한 프로젝트에 섞이므로 표면을 가른다 |
 | `locale` | `ko-KR` | `navigator.language` |
 | `page_path` | `/` · `/catalog/` · `/catalog/#/title` · `/catalog/#/notice` · `/catalog/#/me` | 정제된 경로(§7) — 해시는 라우트 이름까지만(`cleanPath`). 작품·회차·공지 ID 없음 |
 | `device_class` | `mobile` \| `tablet` \| `desktop` | 768/1024 경계. 랜딩 레이아웃 판단 |
@@ -89,7 +89,7 @@
 | 이벤트 | surface | 발화 시점 | 속성 | 질문 |
 | --- | --- | --- | --- | --- |
 | `page_viewed` | 둘 다 | 랜딩: `main.js` 끝 `page()` 1회 · 카탈로그: `App.tsx` 라우트 effect(홈/작품/앵커 변경마다). 동의 전 호출은 기억만 하고 허용 직후 1회 | `route`(카탈로그: `home` \| `title` \| `notice` \| `me`) | W1 분모 |
-| `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture). 휴대폰 기기(확장 설치 불가)에서는 웹 스토어 대신 설치 안내 시트가 열리지만 클릭은 그대로 센다(HP-477) | `location`: `nav` \| `hero` \| `close`(랜딩) · `catalog_nav` \| `catalog_title` \| `catalog_footer` | **W1** |
+| `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture). 휴대폰 기기(익스텐션 설치 불가)에서는 웹 스토어 대신 설치 안내 시트가 열리지만 클릭은 그대로 센다(HP-477) | `location`: `nav` \| `hero` \| `close`(랜딩) · `catalog_nav` \| `catalog_title` \| `catalog_footer` | **W1** |
 | `install_guide_action` | 둘 다 | `install-guide.js` — 휴대폰 기기에서 설치 버튼으로 열린 'PC 크롬에서 써요' 시트 안의 행동. 열 때 1회(`opened`)와 버튼마다. 시트의 웹 스토어 링크에는 `data-cta` 가 없어 `install_cta_clicked` 와 겹쳐 세지 않는다. 복사·공유하는 주소는 싣지 않는다 | `action`: `opened` \| `copy_link` \| `share` \| `open_store` | **W1**(휴대폰 갈래) |
 | `nav_link_clicked` | landing | `[data-link]` 요소 클릭(`analytics.js` 문서 위임, capture) — 설치 CTA 가 **아닌** 랜딩의 모든 `<a>`. 아래 표 | `target`(어디로) · `location`: `nav` \| `footer` | **W6** |
 | `section_viewed` | landing | `reveal.js` — 섹션 상단이 뷰포트 위 60% 안에 들어올 때 페이지뷰당 1회 | `section`: `intro` \| `how` \| `scenes` \| `works` \| `rooms` \| `faq` \| `install` | W3 |
@@ -98,7 +98,7 @@
 | `catalog_engaged` | catalog | 아래 표 | `feature`, `action`(+`has_results`·`sort`·`source`·`kind`·`score`·`category`) | W5 |
 | `watch_link_clicked` | catalog | 재생 딥링크 `<a>` 클릭(`analytics.ts` `trackWatch`) | `platform`(`netflix`), `from`: `title_hero` \| `moment` \| `home_billboard` \| `home_hot` \| `home_live` \| `my_activity`, `has_timestamp`(bool — `?t=` 유무) | **W5** |
 | `login_started` | catalog | `LoginModal.tsx` 제공자 버튼 클릭 — IdP 로 떠나기 직전 | `provider`: `google` \| `kakao` \| `naver` | **W7** |
-| `login_completed` | catalog | `auth.ts` — 로그인 왕복 뒤 이미 동의한 회원으로 확인됐을 때(`is_new_user: false`), 동의 저장으로 계정이 생겼을 때(`is_new_user: true` — 문서 개정 재동의 포함, 확장 §5.5 와 같은 뜻). 새로고침으로 세션을 되살린 것은 세지 않는다 | `is_new_user`(bool) | **W7** |
+| `login_completed` | catalog | `auth.ts` — 로그인 왕복 뒤 이미 동의한 회원으로 확인됐을 때(`is_new_user: false`), 동의 저장으로 계정이 생겼을 때(`is_new_user: true` — 문서 개정 재동의 포함, 익스텐션 §5.5 와 같은 뜻). 새로고침으로 세션을 되살린 것은 세지 않는다 | `is_new_user`(bool) | **W7** |
 
 `nav_link_clicked` 발화 지점 — 랜딩(`docs/index.html`) 13곳. 마크업의 `data-link`(=`target`) · `data-link-loc`(=`location`):
 
@@ -162,7 +162,7 @@
 >
 > ⚠️ 내 활동(HP-443)도 새 이벤트를 만들지 않는다 — 입구는 `catalog_engaged{feature: my_activity, action: opened}`, 페이지 노출은
 > `page_viewed{route: me}`, 회차 링크는 `watch_link_clicked{from: my_activity}`. **작품·회차 ID·채팅 본문·평가 본문은 어떤 속성에도
-> 싣지 않는다**(§2). 확장의 「전체 활동 보기」로 들어온 것은 따로 구분하지 않는다(해시에 출처를 싣지 않는다).
+> 싣지 않는다**(§2). 익스텐션의 「전체 활동 보기」로 들어온 것은 따로 구분하지 않는다(해시에 출처를 싣지 않는다).
 
 ## 7. 전송 방식 — Browser SDK, 자동수집 최소화
 
@@ -174,7 +174,7 @@
   Autocapture 설정이 코드의 `autocapture` 를 **덮어쓴다** — 누군가 대시보드에서 스위치를 켜면 §2 가 금지한 전체 URL·클릭 요소 텍스트가
   코드 변경 없이 실리기 시작한다. 계측 범위는 코드(이 문서)만이 정한다.
 - **왜 끄나**: 자동 `pageViews` 와 `pageUrlEnrichment` 는 전체 URL(쿼리·해시)을 싣는다 — §2 의 마지막 줄. `formInteractions` 는 검색창 입력을 잡는다. `elementInteractions` 는 클릭한 요소의 텍스트(작품명)를 싣는다.
-- **왜 SDK 인가**(확장은 HTTP API 직접): 웹은 세션·어트리뷰션(W2)·재시도·배치를 SDK 가 이미 하고, 원격 스크립트 로딩 제약(MV3)도 없다. 대신 자동수집을 끄는 것이 조건이다.
+- **왜 SDK 인가**(익스텐션은 HTTP API 직접): 웹은 세션·어트리뷰션(W2)·재시도·배치를 SDK 가 이미 하고, 원격 스크립트 로딩 제약(MV3)도 없다. 대신 자동수집을 끄는 것이 조건이다.
 - **떠날 때 flush**: `pagehide` 에서 `setTransport('beacon')` + `flush()`, bfcache 로 돌아오면(`pageshow` `persisted`) `fetch` 로 복귀.
   SDK 는 1초 배치라 같은 탭 링크 클릭 직후 페이지가 먼저 사라진다 — 그 이벤트는 localStorage 큐(`AMP_unsent_*`)에 남아 다음 SDK 페이지가
   보내지만, `/privacy`·`/terms` 처럼 **SDK 가 없는 페이지로 가면 다음 방문까지 밀린다**(2026-09-21 실측, HP-437). beacon 은 응답을 못 받아
@@ -199,7 +199,7 @@
 
 | 항목 | 값 | 왜 |
 | --- | --- | --- |
-| 범위 | **랜딩·작품 탐색**(`replayOn()`, 2026-10-01 고경우 결정으로 작품 탐색 추가) · [허용]을 누른 경우에만 | 작품 탐색 녹화에는 화면의 작품명·포스터가 담긴다 — §2 는 *이벤트 속성* 금지 목록이고, 녹화는 [허용] 동의 범위로 처리방침 1항이 밝힌다. 확장은 넷플릭스 화면·채팅 본문이 찍혀 아예 불가 |
+| 범위 | **랜딩·작품 탐색**(`replayOn()`, 2026-10-01 고경우 결정으로 작품 탐색 추가) · [허용]을 누른 경우에만 | 작품 탐색 녹화에는 화면의 작품명·포스터가 담긴다 — §2 는 *이벤트 속성* 금지 목록이고, 녹화는 [허용] 동의 범위로 처리방침 1항이 밝힌다. 익스텐션은 넷플릭스 화면·채팅 본문이 찍혀 아예 불가 |
 | 시행 | 운영은 **2026-10-01 00:00 KST 부터**(`REPLAY_FROM`) · 로컬은 항상 | 처음엔 공고(09-29) 7일 뒤(10-07)였으나, 2026-10-01 고경우 결정으로 GA·옵트아웃 개정과 묶어 공고와 동시에 시행. 법정 사전 공지 기간은 없고 개인정보위 작성지침도 "개정 전 또는 즉시 공지" — 처리방침 11항의 7일 약속도 같은 개정으로 고쳤다. ⚠️ 날짜를 옮기면 코드 상수와 `privacy.html` 시행일을 **같이**(테스트가 대조) |
 | 동의 | 기존 배너, 버전 4(작품 탐색 녹화를 밝힘) | 범위가 늘 때마다 앞 버전으로 받은 허용은 무효 — 새 문구로 다시 묻는다(옵트아웃 지역은 이벤트는 계속, 녹화만 재허용 대기) |
 | 플러그인 | `plugin-session-replay-browser-1.35.4`(CDN), 동의 뒤 동적 주입, `init` **앞에** `add` | 정적 태그 금지(§7 과 같은 이유). 막히거나 실패하면 이벤트 계측만 간다(fail-open) |
@@ -252,7 +252,7 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | 작품 탐색 · 한국 시간대 | **옵트아웃**(같은 날 추가, 고경우) | 로그인(Keycloak)이 있지만 웹 이벤트에 회원 식별값을 싣지 않는다 — 식별하지 않는다는 조건 유지. 로그인을 계측에 연결하면 이 행부터 무너진다 |
 | 그 밖의 시간대·모름 | 옵트인 | EU: 분석 쿠키 사전 동의(GDPR·ePrivacy). 캘리포니아: 도청법(CIPA) 소송 |
 | 세션 리플레이(§9) | 옵트인(허용 버튼) | 미국 CIPA 세션 리플레이 소송의 주 대상(2025 9th Cir. Mikulsky v. Bloomingdale's) — 배너 동의가 방어 수단 |
-| 확장 프로그램 | 옵트인(최초 실행 선택, 변경 없음) | 크롬 웹스토어 사용자 데이터 정책: 수집 전 눈에 띄는 고지 + 명시적 동의. 회원 식별값(user_id)과도 결합 |
+| 익스텐션 | 옵트인(최초 실행 선택, 변경 없음) | 크롬 웹스토어 사용자 데이터 정책: 수집 전 눈에 띄는 고지 + 명시적 동의. 회원 식별값(user_id)과도 결합 |
 
 > ⚠️ **되돌리지 말 것 — 이 근거의 전제는 "식별하지 않는다"이다.** 웹 이벤트에 회원 식별값(`user_id`)·이메일·IP 를 싣는 순간
 > 근거가 무너져 동의가 필요해진다(§2·§4). 작품 탐색에 로그인 연결을 넣을 때 이 절부터 다시 본다.

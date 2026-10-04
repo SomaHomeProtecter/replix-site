@@ -105,7 +105,7 @@
 .room-stage::after { content: ""; position: absolute; inset: 0; pointer-events: none;
   box-shadow: inset 0 0 64px rgba(0,0,0,.55); }
 
-/* 공개방 탄막 - 확장의 탄막 모드가 이 방에선 늘 흐른다 */
+/* 공개방 탄막 - 익스텐션의 탄막 모드가 이 방에선 늘 흐른다 */
 .room-dm { position: absolute; inset: 0; pointer-events: none; }
 .room-dm i { position: absolute; left: 102%; white-space: nowrap; font-style: normal;
   font-size: 13.5px; font-weight: 600; color: rgba(255,255,255,.72);
@@ -164,9 +164,9 @@
 .gname { font-size: 12.5px; font-weight: 700; color: var(--s-text); }
 .gtime { font-family: var(--mono); font-size: 10px; color: var(--s-dim); }
 .gchat .cin-msg { border-radius: 4px 14px 14px 14px; padding: 8px 13px; }
-/* 시스템 이벤트 줄 - 확장의 .rx-sys(선-알약-선)를 그대로 옮긴 것.
+/* 시스템 이벤트 줄 - 익스텐션의 .rx-sys(선-알약-선)를 그대로 옮긴 것.
    그룹방은 재생이 동기화되므로(HP-184) 재생/정지/입장이 대화 사이에
-   흐른다. 색도 확장과 같다: 재생 = 초록, 정지 = 본문색, 입장 = 회색. */
+   흐른다. 색도 익스텐션과 같다: 재생 = 초록, 정지 = 본문색, 입장 = 회색. */
 .gsys { justify-self: stretch; display: flex; align-items: center; gap: 8px; }
 .gsys i { flex: 1; height: 1px; background: var(--s-line); font-style: normal; }
 .gsys b { display: inline-flex; align-items: center; white-space: nowrap;

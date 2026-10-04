@@ -1,12 +1,12 @@
 /* 공지 페이지(HP-425, `#/notice[/{id}]`). 점검·업데이트·장애 소식을 한 줄기로 모아 두는 사이트 수준 표면이다.
-   여기로 오는 링크는 헤더의 '공지'와 공지 띠의 '보기'다. 확장 공지함의 "전문 보기 ↗"는 이 페이지가 아니라
-   운영자가 공지에 넣은 linkUrl 을 그대로 연다 — 이 페이지와 확장 공지함은 같은 목록을 각자 보여 줄 뿐이다.
+   여기로 오는 링크는 헤더의 '공지'와 공지 띠의 '보기'다. 익스텐션 공지함의 "전문 보기 ↗"는 이 페이지가 아니라
+   운영자가 공지에 넣은 linkUrl 을 그대로 연다 — 이 페이지와 익스텐션 공지함은 같은 목록을 각자 보여 줄 뿐이다.
    목록·읽음 상태는 notices.ts 가 모듈 전역으로 한 번만 가져와 헤더 링크·띠와 나눠 쓴다. */
 import { useEffect, useState } from 'react'
 import { markSeen, noticePageState, readSeenId, useNotices } from '../notices'
 import type { Notice as NoticeRow } from '../api'
 
-/* 태그 문구는 확장·웹 공통(global-constraints): 공지 / 점검 / 장애. 점검색은 토큰에 없는 호박색 한 쌍이다
+/* 태그 문구는 익스텐션·웹 공통(global-constraints): 공지 / 점검 / 장애. 점검색은 토큰에 없는 호박색 한 쌍이다
    (라이트 배경 위 경고 톤 — 강조색 빨강은 장애에 남겨 둔다). */
 const KIND = {
   NOTICE: ['공지', 'bg-sink text-muted'],
@@ -38,7 +38,7 @@ export default function Notice({ noticeId }: { noticeId: number | null }) {
     <section className="wrap min-h-[60vh] py-10">
       <h1 className="mb-1.5 text-[32px]">공지</h1>
       <p className="mb-6 text-[14px] text-muted">
-        점검·업데이트·장애 소식을 모아 둡니다. 확장 패널의 공지함과 같은 내용이에요.
+        점검·업데이트·장애 소식을 모아 둡니다. 익스텐션 패널의 공지함과 같은 내용이에요.
       </p>
       {view === 'loading' && <p className="text-muted">불러오는 중…</p>}
       {/* #/notice/<id> 로 왔는데 그 공지가 목록에 없는 경우(90일 지나 내려갔거나 limit 밖) — 아무 표시도
@@ -67,7 +67,7 @@ export default function Notice({ noticeId }: { noticeId: number | null }) {
               {n.title}
               {/* 점검과 장애는 **다른 말을 쓴다** — 점검은 해결하는 대상이 아니라 끝내는 일이라
                   "(완료)"이고, 장애는 해결하는 대상이라 "(해결)"이다. 한 조건으로 묶으면 점검이
-                  사고처럼 읽힌다(HP-439). 확장 공지함(Replix-extension features/notices.js)과
+                  사고처럼 읽힌다(HP-439). 익스텐션 공지함(Replix-extension features/notices.js)과
                   **같은 문구여야** 한다 — 한쪽만 고치면 같은 공지가 둘에서 다르게 보인다. */}
               {!n.endedAt || n.kind === 'NOTICE' ? '' : n.kind === 'MAINTENANCE' ? ' (완료)' : ' (해결)'}
               {isNew && <span className="ml-2 align-[2px] font-mono text-[10px] text-accent">NEW</span>}

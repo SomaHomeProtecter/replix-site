@@ -42,7 +42,7 @@ var heroViewers = document.getElementById("heroViewers");
 var heatEl = document.getElementById("heat");
 var heatSpans = heatEl ? buildHeat(heatEl, 66) : null;
 /* 히트맵은 이미 쌓인 과거 반응의 밀도다. 재생하면서 만들어지는 것이
-   아니라 회차 전체가 처음부터 그려져 있어야 한다(확장의 실제 동작). */
+   아니라 회차 전체가 처음부터 그려져 있어야 한다(익스텐션의 실제 동작). */
 if (heatSpans) for (var hb = 0; hb < heatSpans.length; hb++) {
   heatSpans[hb].style.height = heatSpans[hb].dataset.h + "%";
 }
@@ -56,7 +56,7 @@ function addLive(m) {
      정렬 + overflow hidden 이라 넘친 행은 이미 위로 잘려 안 보이고,
      DOM 누적만 막으면 되므로 여유 있게 둔다. */
   while (feed.children.length > 16) feed.removeChild(feed.firstChild);
-  /* 탄막은 패널에 노출된 행을 그대로 흘린다 - 확장이 새 노출 정책을
+  /* 탄막은 패널에 노출된 행을 그대로 흘린다 - 익스텐션이 새 노출 정책을
      만들지 않고 채팅 패널의 기준을 상속하는 것과 같은 구조다. */
   dmFire(m.t);
   /* 좋아요는 도착 직후에 하나씩 더 붙는다 */
@@ -81,7 +81,7 @@ function pop(e) {
   setTimeout(function () { el.remove(); }, 2700);
 }
 /* ── 탄막 (HP-123 · HP-240) ──────────────────────────────────
-   확장 features/danmaku.js 의 상수를 그대로 옮겼다. 레인 4개를 상단
+   익스텐션 features/danmaku.js 의 상수를 그대로 옮겼다. 레인 4개를 상단
    40% 안에 몰고(자막존·인물 시선권 회피), 탄막마다 기준 속도의
    0.6~1.6배로 흘려 컨베이어벨트 인상을 없애고, 진입을 0~0.4초 늦춰
    같은 순간 도착분이 한 줄로 몰리는 것을 흩는다. 목업 화면이 실제보다
@@ -109,7 +109,7 @@ function dmFire(text) {
 
   var now = performance.now(), free = [];
   for (var i = 0; i < DM_LANES; i++) if (dmFreeAt[i] <= now) free.push(i);
-  if (!free.length) return;           // 전 레인이 붐비면 드롭한다(확장도 같다)
+  if (!free.length) return;           // 전 레인이 붐비면 드롭한다(익스텐션도 같다)
   var lane = free[Math.floor(Math.random() * free.length)];
   var dur = DM_CROSS / (DM_SPEED_MIN + Math.random() * (DM_SPEED_MAX - DM_SPEED_MIN));
   var delay = Math.random() * DM_DELAY_MAX;

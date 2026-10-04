@@ -74,7 +74,7 @@ var hmGo = document.getElementById("hmGo");
 var hmSpans = hmBars ? buildHeat(hmBars, 88) : null;
 var hmLive = document.getElementById("hmLive");
 
-/* 지금 이 회차를 보고 있는 사람들의 구간별 분포. 확장에서는 presence 가
+/* 지금 이 회차를 보고 있는 사람들의 구간별 분포. 익스텐션에서는 presence 가
    모은 재생 위치를 구간으로 묶어 준다(HP-164 → HP-192). 붉은 파형이
    '쌓인 반응'이라면 이 줄은 '지금 이 순간'이라 색으로 갈라 둔다.
    인원은 항상 4 이상이라 얼굴 3 + 나머지 배지 형태가 유지된다. */
@@ -180,7 +180,7 @@ function pushMsg(m) {
   hmList.insertAdjacentHTML("beforeend", msgHtml(m));
   while (hmList.children.length > LIST_CAP) hmList.removeChild(hmList.firstChild);
 }
-/* seek 은 그 지점 기준으로 목록을 다시 채운다 - 확장도 위치를 옮기면
+/* seek 은 그 지점 기준으로 목록을 다시 채운다 - 익스텐션도 위치를 옮기면
    그 시점 히스토리를 새로 불러온다. */
 function reloadList(sec) {
   if (!hmList) return;

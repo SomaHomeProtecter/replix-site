@@ -157,7 +157,7 @@
 @media (max-width: 900px) { .hero-screen { --pw: 196px; } }
 
 /* ─── 탄막 모드 (HP-123 · HP-240) ─────────────────────────────
-   확장 features/danmaku.js 의 실제 스펙을 옮겼다. 레인 4개를 상단
+   익스텐션 features/danmaku.js 의 실제 스펙을 옮겼다. 레인 4개를 상단
    40% 안에 몰아 자막존과 인물 시선권을 비우고, 탄막마다 속도를 달리
    해서(기준의 0.6~1.6배) 컨베이어벨트처럼 보이지 않게 한다. 진입
    지연은 같은 순간 도착한 채팅이 한 줄로 몰리는 것을 흩는다. */
@@ -174,7 +174,7 @@
 .dm.fly { animation: dm-fly var(--dur, 7s) linear var(--delay, 0s) forwards; }
 @keyframes dm-fly { to { transform: translate(var(--shift, -140%), var(--jit, 0px)); } }
 /* 뒤늦은 스포일러 채점으로 회수될 때 - 블러로 읽기를 먼저 막고 페이드를
-   조금 늦게 시작해 여운을 남긴다(확장과 같은 타이밍). */
+   조금 늦게 시작해 여운을 남긴다(익스텐션과 같은 타이밍). */
 .dm.retract { transition: filter .2s ease, opacity .55s ease .1s; filter: blur(6px); opacity: 0; }
 
 /* 플레이어 컨트롤 줄 */

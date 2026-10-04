@@ -139,7 +139,7 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
             )}
             <a href="#/" className="inline-flex items-center gap-2 whitespace-nowrap rounded-btn border border-line2 bg-raise px-4 py-2.5 text-[14px] font-bold text-ink transition-colors hover:bg-soft">
               <PuzzlePieceIcon size={16} />
-              크롬 확장프로그램 설치하기
+              크롬 익스텐션 설치하기
             </a>
           </div>
         </div>
@@ -348,7 +348,7 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
                   {!chats.loading && log.length === 0 && <li className="px-5 py-6 text-center text-[12.5px] text-muted">채팅이 없습니다.</li>}
                 </ol>
                 <div className="flex items-center justify-end border-t border-line bg-soft px-5 py-3">
-                  <a href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" data-cta="catalog_title" className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-ink hover:text-accent"><PuzzlePieceIcon size={14} />크롬 확장프로그램 설치하기</a>
+                  <a href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" data-cta="catalog_title" className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-ink hover:text-accent"><PuzzlePieceIcon size={14} />크롬 익스텐션 설치하기</a>
                 </div>
               </motion.div>
             )}
