@@ -93,7 +93,7 @@ python3 -m http.server 8000     # http://localhost:8000
 | `PEAKS` / `density()` | `js/common.js` | 반응 밀도. 히트맵과 채팅 생성이 이 함수 하나를 공유한다 |
 | `CHAT_POOL` / `ARCHIVE` | `js/scenes.js` | 회차에 쌓인 반응. 밀도 함수로 생성하며 시드 고정 |
 | `PLAY_STEP` | `js/scenes.js` | 히트맵 재생 속도 |
-| `CIN_POOL` / `runChats()` | `js/rooms.js` | 함께 보는 방식 섹션의 말풍선 문장과 교체 속도 |
+| `--y` / `--dur` / `--wait` | `index.html` `#rooms` `.rm-dm` | 함께 보는 방식 공개 채팅 카드의 탄막 줄 높이·지나가는 시간·시작 지연. CSS 애니메이션이다(`css/rooms.css`) — `js/rooms.js` 는 화면 밖에서 멈추기만 한다 |
 
 ## 실데이터 연동 (HP-87, 2026-08-05)
 
