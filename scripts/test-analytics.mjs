@@ -240,7 +240,8 @@ assert.deepEqual(linkPairs.slice().sort(), [
   'nav:top', 'nav:scenes', 'nav:rooms', 'nav:faq', 'nav:catalog',
   'footer:top', 'footer:contact_email', 'footer:scenes', 'footer:catalog', 'footer:faq',
   'footer:privacy', 'footer:terms', 'footer:tmdb',
-].sort(), '랜딩 링크 13곳 — 바꾸면 tracking-plan.md §6 의 표도 같이');
+  'discord:discord_install', 'discord:discord',
+].sort(), '랜딩 링크 15곳 — 바꾸면 tracking-plan.md §6 의 표도 같이');
 assert.match(read('docs/js/faq.js'), /track\('faq_opened', \{ question_index:/);
 assert.match(read('docs/js/hero.js'), /track\('demo_interacted', \{ demo: 'hero_toggle', action: 'scroll_complete' \}\)/);
 assert.doesNotMatch(read('docs/js/hero.js'), /addEventListener\("click"/, '제품 화면 전환은 클릭이 아니라 스크롤이다(HP-467)');
