@@ -52,8 +52,9 @@ python3 -m http.server 8000     # http://localhost:8000
 - **휴대폰 기기에선 설치 버튼이 웹 스토어로 가지 않는다**(HP-477). `js/install-guide.js` 가 익스텐션을 깔 수 없는
   기기(안드로이드·iPhone·iPad)에서 `[data-cta]` 클릭을 가로채 'PC 크롬에서 써요' 시트(링크 복사·공유·웹 스토어)를 띄우고,
   `<html>` 에 `rx-mobile-device` 를 달아 `.rx-mobile-only`/`.rx-pc-only` 문구를 바꿔 끼운다. 판정은 화면 폭이 아니라 기기다.
-  작품 탐색도 같은 파일을 런타임에 붙인다. 초대 페이지(`invite/index.html`)는 단일 파일이라 판정 사본을 두며,
-  휴대폰이면 넷플릭스로 자동 이동하지 않고 링크 복사를 보여 준다 — 판정을 고치면 둘 다(검사: `node scripts/test-install-guide.mjs`).
+  작품 탐색도 같은 파일을 런타임에 붙인다. 초대 페이지(`invite/index.html`)와 디스코드 연결 페이지(`together/index.html`, HP-497)는
+  단일 파일이라 판정 사본을 두며, 휴대폰이면 링크 복사를 보여 준다 — 판정을 고치면 셋 다(검사: `node scripts/test-install-guide.mjs`).
+  두 페이지의 PC 경로(2.5초 대기 후 설치 안내, 초대는 방 요약까지)는 `node scripts/test-invite.mjs` 가 지킨다.
   헤더는 760px 이하에서 설치 버튼을 숨기고 '작품 탐색'만 남긴다.
 - **계측(Amplitude)은 `js/analytics.js` 한 곳이다**(HP-415). 이벤트를 추가·변경하려면
   **`docs/analytics/tracking-plan.md` 부터** 고친다 — 코드에만 있고 문서에 없는 이벤트는 버그다.
