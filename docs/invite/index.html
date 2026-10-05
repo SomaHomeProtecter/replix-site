@@ -1,17 +1,24 @@
 <!doctype html>
-<!-- HP-186 초대 스텁 (C안, 2026-07-24 김지호 확정) — https://replix.tv/invite?w=<watch id>&t=<초대 토큰>
-     역할: 미설치자를 넷플릭스 해당 회차로 보낸다(설치자는 익스텐션 background가 이 페이지 도달 전에 가로챔).
-     자동 이동 + 수동 버튼(인앱 브라우저가 자동 리다이렉트를 막는 경우 대비) + 파라미터 오류 안내.
-     휴대폰은 자동 이동하지 않는다(HP-477) — 초대는 대개 메신저로 받아 휴대폰에서 열리는데, 휴대폰엔 익스텐션이 없어
-     넷플릭스로 보내면 Replix 안내 없이 초대가 끊긴다. 'PC 크롬에서 같이 봐요' 안내와 링크 복사를 보여 준다.
-     계약 정본 = Jira HP-186 코멘트 11185 · HP-87 코멘트 11191. HP-87 랜딩이 완성되면 이 파일을
-     랜딩형 초대 페이지로 교체한다(URL·파라미터 불변). 외부 리소스 0 — 단일 파일 유지. -->
+<!-- 초대 링크 착지(HP-186 · HP-497) — https://replix.tv/invite?w=<watch id>&t=<초대 토큰>&p=<플랫폼>
+     역할: 익스텐션이 없는 사람을 설치로 잇는다. 설치자는 익스텐션 background가 이 페이지 도달 전에(늦어도 아래 대기 중에)
+     가로채 그 플랫폼의 해당 회차로 보낸다.
+     · PC(HP-497): 곧바로 넘기지 않는다. 2.5초 동안 '이동하고 있어요'를 보여 주며 가로채기를 기다리고, 그래도 남아 있으면
+       (= 미설치) 방 요약(공개 API invite-preview)을 받아 '『작품』 회차 + 함께 보는 인원 + [크롬에 추가]'를 보여 준다.
+       설치가 끝나면 익스텐션이 열려 있는 이 탭을 찾아 이어서 입장시킨다. 예전처럼 플랫폼으로 바로 여는 길은
+       보조 링크('이미 설치했어요. 넷플릭스에서 열기')로 남겼다.
+     · 휴대폰(HP-477): 자동 이동하지 않는다 — 초대는 대개 메신저로 받아 휴대폰에서 열리는데, 휴대폰엔 익스텐션이 없어
+       넷플릭스로 보내면 Replix 안내 없이 초대가 끊긴다. 'PC 크롬에서 같이 봐요' 안내와 링크 복사를 보여 준다.
+     계약 정본 = Jira HP-186 코멘트 11185 · HP-87 코멘트 11191(URL·파라미터 불변). 외부 리소스 0 — 단일 파일 유지.
+     같은 골격의 디스코드 연결 착지 = together/index.html. -->
 <html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- 초대 토큰이 실린 URL이 검색에 잡히지 않게 — 토큰은 fragment(#)로만 나르므로 서버·리퍼러로도 안 나간다 -->
+  <!-- 초대 토큰이 실린 URL이 검색에 잡히지 않게. OTT로는 토큰을 fragment(#)로만 나르므로 OTT 서버·리퍼러로 안 나가고,
+       방 요약은 아래 우리 API에만 묻는다(HP-497). -->
   <meta name="robots" content="noindex">
+  <!-- 방 요약(invite-preview)을 묻는 곳 — 운영 BE. 로컬에서 개발 서버로 시험할 때만 이 한 줄을 바꾼다. -->
+  <meta name="api-base" content="https://api.replix.tv">
   <title>Replix</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -42,6 +49,7 @@
       border-radius: 10px; padding: 13px 26px; font-size: 15px; font-weight: 700; margin-top: 4px;
     }
     button.btn { border: 0; font-family: inherit; cursor: pointer; min-width: 180px; }
+    a.btn.cta { min-width: 180px; }
     .btn:hover { filter: brightness(1.08); }
     .btn:focus-visible { outline: 2px solid #ff5b63; outline-offset: 2px; }
     .lead { font-size: 13.5px; line-height: 1.6; color: #a9a9b4; max-width: 280px; }
@@ -53,15 +61,35 @@
     .copied { min-height: 18px; font-size: 12.5px; color: #8b8b96; }
     .link { padding: 8px 4px; font-size: 13px; color: #8b8b96; text-decoration: underline; text-underline-offset: 3px; }
     .link:focus-visible { outline: 2px solid #ff5b63; outline-offset: 2px; border-radius: 4px; }
+    /* PC 설치 안내(HP-497) — 제목·본문, 버튼·설명을 각각 한 덩어리로 붙여 둔다. 작품명은 길 수 있어 단어 단위로 접는다. */
+    .group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .title {
+      font-size: 19px; font-weight: 700; line-height: 1.45; letter-spacing: -0.01em; color: #f4f4f6;
+      max-width: 320px; word-break: keep-all; overflow-wrap: anywhere;
+    }
+    .title:focus { outline: none; }
+    .desc { font-size: 13.5px; line-height: 1.6; color: #a9a9b4; max-width: 300px; word-break: keep-all; }
   </style>
 </head>
 <body>
   <main id="go" hidden>
     <div class="wordmark">Replix</div>
     <div class="spinner" aria-hidden="true"></div>
-    <p class="msg" id="msg">이동하고 있어요…</p>
-    <a id="open" class="btn">열기</a>
-    <p class="sub">자동으로 이동하지 않으면 눌러 주세요</p>
+    <p class="msg">리플릭스로 이동하고 있어요…</p>
+  </main>
+  <main id="install" hidden>
+    <div class="wordmark">Replix</div>
+    <div class="group">
+      <h1 class="title" id="title" tabindex="-1">리플릭스 그룹방 초대</h1>
+      <p class="desc" id="desc">리플릭스 익스텐션을 설치하면 이 방으로 바로 들어가요.</p>
+    </div>
+    <div class="group">
+      <!-- 새 탭으로 연다 — 이 탭이 남아 있어야 설치가 끝난 뒤 익스텐션이 찾아 이어 간다. 이 페이지 주소엔 토큰이 실려 있어
+           리퍼러는 출처만 보낸다(최신 브라우저 기본값과 같지만 명시). -->
+      <a class="btn cta" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" referrerpolicy="strict-origin">크롬에 추가</a>
+      <p class="sub">설치가 끝나면 이 페이지에서 자동으로 이어져요.</p>
+    </div>
+    <a id="open" class="link">이미 설치했어요. 넷플릭스에서 열기</a>
   </main>
   <main id="mobile" hidden>
     <div class="wordmark">Replix</div>
@@ -92,7 +120,8 @@
       },
     };
     // 익스텐션을 설치할 수 없는 기기인가(HP-477). 정본은 docs/js/install-guide.js 의 isMobileDevice 이고 여기는 사본이다 —
-    // 외부 리소스 0 원칙이라 import 하지 못한다. 고치면 둘 다(scripts/test-install-guide.mjs 가 같은 사례로 대조한다).
+    // 외부 리소스 0 원칙이라 import 하지 못한다. 고치면 셋 다(원본, 이 파일, together/index.html —
+    // scripts/test-install-guide.mjs 가 같은 사례로 대조한다).
     /* isMobileDevice:start */
     function isMobileDevice(env) {
       var e = env || {};
@@ -104,6 +133,64 @@
       return e.uaMobile === true;
     }
     /* isMobileDevice:end */
+
+    // ── PC 설치 안내(HP-497) ──
+    var WAIT_MS = 2500;            // 익스텐션 가로채기를 기다리는 시간 — 설치자는 이 안에 탭이 저절로 넘어간다
+    var PREVIEW_TIMEOUT_MS = 3000; // 방 요약이 이보다 늦으면 요약 없이 안내한다
+    // 방 요약 → 화면 문구(순수 — scripts/test-invite.mjs 가 이 구간을 꺼내 검사한다).
+    /* inviteCopy:start */
+    // 회차 표기 — 익스텐션 replix-net.js formatEpisodeLabel 의 사본(정적 페이지라 import 하지 못한다).
+    // 회차가 숫자일 때만, 시즌은 2 이상일 때만 앞에 붙인다("시즌2 3화", "5화"). 영화(둘 다 null)는 빈 문자열.
+    function formatEpisodeLabel(seasonNumber, episodeNumber) {
+      if (typeof episodeNumber !== 'number') return '';
+      var season = typeof seasonNumber === 'number' && seasonNumber > 1 ? '시즌' + seasonNumber + ' ' : '';
+      return season + episodeNumber + '화';
+    }
+    // preview = invite-preview 응답, 실패(404, 네트워크, 시간 초과)면 null. 작품명이 없으면 요약 없는 제목으로 떨어진다.
+    function inviteCopy(preview) {
+      var pv = preview || {};
+      var work = typeof pv.contentTitle === 'string' ? pv.contentTitle.trim() : '';
+      var ep = formatEpisodeLabel(pv.seasonNumber, pv.episodeNumber);
+      var n = pv.onlineCount;
+      return {
+        title: work ? '『' + work + '』' + (ep ? ' ' + ep : '') : '리플릭스 그룹방 초대',
+        desc: (typeof n === 'number' && n >= 1 ? Math.floor(n) + '명이 함께 보고 있어요. ' : '') +
+          '리플릭스 익스텐션을 설치하면 이 방으로 바로 들어가요.',
+      };
+    }
+    /* inviteCopy:end */
+    // 방 요약을 받아 cb(요약 | null)를 한 번만 부른다. 공개 GET이라 쿠키·인증을 싣지 않는다.
+    function fetchPreview(token, cb) {
+      var settled = false;
+      var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+      var finish = function (data) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        cb(data && typeof data === 'object' ? data : null);
+      };
+      var timer = setTimeout(function () { if (ctl) ctl.abort(); finish(null); }, PREVIEW_TIMEOUT_MS);
+      try {
+        var meta = document.querySelector('meta[name="api-base"]');
+        var api = (meta && meta.content) || 'https://api.replix.tv';
+        fetch(api + '/api/v1/rooms/invite-preview?t=' + encodeURIComponent(token),
+          { cache: 'no-store', credentials: 'omit', signal: ctl ? ctl.signal : undefined })
+          .then(function (res) { return res.ok ? res.json() : null; })
+          .then(finish, function () { finish(null); });
+      } catch (_) { finish(null); }
+    }
+    function showInstall(preview) {
+      var copy = inviteCopy(preview);
+      var title = document.getElementById('title');
+      // 서버가 준 작품명은 textContent 로만 넣는다 — HTML 로 해석되지 않는다(주입 방지).
+      title.textContent = copy.title;
+      document.getElementById('desc').textContent = copy.desc;
+      document.getElementById('go').hidden = true;
+      document.getElementById('install').hidden = false;
+      // 대기 화면이 통째로 바뀌므로 화면 낭독기가 새 제목부터 읽게 초점을 옮긴다.
+      title.focus();
+    }
+
     var p = new URLSearchParams(location.search);
     var w = p.get('w');
     var t = p.get('t');
@@ -145,13 +232,14 @@
         });
         document.getElementById('mobile').hidden = false;
       } else {
-        document.getElementById('msg').textContent = NAV[pk].name + '(으)로 이동하고 있어요…';
-        var open = document.getElementById('open');
-        open.textContent = NAV[pk].name + '에서 열기';
-        open.href = url;
+        // PC(HP-497): 곧바로 넘기지 않는다. 익스텐션이 있으면 background 가 이 탭을 그 플랫폼으로 돌려보내므로 잠시
+        // 기다리고, 그대로 남아 있으면(= 미설치) 방 요약을 받아 설치 안내를 보여 준다. 설치가 끝나면 익스텐션이 열려
+        // 있는 이 탭을 찾아 이어서 입장시킨다. 설치했는데 넘어가지 않았다면 보조 링크로 예전처럼 바로 연다.
+        var openLink = document.getElementById('open');
+        openLink.textContent = '이미 설치했어요. ' + NAV[pk].name + '에서 열기';
+        openLink.href = url;
         document.getElementById('go').hidden = false;
-        // 수동 버튼을 먼저 그린 뒤 자동 이동 — 일부 인앱 브라우저가 replace를 막아도 길이 남는다.
-        location.replace(url);
+        setTimeout(function () { fetchPreview(t, showInstall); }, WAIT_MS);
       }
     } else {
       document.getElementById('bad').hidden = false;

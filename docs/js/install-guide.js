@@ -3,8 +3,8 @@
    띄워 이 링크를 PC로 보내게 한다.
    · **PC 는 그대로.** 익스텐션을 깔 수 있는 기기면 아무것도 하지 않는다 — 설치 버튼은 지금처럼 웹 스토어로 간다.
    · **판정은 화면 폭이 아니라 기기.** 좁은 창의 PC 는 설치할 수 있고 넓은 태블릿은 못 한다. 초대 페이지
-     (docs/invite/index.html)에 같은 판정의 사본이 있다 — 외부 리소스 0 원칙의 단일 파일이라 import 하지 못한다.
-     고치면 둘 다 고친다(scripts/test-install-guide.mjs 가 같은 사례로 대조한다).
+     (docs/invite/index.html)와 디스코드 연결 페이지(docs/together/index.html)에 같은 판정의 사본이 있다 — 외부 리소스 0
+     원칙의 단일 파일이라 import 하지 못한다. 고치면 셋 다 고친다(scripts/test-install-guide.mjs 가 같은 사례로 대조한다).
    · **계측은 analytics.js 를 거친다.** 설치 버튼 클릭은 analytics.js 의 문서 위임(capture)이 이미 install_cta_clicked 로
      센다. 여기서는 시트 안의 행동만 install_guide_action 으로 더한다(트래킹 플랜 v11). 시트의 웹 스토어 링크에는
      data-cta 를 달지 않는다 — 달면 같은 설치 의도를 두 번 센다. 계측 모듈이 막혀도(광고 차단기 등) 시트는 돈다.

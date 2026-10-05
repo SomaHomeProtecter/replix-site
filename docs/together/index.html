@@ -1,0 +1,152 @@
+<!doctype html>
+<!-- 디스코드 연결 착지(HP-497) — https://replix.tv/together?p=<연결 토큰>
+     디스코드 봇이 /같이보기를 실행한 사람에게만 주는 [시작하기] 링크다. 설치자는 익스텐션 background가 이 탭을
+     가로채 연결 토큰을 보관하고 넷플릭스(열린 재생 탭이 있으면 그 탭)로 보낸다 — 이 페이지는 미설치자용 표면이다.
+     · PC: 2.5초 동안 '이동하고 있어요'를 보여 주며 가로채기를 기다리고, 그래도 남아 있으면 설치 안내([크롬에 추가]).
+       설치가 끝나면 익스텐션이 열려 있는 이 탭을 찾아 이어 간다.
+     · 휴대폰: 익스텐션을 깔 수 없다 — PC에서 열라는 안내와 링크 복사(초대 페이지 휴대폰 경로와 같은 방식).
+     · p가 없으면 잘못된 링크 안내.
+     연결 토큰(30분, 1회용)은 있는지만 본다 — 서버로도 분석 도구로도 보내지 않는다(계측 없음).
+     외부 리소스 0 — 단일 파일. 골격·스타일은 invite/index.html 과 같다. -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- 연결 토큰이 실린 URL이 검색에 잡히지 않게 -->
+  <meta name="robots" content="noindex">
+  <title>Replix</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0b0b0f; color: #cfcfd6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    main { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+    main[hidden] { display: none; }
+    .wordmark {
+      font-weight: 800; font-size: 28px; letter-spacing: -0.01em;
+      background: linear-gradient(160deg, #e50914, #ff5b63);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .spinner {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.12); border-top-color: #e50914;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: rgba(255, 255, 255, 0.35); } }
+    .msg { font-size: 15px; color: #e8e8ec; }
+    .sub { font-size: 12.5px; color: #8b8b96; }
+    .btn {
+      display: inline-block; background: #e50914; color: #fff; text-decoration: none;
+      border-radius: 10px; padding: 13px 26px; font-size: 15px; font-weight: 700; margin-top: 4px;
+    }
+    button.btn { border: 0; font-family: inherit; cursor: pointer; min-width: 180px; }
+    a.btn.cta { min-width: 180px; }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:focus-visible { outline: 2px solid #ff5b63; outline-offset: 2px; }
+    .lead { font-size: 13.5px; line-height: 1.6; color: #a9a9b4; max-width: 280px; }
+    .url {
+      display: none; width: 100%; max-width: 300px; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.16); background: #15151b; color: #cfcfd6;
+      font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .copied { min-height: 18px; font-size: 12.5px; color: #8b8b96; }
+    .group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .title {
+      font-size: 19px; font-weight: 700; line-height: 1.45; letter-spacing: -0.01em; color: #f4f4f6;
+      max-width: 320px; word-break: keep-all; overflow-wrap: anywhere;
+    }
+    .title:focus { outline: none; }
+  </style>
+</head>
+<body>
+  <main id="go" hidden>
+    <div class="wordmark">Replix</div>
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="msg">리플릭스로 이동하고 있어요…</p>
+  </main>
+  <main id="install" hidden>
+    <div class="wordmark">Replix</div>
+    <h1 class="title" id="title" tabindex="-1">리플릭스 익스텐션이 설치된 PC 크롬에서 열어 주세요</h1>
+    <div class="group">
+      <!-- 새 탭으로 연다 — 이 탭이 남아 있어야 설치가 끝난 뒤 익스텐션이 찾아 이어 간다. 이 페이지 주소엔 토큰이 실려 있어
+           리퍼러는 출처만 보낸다(최신 브라우저 기본값과 같지만 명시). -->
+      <a class="btn cta" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" referrerpolicy="strict-origin">크롬에 추가</a>
+      <p class="sub">설치가 끝나면 이 페이지에서 자동으로 이어져요.</p>
+    </div>
+  </main>
+  <main id="mobile" hidden>
+    <div class="wordmark">Replix</div>
+    <p class="msg">디스코드 함께 보기는 PC에서 시작해요</p>
+    <p class="lead">이 링크를 PC로 보내 열어 주세요.</p>
+    <button type="button" id="copy" class="btn">링크 복사</button>
+    <input id="url" class="url" type="text" readonly aria-label="이 페이지 주소">
+    <p class="copied" id="copied" role="status" aria-live="polite"></p>
+  </main>
+  <main id="bad" hidden>
+    <div class="wordmark">Replix</div>
+    <p class="msg">유효하지 않은 링크예요</p>
+    <p class="sub">디스코드에서 /같이보기를 다시 입력해 주세요</p>
+  </main>
+  <script>
+    // 익스텐션을 설치할 수 없는 기기인가(HP-477). 정본은 docs/js/install-guide.js 의 isMobileDevice 이고 여기는 사본이다 —
+    // 외부 리소스 0 원칙이라 import 하지 못한다. 고치면 셋 다(원본, invite/index.html, 이 파일 —
+    // scripts/test-install-guide.mjs 가 같은 사례로 대조한다).
+    /* isMobileDevice:start */
+    function isMobileDevice(env) {
+      var e = env || {};
+      var ua = e.ua || '';
+      if (/Android|iPhone|iPad|iPod/i.test(ua)) return true;
+      if (e.uaPlatform === 'Android') return true;
+      if (e.platform === 'MacIntel' && (e.maxTouchPoints || 0) > 1) return true;
+      if (/Linux/.test(ua) && !/CrOS/.test(ua) && (e.maxTouchPoints || 0) > 0) return true;
+      return e.uaMobile === true;
+    }
+    /* isMobileDevice:end */
+    var WAIT_MS = 2500; // 익스텐션 가로채기를 기다리는 시간 — 설치자는 이 안에 탭이 저절로 넘어간다(초대 페이지와 같은 값)
+
+    // 연결 토큰은 있는지만 본다. 읽어 쓰는 것은 익스텐션뿐이다(주소창에서 직접 가로챈다).
+    if (new URLSearchParams(location.search).get('p')) {
+      var nav = navigator;
+      var device = { ua: nav.userAgent || '', platform: nav.platform || '', maxTouchPoints: nav.maxTouchPoints || 0,
+        uaMobile: nav.userAgentData ? nav.userAgentData.mobile === true : undefined,
+        uaPlatform: nav.userAgentData ? nav.userAgentData.platform : undefined };
+      if (isMobileDevice(device)) {
+        // 휴대폰: 복사하는 링크는 이 주소 그대로라 PC에서 열면 아래 PC 경로(또는 익스텐션 가로채기)를 탄다.
+        var copied = document.getElementById('copied');
+        var copyBtn = document.getElementById('copy');
+        var done = function () { copyBtn.textContent = '복사했어요'; copied.textContent = 'PC에서 붙여 넣어 열어 주세요.'; };
+        // 클립보드 API 가 막힌 인앱 브라우저(카카오톡 등)면 주소 칸을 꺼내 선택해 두고 옛 방식으로 한 번 더 시도한다.
+        var fallback = function () {
+          var input = document.getElementById('url');
+          input.value = location.href; input.style.display = 'block';
+          input.focus(); input.select();
+          var ok = false;
+          try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+          if (ok) done(); else copied.textContent = '주소를 길게 눌러 복사해 주세요.';
+        };
+        copyBtn.addEventListener('click', function () {
+          if (nav.clipboard && nav.clipboard.writeText) nav.clipboard.writeText(location.href).then(done, fallback);
+          else fallback();
+        });
+        document.getElementById('mobile').hidden = false;
+      } else {
+        // PC: 익스텐션이 있으면 background 가 이 탭을 넷플릭스로 보내거나(열린 재생 탭이 있으면 그 탭을 앞으로) 닫으므로
+        // 잠시 기다리고, 그대로 남아 있으면(= 미설치) 설치 안내를 보여 준다.
+        document.getElementById('go').hidden = false;
+        setTimeout(function () {
+          document.getElementById('go').hidden = true;
+          document.getElementById('install').hidden = false;
+          // 대기 화면이 통째로 바뀌므로 화면 낭독기가 새 안내부터 읽게 초점을 옮긴다.
+          document.getElementById('title').focus();
+        }, WAIT_MS);
+      }
+    } else {
+      document.getElementById('bad').hidden = false;
+    }
+  </script>
+</body>
+</html>

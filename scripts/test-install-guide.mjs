@@ -45,18 +45,21 @@ const CASES = [
 ];
 for (const [env, want, why] of CASES) assert.equal(g.isMobileDevice(env), want, why);
 
-// 초대 페이지는 외부 리소스 0 원칙의 단일 파일이라 판정을 import 하지 못하고 사본을 둔다 — 같은 사례로 대조한다.
+// 초대·디스코드 연결 페이지는 외부 리소스 0 원칙의 단일 파일이라 판정을 import 하지 못하고 사본을 둔다 — 같은 사례로 대조한다.
+for (const [page, label] of [['docs/invite/index.html', '초대 페이지'], ['docs/together/index.html', '디스코드 연결 페이지(HP-497)']]) {
+  const copy = /\/\* isMobileDevice:start \*\/([\s\S]*?)\/\* isMobileDevice:end \*\//.exec(read(page));
+  assert.ok(copy, `${label}에 휴대폰 판정 사본(isMobileDevice:start~end)이 있다`);
+  const pageIsMobile = new Function(`${copy[1]}; return isMobileDevice;`)();
+  for (const [env, want, why] of CASES) assert.equal(pageIsMobile(env), want, `${label} 사본: ${why}`);
+}
 const invite = read('docs/invite/index.html');
-const copy = /\/\* isMobileDevice:start \*\/([\s\S]*?)\/\* isMobileDevice:end \*\//.exec(invite);
-assert.ok(copy, '초대 페이지에 휴대폰 판정 사본(isMobileDevice:start~end)이 있다');
-const inviteIsMobile = new Function(`${copy[1]}; return isMobileDevice;`)();
-for (const [env, want, why] of CASES) assert.equal(inviteIsMobile(env), want, `초대 페이지 사본: ${why}`);
 
-// 초대 페이지 — 휴대폰은 자동 이동하지 않고 안내, PC 는 그대로 넷플릭스로. HP-186 계약(파라미터·fragment 토큰)과
-// 외부 리소스 0·계측 없음(토큰이 실린 페이지)은 그대로다.
+// 초대 페이지 — 휴대폰은 자동 이동하지 않고 안내. PC 도 곧바로 넘기지 않는다(HP-497 — 익스텐션 가로채기를 기다린 뒤
+// 설치 안내, 상세 검사는 test-invite.mjs). HP-186 계약(파라미터·fragment 토큰)과 외부 리소스 0·계측 없음(토큰이 실린
+// 페이지)은 그대로다.
 assert.match(invite, /id="mobile"/, '휴대폰 안내 화면이 있다');
 assert.match(invite, /if \(isMobileDevice\(/, '휴대폰 판정으로 갈린다');
-assert.match(invite, /location\.replace\(url\)/, 'PC 는 지금처럼 넷플릭스로 자동 이동한다');
+assert.doesNotMatch(invite, /location\.replace\(/, 'PC 도 넷플릭스로 바로 넘기지 않는다 — 익스텐션 가로채기를 기다린다(HP-497)');
 assert.match(invite, /#replix-invite=/, '토큰은 fragment 로만 나른다(HP-186)');
 assert.doesNotMatch(invite, /<script[^>]+src=|<link[^>]+href=/, '외부 리소스 0');
 assert.doesNotMatch(invite, /analytics|amplitude|gtag/i, '/invite 는 계측하지 않는다(토큰)');

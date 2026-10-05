@@ -162,8 +162,9 @@ export function bannerText(version) {
 /* 랜딩 링크(nav_link_clicked) 열거값 — 트래킹 플랜 §6 의 표와 같다. 목록 밖이면 보내지 않는다:
    마크업 오타가 새 값으로 쌓이면 차트가 조용히 갈라지고, href 를 그대로 넣는 실수는 §2(전체 URL 금지)를 깬다.
    '분석 설정'은 일부러 없다 — 동의를 철회하러 가는 클릭을 세지 않는다. */
-export var LINK_TARGETS = ['top', 'scenes', 'rooms', 'faq', 'catalog', 'privacy', 'terms', 'contact_email', 'tmdb'];
-export var LINK_LOCATIONS = ['nav', 'footer'];
+export var LINK_TARGETS = ['top', 'scenes', 'rooms', 'faq', 'catalog', 'privacy', 'terms', 'contact_email', 'tmdb',
+  'discord', 'discord_install'];
+export var LINK_LOCATIONS = ['nav', 'footer', 'discord'];
 export function linkProps(target, location) {
   return LINK_TARGETS.indexOf(target) >= 0 && LINK_LOCATIONS.indexOf(location) >= 0
     ? { target: target, location: location } : null;
