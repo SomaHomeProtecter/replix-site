@@ -17,7 +17,12 @@
 
 .dc-copy h2 { margin-top: 14px; font-size: clamp(32px, 3.8vw, 52px);
   letter-spacing: -.05em; line-height: 1.06; }
-.dc-cmd { white-space: nowrap; font-family: var(--mono); font-weight: 700; letter-spacing: -.04em; }
+/* 명령 이름 '/같이보기' — 빨강 형광펜(2026-10-05 조현빈, 시안 D안 + 빨강). 고정폭 글꼴에는 한글이 없어 글꼴만으로는
+   '/' 하나만 달라 보였다 — 글자 아래쪽에 형광펜을 칠해 둘레 글자('음성 채널에서'·'한 번이면')와 가른다. */
+.dc-cmd { white-space: nowrap; font-family: var(--mono); font-weight: 700; letter-spacing: -.04em; padding-inline: .06em;
+  background: linear-gradient(transparent 58%, rgba(229,9,20,.22) 58%, rgba(229,9,20,.22) 92%, transparent 92%); }
+/* '한 번이면'은 한 덩어리 — 갈리면 '한'만 줄 끝에 남는다 */
+.dc-keep { white-space: nowrap; }
 
 /* 세 걸음 — 번호는 #rooms 의 01·02 와 같은 회색 고정폭 숫자 */
 .dc-steps { list-style: none; margin: 36px 0 0; padding: 0; display: grid; gap: 18px; counter-reset: dc; }

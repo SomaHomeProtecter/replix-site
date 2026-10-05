@@ -24,7 +24,8 @@
   .dp-top .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
   .dp-top img { display: block; height: 30px; width: auto; }
   .dp-hero { padding-block: clamp(48px, 8vh, 96px) clamp(56px, 9vh, 104px); }
-  .dp-hero h1 { margin-top: 14px; font-size: clamp(34px, 4.4vw, 60px); letter-spacing: -.05em; line-height: 1.04; }
+  /* 크기는 랜딩 #discord 제목과 같게 — 더 크면 둘째 줄이 '한'에서 갈린다 */
+  .dp-hero h1 { margin-top: 14px; font-size: clamp(32px, 3.8vw, 52px); letter-spacing: -.05em; line-height: 1.06; }
   .dp-lead { margin-top: 18px; max-width: 40ch; font-size: 17px; line-height: 1.7; color: var(--ink-2); }
   .dp-doc { max-width: 820px; margin: 0 auto; padding: clamp(56px, 9vh, 96px) var(--gut) 104px; line-height: 1.7; }
   .dp-doc h2 { margin-top: 64px; font-size: clamp(24px, 2.6vw, 30px); letter-spacing: -.04em; line-height: 1.2; }
@@ -62,7 +63,7 @@
       <div class="dc-wrap">
         <div class="dc-copy">
           <span class="rm-eyebrow">디스코드에서 같이 보기</span>
-          <h1>음성 채널에서<br><span class="dc-cmd">/같이보기</span> 한 번이면</h1>
+          <h1>음성 채널에서<br><span class="dc-cmd">/같이보기</span> <span class="dc-keep">한 번이면</span></h1>
           <p class="dp-lead">디스코드에 모인 친구들과 넷플릭스를 같은 장면에서 함께 보세요. 봇이 채널에 입장 안내를 올리고,
             누가 들어오면 불러 줘요.</p>
           <div class="dc-cta">
