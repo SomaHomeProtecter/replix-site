@@ -1,0 +1,203 @@
+/* ═══ /discord/ — 디스코드에서 같이 보기 안내 페이지 ══════════════════════
+   HP-497. 랜딩 #discord 의 '자세히 보기'가 보내는 곳. 2026-10-05 조현빈 피드백으로 다시 짰다 — 글은 짧게(카드마다 제목 한 줄 +
+   설명 한 줄), 설명은 그림이 맡는다. 순서: 위치 표시 + 가운데 머리 + 큰 디스코드 창(랜딩 섹션과 첫눈에 달라 보이게) →
+   이렇게 써요(네 장면 카드) → 넣기 전에 확인할 세 가지(권한·보내는 정보·각자 계정) → 디스코드에 추가.
+   그림 속 글자는 실제 봇·익스텐션 문구 그대로다(Replix-be DiscordText·DiscordCardRenderer·DiscordInteractionListener,
+   Replix-extension discordPairQuestion) — 문구를 바꾸면 여기도. 디스코드 창(.dc-app)·크롬 창(.xt-*)의 공통 모양은 css/discord.css. */
+
+/* 디스코드 그림 색 — .dc-app 밖에 놓이는 조각(승인 창·권한 목록)도 같은 색을 쓴다 */
+.dp-pic {
+  --d-bg: #f2f2f6; --d-side: #ebebf0; --d-surface: #ffffff;
+  --d-line: rgba(16,16,24,.08); --d-text: #1b1b20; --d-name: #565662; --d-muted: #6a6a75; --d-hint: #8a8a95;
+  --d-blurple: #5865f2;
+  --d-shadow: 0 1px 2px rgba(16,16,24,.05), 0 24px 48px -30px rgba(16,16,24,.3);
+  min-width: 0; margin: 0; display: grid; gap: 14px; justify-items: center; align-content: center;
+  color: var(--d-text); font-size: 13.5px; text-align: left; container-type: inline-size;
+}
+.dp-pic p { margin: 0; }
+.dp-pic svg { display: block; flex: 0 0 auto; }
+
+/* ── 섹션 ── */
+.dp-sec { padding-block: clamp(64px, 10vh, 112px); line-height: normal; }
+.dp-sec > .wrap { max-width: 1280px; padding-inline: clamp(20px, 4.4vw, 64px); }
+.dp-shead { margin-bottom: clamp(28px, 4.5vh, 44px); }
+.dp-shead h2 { margin-top: 12px; font-size: clamp(28px, 3.2vw, 42px); letter-spacing: -.045em; line-height: 1.14; }
+
+/* ── 카드 = 회색 무대 위 그림 + 아래 제목 한 줄과 설명 한 줄 ── */
+.dp-grid { display: grid; gap: 20px; grid-auto-rows: auto; }
+.dp-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dp-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* 카드는 부모 격자의 두 줄(그림·글)을 나눠 쓴다(subgrid) — 옆 카드의 글이 두 줄이 돼도 그림 칸 아래끝이 나란하다 */
+.dp-card { min-width: 0; display: grid; grid-row: span 2; grid-template-rows: subgrid; padding: 12px 12px 24px; border-radius: 26px;
+  background: var(--raise); border: 1px solid var(--line); }
+.band-soft .dp-card { border-color: transparent; }
+.dp-card > .dp-pic { padding: clamp(20px, 2.8vw, 36px); border-radius: 18px; background: var(--soft); }
+.dp-cap { padding: 0 12px; } /* 그림과의 간격은 부모 격자의 줄 간격(20px) */
+.dp-cap h3 { display: flex; align-items: baseline; gap: 10px; font-size: 20px; letter-spacing: -.035em; line-height: 1.3; }
+.dp-num { flex: 0 0 auto; font-family: var(--mono); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: #c4c4cc; }
+.dp-cap p { margin-top: 6px; font-size: 15.5px; line-height: 1.6; color: var(--muted); }
+.dp-cap a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 1080px) { .dp-grid--3 { grid-template-columns: minmax(0, 1fr); max-width: 560px; } }
+@media (max-width: 900px) { .dp-grid--2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* 끝내는 법 — 카드 아래 한 줄 */
+.dp-note { margin-top: 20px; display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-radius: 16px;
+  background: var(--soft); font-size: 15px; line-height: 1.6; color: var(--ink-2); }
+.dp-note svg { flex: 0 0 auto; width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dp-note .dc-cmd { font-weight: 700; }
+
+/* 그림 사이 흐름 표시(입력 → 답장) */
+.dp-arrow { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--d-surface);
+  box-shadow: 0 1px 2px rgba(16,16,24,.08); }
+.dp-arrow svg { width: 14px; height: 14px; fill: none; stroke: var(--d-hint); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+/* 누구 화면인지(나만 보이는 메시지는 사람마다 다르다) */
+.dp-who { width: 100%; max-width: 560px; display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.dp-who .rm-av { width: 22px; height: 22px; font-size: 10px; }
+
+/* ═══ 디스코드 조각 ═══════════════════════════════════════════ */
+
+/* 채팅만 있는 창 — 히어로 창에서 채널 목록을 뗀 것 */
+.dc-app--solo { width: 100%; max-width: 560px; height: auto; grid-template-columns: minmax(0, 1fr); }
+.dc-app--solo .dc-chat { padding-bottom: 18px; }
+.dc-app--mini .dc-chat { padding: 0 16px; gap: 0; }
+.dc-app--mini .dc-msg--eph { margin-inline: -16px; padding: 14px 16px; }
+
+/* 나만 보이는 메시지 — 엷은 바탕 + 아래 눈 표시 */
+.dc-msg--eph { margin-inline: -20px; padding: 10px 20px 12px; background: rgba(88,101,242,.06); }
+.dc-eph { margin-top: 8px; display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--d-hint); }
+.dc-eph svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 나를 부른 메시지 — 디스코드처럼 노란 바탕 + 왼쪽 줄 */
+.dc-msg--hl { margin-inline: -20px; padding: 10px 20px; background: rgba(240,178,50,.1); box-shadow: inset 2px 0 0 #f0b232; }
+.dc-mention--me { background: rgba(240,178,50,.28); color: #7a5200; }
+
+/* 입력창 + 명령 고르기 */
+.dc-compose { width: 100%; max-width: 560px; padding: 14px; border-radius: 20px; background: var(--d-surface);
+  border: 1px solid var(--d-line); box-shadow: var(--d-shadow); }
+.dc-pop { margin-bottom: 10px; border-radius: 10px; background: var(--d-surface); border: 1px solid var(--d-line);
+  box-shadow: 0 10px 28px -12px rgba(16,16,24,.3); overflow: hidden; }
+.dc-pop-head { display: flex; align-items: center; gap: 7px; padding: 10px 12px 6px; font-size: 11.5px; font-weight: 700; color: var(--d-hint); }
+.dc-pop-head img { width: 16px; height: 16px; border-radius: 50%; }
+.dc-pop-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 9px 12px; }
+.dc-pop-item--on { background: rgba(16,16,24,.06); }
+.dc-pop-item b { display: block; font-size: 14px; }
+.dc-pop-item small { display: block; margin-top: 2px; font-size: 12px; color: var(--d-muted); }
+.dc-pop-item em { font-style: normal; font-size: 11.5px; color: var(--d-hint); }
+.dc-input { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border-radius: 10px;
+  background: var(--d-bg); font-size: 14.5px; }
+.dc-plus { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--d-hint); }
+.dc-plus svg { width: 12px; height: 12px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; }
+.dc-typed { font-weight: 600; color: #4450c8; }
+.dc-caret { display: inline-block; width: 2px; height: 18px; margin-left: -6px; background: var(--d-text);
+  animation: dc-blink 1.1s steps(1) infinite; }
+@keyframes dc-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .dc-caret { animation: none; } }
+
+/* 봇 추가 창(디스코드 승인 화면을 줄인 그림) */
+.dc-auth { width: 100%; max-width: 360px; padding: 26px 24px 20px; border-radius: 20px; background: var(--d-surface);
+  border: 1px solid var(--d-line); box-shadow: var(--d-shadow); }
+.dc-auth-pair { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.dc-auth-pair img, .dc-auth-pair .dc-guild { width: 52px; height: 52px; border-radius: 50%; }
+.dc-auth-pair i { width: 32px; border-top: 2px dotted var(--d-hint); }
+.dc-guild { display: grid; place-items: center; border-radius: 16px !important; background: hsl(212 45% 88%);
+  color: hsl(212 35% 32%); font-size: 18px; font-weight: 800; }
+.dc-auth-name { margin-top: 14px; text-align: center; }
+.dc-auth-name b { display: block; font-size: 19px; letter-spacing: -.02em; }
+.dc-auth-name span { display: block; margin-top: 3px; font-size: 13px; color: var(--d-muted); }
+.dc-field { margin-top: 20px; font-size: 11.5px; font-weight: 700; color: var(--d-hint); }
+.dc-select { margin-top: 7px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; border-radius: 8px;
+  background: var(--d-bg); font-size: 14px; font-weight: 600; }
+.dc-select .dc-guild { width: 24px; height: 24px; border-radius: 8px !important; font-size: 11px; }
+.dc-select svg { margin-left: auto; width: 16px; height: 16px; fill: none; stroke: var(--d-muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dc-auth-btns { margin-top: 22px; display: flex; justify-content: flex-end; align-items: center; gap: 16px; }
+.dc-auth-btns span { font-size: 13.5px; font-weight: 600; color: var(--d-name); }
+.dc-auth-btns b { display: inline-flex; align-items: center; height: 38px; padding: 0 18px; border-radius: 8px;
+  background: var(--d-blurple); color: #fff; font-size: 13.5px; }
+
+/* 권한 목록 — 쓰임별로 묶는다 */
+.dc-perms { width: 100%; max-width: 340px; padding: 20px 18px 18px; border-radius: 20px; background: var(--d-surface);
+  border: 1px solid var(--d-line); box-shadow: var(--d-shadow); }
+.dc-perms-head { font-size: 13px; font-weight: 700; color: var(--d-muted); }
+.dc-perms-head b { color: var(--d-text); }
+.dc-pset { margin-top: 14px; }
+.dc-pset-tag { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.dc-pset-tag small { padding: 2px 8px; border-radius: 999px; background: #eaf5ef; color: #0b7a52; font-size: 11px; font-weight: 700; }
+.dc-pset ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.dc-pset li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: var(--d-bg); font-size: 13.5px; font-weight: 600; }
+.dc-check { width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; background: var(--d-blurple); }
+.dc-check svg { width: 11px; height: 11px; fill: none; stroke: #fff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 보내는 정보 — 가는 것·가지 않는 것 이름표 */
+.dp-send { width: 100%; max-width: 340px; padding: 18px; border-radius: 20px; background: var(--d-surface);
+  border: 1px solid var(--d-line); box-shadow: var(--d-shadow); }
+.dp-send h4 { display: flex; align-items: center; gap: 7px; font-size: 13px; letter-spacing: -.01em; }
+.dp-send h4 svg { width: 16px; height: 16px; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.dp-chips { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.dp-chips span { padding: 6px 11px; border-radius: 999px; font-size: 13px; font-weight: 600; line-height: 1.3; }
+.dp-send--yes .dp-chips span { background: #eaf5ef; color: #0b6b48; }
+.dp-send--no .dp-chips span { background: var(--d-bg); color: var(--d-muted); text-decoration: line-through; text-decoration-color: rgba(16,16,24,.3); }
+
+/* ═══ 크롬 창(03 단계) — 공통 모양(.xt-win·.xt-bar·.xt-body·.xt-panel 등)은 css/discord.css ═══ */
+.dp-pic .xt-win { max-width: 600px; }
+.xt-skel { padding: 14px; display: grid; gap: 9px; }
+.xt-skel i { height: 34px; border-radius: 10px; background: #fff; border: 1px solid rgba(16,16,24,.07); }
+.xt-skel i:first-child { height: 14px; width: 60%; border: 0; background: rgba(16,16,24,.08); }
+.xt-dim { position: absolute; inset: 40px 0 0; display: flex; align-items: center; padding: 12px;
+  background: rgba(242,242,246,.62); backdrop-filter: blur(2px); }
+.xt-dialog { width: 100%; padding: 16px 14px 12px; border-radius: 14px; background: #fff;
+  border: 1px solid rgba(16,16,24,.12); box-shadow: 0 14px 40px rgba(16,16,24,.2); }
+.xt-ic { font-size: 21px; line-height: 1; }
+.xt-dialog b { display: block; margin: 8px 0 14px; font-size: 13px; line-height: 1.5; letter-spacing: -.01em; word-break: keep-all; }
+.xt-go, .xt-no { display: block; border-radius: 8px; text-align: center; }
+.xt-go { padding: 9px 0; background: var(--accent); color: #fff; font-size: 12.5px; font-weight: 700; }
+.xt-no { margin-top: 6px; padding: 8px 0; border: 1px solid rgba(16,16,24,.14); font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.xt-after { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 999px;
+  background: #1b1b20; color: #fff; font-size: 12.5px; font-weight: 600; box-shadow: 0 10px 24px -12px rgba(16,16,24,.5); }
+.xt-after svg { width: 14px; height: 14px; fill: none; stroke: #7ee2b0; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+@container (max-width: 470px) {
+  .dp-pic .xt-body { grid-template-columns: minmax(0, 1fr) 184px; height: 286px; }
+  .dp-pic .xt-title { display: none; }
+}
+
+/* 각자 자기 계정 — 같은 장면·같은 시각의 세 줄 */
+.xt-list { width: 100%; max-width: 340px; display: grid; gap: 8px; justify-items: center; }
+.xt-row { width: 100%; display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  padding: 8px 14px 8px 8px; border-radius: 14px; background: var(--d-surface); border: 1px solid var(--d-line); box-shadow: 0 1px 2px rgba(16,16,24,.05); }
+.xt-thumb { position: relative; height: 48px; overflow: hidden; border-radius: 9px; background: #05060c; }
+.xt-thumb .rm-moon { width: 11px; height: 11px; right: 16%; top: 16%; box-shadow: 0 0 14px rgba(238,230,207,.35); }
+.xt-thumb .rm-bar { left: 6px; right: 6px; bottom: 6px; height: 2px; }
+.xt-thumb .rm-bar i::after { width: 6px; height: 6px; right: -3px; }
+.xt-who { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--d-name); white-space: nowrap; }
+.xt-who .rm-av { width: 22px; height: 22px; font-size: 10px; }
+.xt-t { font-family: var(--mono); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--d-text); }
+.xt-sync { margin-top: 4px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+  background: #e8f5ef; border: 1px solid #bfe3d2; font-size: 12px; font-weight: 700; color: #0b7a52; }
+.xt-sync svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── 마무리 ── */
+.dp-end { padding-block: clamp(56px, 9vh, 96px); }
+.dp-end .dp-cta { margin-top: 0; }
+
+/* ═══ 머리 — 위치 표시 + 가운데 정렬 앱 소개 + 큰 디스코드 창 ═══════════════════
+   랜딩 #discord(회색 띠, 글·창 두 칸)와 구성이 달라 보이게, 글은 가운데 한 줄기로 세우고 창은 그 아래 크게 둔다.
+   창 아래 200px 은 회색 — 다음 구획(사용 단계, 회색 띠)과 이어져 창이 두 바탕 경계에 걸쳐 보인다. */
+.dp-intro { padding-block: clamp(20px, 3vh, 28px) 0; line-height: normal;
+  background: linear-gradient(180deg, var(--raise) 0, var(--raise) calc(100% - 200px), var(--soft) calc(100% - 200px)); }
+.dp-intro > .wrap { max-width: 1280px; padding-inline: clamp(20px, 4.4vw, 64px); }
+.dp-crumb { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--muted); }
+.dp-crumb a { color: var(--muted); text-decoration: none; }
+.dp-crumb a:hover { color: var(--ink); }
+.dp-crumb svg { width: 14px; height: 14px; fill: none; stroke: var(--faint); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dp-crumb span { font-weight: 600; color: var(--ink-2); }
+.dp-app { --d-blurple: #5865f2; max-width: 760px; margin: clamp(28px, 5vh, 52px) auto 0; text-align: center; }
+.dp-app-id { display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px 5px 5px; border-radius: 999px;
+  background: var(--soft); font-size: 14px; color: var(--muted); }
+.dp-app-id img { width: 26px; height: 26px; border-radius: 50%; }
+.dp-app-id b { font-weight: 800; color: var(--ink); }
+.dp-app h1 { margin-top: 18px; font-size: clamp(36px, 5vw, 64px); letter-spacing: -.05em; line-height: 1.05; }
+.dp-app .dp-lead { margin: 16px auto 0; max-width: 38em; font-size: 17px; line-height: 1.65; color: var(--ink-2); }
+.dp-app-cta { margin-top: 26px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px 18px; }
+.dp-app-note { font-size: 14px; color: var(--muted); }
+.dp-intro-shot { max-width: 900px; margin: clamp(40px, 6vh, 64px) auto 0; }
+.dp-sec--tight { padding-bottom: 0; }

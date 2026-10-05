@@ -1,13 +1,14 @@
 /* ═══ 디스코드에서 같이 보기 (회색 띠) ══════════════════════════
-   HP-497(2026-10-05 조현빈 요청). 흰 #rooms 다음의 회색 띠 — 색 리듬(tokens.css ③).
-   디스코드는 함께 보는 셋째 방식이 아니라 그룹방으로 들어오는 또 하나의 입구라 #rooms 의
-   셋째 칸이 아니라 따로 둔다. 왼쪽은 제목·세 걸음·버튼, 오른쪽은 디스코드에 실제로 뜨는 것
-   (음성 채널 상태 글자 · 안내 카드 · '작품을 골랐어요' 알림)을 그린 화면이다 — 설명하지 않고
-   보여 준다(tokens.css ①). 화면 색은 #rooms 카드(익스텐션 라이트 테마)와 같은 결로 맞춰 두
-   섹션이 한 이야기로 읽히게 했다. 디스코드 로고는 쓰지 않고, [참여하기]의 파랑만 실제 디스코드
-   버튼처럼 칠했다(봇이 단 기본 버튼이 디스코드에서 그 색으로 보인다). 카드 왼쪽 띠가 회색인
-   것도 실제와 같다 — 봇이 카드 색을 정하지 않는다(Replix-be DiscordCardRenderer).
-   /discord/ 페이지도 이 파일의 .dc-app 을 그대로 쓴다. */
+   HP-497. 흰 #rooms 다음의 회색 띠 — 색 리듬(tokens.css ③). 디스코드는 함께 보는 셋째 방식이 아니라
+   그룹방으로 들어오는 또 하나의 입구라 #rooms 의 셋째 칸이 아니라 따로 둔다.
+   2026-10-05 조현빈 결정(시안 3차) — '약속 없이 열리는 우리끼리 상영회'. 왼쪽은 제목·한 줄·버튼, 오른쪽은
+   움직이는 디스코드 창: 혼자 튼 음성 채널에 친구들이 하나둘 들어오고, 나중에 온 사람을 봇이 부르고,
+   [참여하기]를 누르면 Replix 가 열린 크롬 창이 떠오른다. 왜 넣는지(친구들이 보는 게 보이고, 약속 없이 모이고,
+   중간에 오가도 된다)는 문구로 설명하지 않고 이 장면으로 보여 준다(tokens.css ①).
+   화면 색은 #rooms 카드(익스텐션 라이트 테마)와 같은 결이다. 디스코드 로고는 쓰지 않고, [참여하기]의 파랑만
+   실제 디스코드 버튼처럼 칠했다. 카드 왼쪽 띠가 회색인 것도 실제와 같다 — 봇이 카드 색을 정하지 않는다
+   (Replix-be DiscordCardRenderer). 그림 속 봇 문구는 Replix-be DiscordText 그대로다 — 봇 문구를 바꾸면 여기도.
+   /discord/ 페이지도 이 파일의 디스코드 창(.dc-app)·크롬 창(.xt-*)을 쓴다(그 페이지만의 것은 css/discord-page.css). */
 
 .dc { line-height: normal; }
 .dc > .wrap { max-width: 1280px; padding-inline: clamp(20px, 4.4vw, 64px); }
@@ -18,22 +19,17 @@
 .dc-copy h2 { margin-top: 14px; font-size: clamp(32px, 3.8vw, 52px);
   letter-spacing: -.05em; line-height: 1.06; }
 /* 명령 이름 '/같이보기' — 빨강 형광펜(2026-10-05 조현빈, 시안 D안 + 빨강). 고정폭 글꼴에는 한글이 없어 글꼴만으로는
-   '/' 하나만 달라 보였다 — 글자 아래쪽에 형광펜을 칠해 둘레 글자('음성 채널에서'·'한 번이면')와 가른다. */
+   '/' 하나만 달라 보였다 — 글자 아래쪽에 형광펜을 칠해 둘레 글자와 가른다. */
 .dc-cmd { white-space: nowrap; font-family: var(--mono); font-weight: 700; letter-spacing: -.04em; padding-inline: .06em;
   background: linear-gradient(transparent 58%, rgba(229,9,20,.22) 58%, rgba(229,9,20,.22) 92%, transparent 92%); }
-/* '한 번이면'은 한 덩어리 — 갈리면 '한'만 줄 끝에 남는다 */
-.dc-keep { white-space: nowrap; }
+.dc-lead { margin-top: 18px; max-width: 34em; font-size: 17px; line-height: 1.7; color: var(--ink-2); text-wrap: pretty; }
 
-/* 세 걸음 — 번호는 #rooms 의 01·02 와 같은 회색 고정폭 숫자 */
-.dc-steps { list-style: none; margin: 36px 0 0; padding: 0; display: grid; gap: 18px; counter-reset: dc; }
-.dc-steps li { counter-increment: dc; display: grid; grid-template-columns: 34px minmax(0, 1fr); }
-.dc-steps li::before { content: counter(dc, decimal-leading-zero); grid-row: span 2; padding-top: 3px;
-  font-family: var(--mono); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #c4c4cc; }
-.dc-steps b { font-size: 18px; letter-spacing: -.02em; color: var(--ink); }
-.dc-steps span { margin-top: 4px; font-size: 15px; line-height: 1.6; color: var(--muted); }
-
-.dc-cta { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 10px; }
-.dc-note { margin-top: 16px; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.dc-cta { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 10px; }
+/* 보는 작품이 언제 서버에 보이는지 — 공개 걱정을 해명이 아니라 안내로 */
+.dc-safe { margin-top: 14px; display: flex; align-items: center; gap: 7px; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+.dc-safe svg { flex: 0 0 auto; width: 15px; height: 15px; fill: none; stroke: #0b7a52; stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round; }
+.dc-note { margin-top: 6px; font-size: 14px; line-height: 1.6; color: var(--muted); }
 
 /* ── 디스코드 화면(그림) ── */
 .dc-shot { margin: 0; min-width: 0; }
@@ -89,11 +85,157 @@
   stroke-linecap: round; stroke-linejoin: round; }
 .dc-btn--join { background: var(--d-blurple); color: #fff; }
 
-/* 좁은 폭 — 채널 목록을 위 띠로 접고, 함께 들어온 사람은 숨긴다(상태 글자는 남긴다 — 그게 보여 줄 것이다). */
+/* 좁은 폭 — 채널 목록을 위 띠로 접고, 함께 들어온 사람은 숨긴다(상태 글자는 남긴다 — 그게 보여 줄 것이다).
+   .dc-app 안으로만 건다 — 창 밖에 놓인 채널 목록 조각까지 숨기지 않게. 랜딩 창은 사람이 들어오는 게 보여 줄 것이라 아래 ①에서 되살린다. */
 @media (max-width: 620px) {
   .dc-app { grid-template-columns: minmax(0, 1fr); height: auto; }
-  .dc-side { border-right: 0; border-bottom: 1px solid var(--d-line); padding: 12px 10px 10px; }
-  .dc-server, .dc-people { display: none; }
-  .dc-chat { padding-top: 14px; }
-  .dc-top { display: none; }
+  .dc-app .dc-side { border-right: 0; border-bottom: 1px solid var(--d-line); padding: 12px 10px 10px; }
+  .dc-app .dc-server, .dc-app .dc-people { display: none; }
+  .dc-app .dc-chat { padding-top: 14px; }
+  .dc-app .dc-top { display: none; }
+}
+
+/* ═══ 크롬 창 그림(.xt-*) — 랜딩 움직임의 마지막 장면과 /discord/ 03 단계가 함께 쓴다 ═══
+   왼쪽은 직접 그린 장면(.rm-night, css/rooms.css), 오른쪽은 Replix 패널. 넷플릭스 화면·로고는 쓰지 않는다. */
+.xt-win { width: 100%; overflow: hidden; border-radius: 16px; background: #fff; border: 1px solid rgba(16,16,24,.1); text-align: left;
+  box-shadow: 0 1px 2px rgba(16,16,24,.05), 0 24px 48px -30px rgba(16,16,24,.3); }
+.xt-bar { display: flex; align-items: flex-end; gap: 14px; height: 38px; padding: 0 14px; background: #e9e9ee; }
+.xt-dots { display: flex; gap: 6px; align-self: center; }
+.xt-dots i { width: 10px; height: 10px; border-radius: 50%; background: #d0d0d7; }
+.xt-tab { display: inline-flex; align-items: center; height: 28px; padding: 0 14px; border-radius: 9px 9px 0 0; background: #fff;
+  font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.xt-body { display: grid; grid-template-columns: minmax(0, 1fr) 210px; height: 300px; }
+.xt-video { position: relative; overflow: hidden; background: #05060c; }
+.xt-video .rm-moon { width: 28px; height: 28px; }
+.xt-title { position: absolute; left: 16px; top: 14px; font-size: 12px; font-weight: 700; color: rgba(255,255,255,.88); }
+.xt-panel { position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: #f2f2f6;
+  border-left: 1px solid rgba(16,16,24,.08); }
+.xt-phead { display: flex; flex: 0 0 auto; align-items: center; height: 40px; padding: 0 14px; background: #fff;
+  border-bottom: 1px solid rgba(16,16,24,.08); }
+.xt-phead img { display: block; height: 15px; width: auto; }
+
+/* ═══ ① 랜딩 — 움직이는 디스코드 창 ═══════════════════════════════
+   9초 한 바퀴(2026-10-05 조현빈: 랜딩 체류가 짧으니 빠르고 또렷하게). 장면 비율은 키프레임 %, 길이는 --dx-dur 하나.
+   0.4~2.2초  세 명이 차례로 들어와 넷이 모이고(줄이 파랗게 번쩍, 인원 숫자가 커졌다 돌아온다), 나중에 온 민지를 부른다.
+   2.4~3.1초  손 모양이 그 메시지의 [참여하기]로 가서 누른다(버튼이 눌리고 파란 고리가 퍼진다).
+   3.2~7.6초  디스코드 창이 어두워지고, 그 위로 Replix 가 열린 크롬 창이 떠오른다 — 같은 장면, 지혜의 방, '민지님이 들어왔어요'.
+   7.9~9초    처음(혼자 보는 장면)으로 돌아간다.
+   실제로는 [참여하기] 뒤에 '나만 보이는 입장 링크'를 한 번 더 누른다 — 짧게 보이려고 그 단계는 생략했다.
+   섹션이 화면에 들어온 뒤에 시작한다 — 그림의 .reveal 에 js/reveal.js 가 .in 을 붙이기 전에는 첫 장면에 멈춰 둔다. */
+.dx { --dx-dur: 9s; }
+.dx .dc-shot { position: relative; }
+.dx .dc-people { gap: 0; }
+.dx .dc-people li { margin: 7px 0 0 -6px; padding: 1px 6px; border-radius: 6px; overflow: hidden; }
+.dx .dc-people li:first-child { margin-top: 2px; }
+@media (max-width: 620px) { .dx .dc-app .dc-people { display: grid; } }
+
+/* 들어오기 */
+.dx-j2 { animation: dx-j2 var(--dx-dur) infinite both; }
+.dx-j3 { animation: dx-j3 var(--dx-dur) infinite both; }
+.dx-j4 { animation: dx-j4 var(--dx-dur) infinite both; }
+@keyframes dx-j2 {
+  0%, 4.5% { opacity: 0; max-height: 0; margin-top: 0; transform: translateX(-12px); background-color: rgba(88,101,242,0); }
+  7.3% { opacity: 1; max-height: 26px; margin-top: 7px; transform: none; background-color: rgba(88,101,242,.22); }
+  14%, 87.3% { opacity: 1; max-height: 26px; margin-top: 7px; transform: none; background-color: rgba(88,101,242,0); }
+  90.9%, 100% { opacity: 0; max-height: 0; margin-top: 0; transform: none; } }
+@keyframes dx-j3 {
+  0%, 10.9% { opacity: 0; max-height: 0; margin-top: 0; transform: translateX(-12px); background-color: rgba(88,101,242,0); }
+  13.6% { opacity: 1; max-height: 26px; margin-top: 7px; transform: none; background-color: rgba(88,101,242,.22); }
+  20%, 87.3% { opacity: 1; max-height: 26px; margin-top: 7px; transform: none; background-color: rgba(88,101,242,0); }
+  90.9%, 100% { opacity: 0; max-height: 0; margin-top: 0; transform: none; } }
+@keyframes dx-j4 {
+  0%, 17.3% { opacity: 0; max-height: 0; margin-top: 0; transform: translateX(-12px); background-color: rgba(88,101,242,0); }
+  20% { opacity: 1; max-height: 26px; margin-top: 7px; transform: none; background-color: rgba(88,101,242,.22); }
+  26.4%, 87.3% { opacity: 1; max-height: 26px; margin-top: 7px; transform: none; background-color: rgba(88,101,242,0); }
+  90.9%, 100% { opacity: 0; max-height: 0; margin-top: 0; transform: none; } }
+
+/* 인원 숫자 — 바뀌는 순간 커졌다가 제자리로 */
+.dx-count { display: inline-grid; }
+.dx-count > span { grid-area: 1 / 1; opacity: 0; transform-origin: 50% 70%; }
+.dx-c1 { animation: dx-c1 var(--dx-dur) infinite both; }
+.dx-c2 { animation: dx-c2 var(--dx-dur) infinite both; }
+.dx-c3 { animation: dx-c3 var(--dx-dur) infinite both; }
+.dx-c4 { animation: dx-c4 var(--dx-dur) infinite both; }
+@keyframes dx-c1 { 0%, 7.2% { opacity: 1; } 7.3%, 90.8% { opacity: 0; } 90.9%, 100% { opacity: 1; } }
+@keyframes dx-c2 { 0%, 7.2% { opacity: 0; } 7.3% { opacity: 1; transform: scale(1.3); color: #4450c8; }
+  10.5%, 13.5% { opacity: 1; transform: none; color: #565662; } 13.6%, 100% { opacity: 0; } }
+@keyframes dx-c3 { 0%, 13.5% { opacity: 0; } 13.6% { opacity: 1; transform: scale(1.3); color: #4450c8; }
+  16.8%, 19.9% { opacity: 1; transform: none; color: #565662; } 20%, 100% { opacity: 0; } }
+@keyframes dx-c4 { 0%, 19.9% { opacity: 0; } 20% { opacity: 1; transform: scale(1.3); color: #4450c8; }
+  23.2%, 90.8% { opacity: 1; transform: none; color: #565662; } 90.9%, 100% { opacity: 0; } }
+
+/* 나중에 온 사람을 부르는 메시지 — 아래에서 떠오르며 노랗게 번쩍 */
+.dx-hello { overflow: hidden; margin-inline: -20px; padding-inline: 20px; animation: dx-hello var(--dx-dur) infinite both; }
+@keyframes dx-hello {
+  0%, 20.9% { opacity: 0; max-height: 0; padding-block: 0; transform: translateY(12px); background-color: rgba(240,178,50,0); }
+  24.5% { opacity: 1; max-height: 150px; padding-block: 8px; transform: none; background-color: rgba(240,178,50,.16); }
+  32%, 87.3% { opacity: 1; max-height: 150px; padding-block: 8px; transform: none; background-color: rgba(240,178,50,0); }
+  90.9%, 100% { opacity: 0; max-height: 0; padding-block: 0; } }
+
+/* [참여하기] 누르기 — 손은 버튼 줄 안에 둔다(창 폭이 달라도 버튼 위에 내려앉게) */
+.dx-hello .dc-btns { position: relative; }
+.dx-hello .dc-btn--join { animation: dx-press var(--dx-dur) infinite both; }
+@keyframes dx-press {
+  0%, 32.2% { transform: none; filter: none; box-shadow: 0 0 0 0 rgba(88,101,242,0); }
+  32.8% { transform: scale(.9); filter: brightness(.88); box-shadow: 0 0 0 0 rgba(88,101,242,.6); }
+  36.4% { transform: none; filter: none; box-shadow: 0 0 0 14px rgba(88,101,242,0); }
+  100% { transform: none; filter: none; box-shadow: 0 0 0 0 rgba(88,101,242,0); } }
+.dx-cursor { position: absolute; z-index: 4; left: 40px; top: 12px; width: 28px; height: 28px; pointer-events: none;
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,.28)); animation: dx-cursor var(--dx-dur) infinite both; }
+@keyframes dx-cursor {
+  0%, 26.3% { opacity: 0; transform: translate(80px, 46px); }
+  27.3% { opacity: 1; transform: translate(80px, 46px); }
+  31.8% { opacity: 1; transform: none; }
+  32.8% { opacity: 1; transform: scale(.82); }
+  34.6%, 38.2% { opacity: 1; transform: none; }
+  40.9%, 100% { opacity: 0; transform: none; } }
+
+/* Replix 가 열린다 — 디스코드 창은 어두워지고, 그 위로 크롬 창이 버튼 쪽에서 커지며 떠오른다 */
+.dx-scrim { position: absolute; z-index: 2; inset: 0; border-radius: 20px; background: rgba(16,16,24,.3); pointer-events: none;
+  animation: dx-scrim var(--dx-dur) infinite both; }
+@keyframes dx-scrim { 0%, 35.4% { opacity: 0; } 40%, 81.8% { opacity: 1; } 84.5%, 100% { opacity: 0; } }
+.dx-open { position: absolute; z-index: 3; left: 11%; top: 13%; width: 86%; pointer-events: none; transform-origin: 18% 100%;
+  animation: dx-open var(--dx-dur) infinite both; }
+@keyframes dx-open {
+  0%, 35.4% { opacity: 0; transform: translateY(26px) scale(.55); }
+  40%, 81.8% { opacity: 1; transform: none; }
+  84%, 100% { opacity: 0; transform: translateY(14px) scale(.94); } }
+.dx-open .xt-win { box-shadow: 0 2px 4px rgba(16,16,24,.08), 0 40px 70px -30px rgba(16,16,24,.55); }
+.dx-play { animation: dx-play var(--dx-dur) infinite both; }
+@keyframes dx-play { 0%, 40% { width: 56%; } 81.8%, 100% { width: 61%; } }
+/* 패널 안 = #rooms 그룹방 카드(rooms.css)의 조각 — 그 카드의 색 변수를 여기서도 정한다 */
+.dx-room { --x-bg: #f2f2f6; --x-surface: #ffffff; --x-line: rgba(16,16,24,.08); --x-line-2: rgba(16,16,24,.1);
+  --x-text: #1b1b20; --x-name: #565662; --x-muted: #6a6a75; --x-hint: #8a8a95; color: var(--x-text); }
+.dx-room .rm-rhead { padding: 12px 12px 10px; }
+.dx-room .rm-rname b { font-size: 14px; }
+.dx-crew { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--x-surface);
+  border-bottom: 1px solid var(--x-line); font-size: 12px; font-weight: 600; color: var(--x-muted); }
+.dx-faces { display: flex; }
+.dx-faces .rm-av { width: 24px; height: 24px; font-size: 10px; box-shadow: 0 0 0 2px var(--x-surface); }
+.dx-faces .rm-av + .rm-av, .dx-new { margin-left: -6px; }
+.dx-new { display: inline-flex; animation: dx-new var(--dx-dur) infinite both; }
+@keyframes dx-new { 0%, 41% { transform: scale(0); } 44% { transform: scale(1.25); } 46.5%, 100% { transform: none; } }
+.dx-room .rm-msgs { padding: 12px; gap: 9px; }
+.dx-room .rm-bub { padding: 7px 11px; font-size: 12.5px; }
+.dx-sysline { animation: dx-pop var(--dx-dur) infinite both; }
+.dx-bubble { animation: dx-pop2 var(--dx-dur) infinite both; }
+@keyframes dx-pop { 0%, 42% { opacity: 0; transform: translateY(6px); } 45%, 100% { opacity: 1; transform: none; } }
+@keyframes dx-pop2 { 0%, 49% { opacity: 0; transform: translateY(6px); } 52%, 100% { opacity: 1; transform: none; } }
+
+/* 화면에 들어오기 전에는 첫 장면(혼자 보는 중)에 멈춰 둔다 — 멈춘 동안은 키프레임 0%(fill-mode both)가 보인다 */
+.dx .dc-shot:not(.in) [class*="dx-"], .dx .dc-shot:not(.in) .dc-btn--join { animation-play-state: paused; }
+
+@media (max-width: 620px) {
+  .dx-open { left: 3%; width: 94%; top: 16%; }
+  .dx-open .xt-body { grid-template-columns: minmax(0, 1fr) 190px; height: 280px; }
+  .dx-open .xt-title { display: none; }
+}
+/* 움직임 줄이기 — 넷이 모인 마지막 디스코드 장면만 보여 주고, 누르기·Replix 창은 띄우지 않는다 */
+@media (prefers-reduced-motion: reduce) {
+  .dx-j2, .dx-j3, .dx-j4, .dx-hello { animation: none; opacity: 1; max-height: none; }
+  .dx-hello { padding-block: 8px; }
+  .dx-count > span { animation: none; opacity: 0; }
+  .dx-count > .dx-c4 { opacity: 1; }
+  .dx-cursor, .dx-scrim, .dx-open { display: none; }
+  .dx-hello .dc-btn--join { animation: none; }
 }

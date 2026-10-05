@@ -297,29 +297,26 @@
 </section>
 
 <!-- ─── 디스코드에서 같이 보기 (HP-497) ─────────────────────────
-     2026-10-05 조현빈 요청 — 함께 보기(#rooms) 바로 뒤. 디스코드는 함께 보는 셋째 방식이 아니라 그룹방으로
-     들어오는 또 하나의 입구라 #rooms 의 셋째 칸이 아니라 따로 둔다. 사람·작품은 #rooms 와 같은 가상 이름
-     (지혜·수민·현우, '밤의 정원')이라 한 이야기로 읽힌다. [디스코드에 추가]의 주소는 /discord/ 페이지와 같다 —
-     운영 봇 id 를 바꾸면 두 곳을 함께(scripts/test-discord.mjs 가 맞춰 본다). 스타일 = css/discord.css -->
-<section class="pad band-soft dc" id="discord">
+     함께 보기(#rooms) 바로 뒤. 디스코드는 함께 보는 셋째 방식이 아니라 그룹방으로 들어오는 또 하나의 입구라
+     #rooms 의 셋째 칸이 아니라 따로 둔다. 2026-10-05 조현빈 결정(시안 3차) — '약속 없이 열리는 우리끼리 상영회' +
+     움직이는 디스코드 창(친구들이 하나둘 들어오고 → 봇이 부르고 → [참여하기] → Replix 가 열린다). 사람·작품은
+     #rooms 와 같은 가상 이름(지혜·수민·현우·민지, '밤의 정원'). [디스코드에 추가]의 주소는 /discord/ 페이지와 같다 —
+     운영 봇 id 를 바꾸면 두 곳을 함께(scripts/test-discord.mjs 가 맞춰 본다). 스타일·움직임 = css/discord.css -->
+<section class="pad band-soft dc dx" id="discord">
   <div class="wrap">
     <div class="dc-wrap">
       <div class="dc-copy reveal">
         <span class="rm-eyebrow">디스코드에서 같이 보기</span>
-        <h2>음성 채널에서<br><span class="dc-cmd">/같이보기</span> <span class="dc-keep">한 번이면</span></h2>
-        <ol class="dc-steps">
-          <li><b>서버에 Replix 봇 추가</b><span>서버 관리자가 한 번만 넣으면 돼요</span></li>
-          <li><b>음성 채널에서 <span class="dc-cmd">/같이보기</span></b><span>나에게만 [시작하기] 링크가 와요</span></li>
-          <li><b>볼 회차를 열면 끝</b><span>친구들은 채널에 올라온 카드의 [참여하기]로 들어와요</span></li>
-        </ol>
+        <h2>약속 없이 열리는<br>우리끼리 상영회</h2>
+        <p class="dc-lead">디스코드 음성 채널에서 <span class="dc-cmd">/같이보기</span> 를 입력하면 상영회가 열려요. 서버 친구들이 하나둘 들어오고, 중간에 와도 같은 장면부터 함께 봐요.</p>
         <div class="dc-cta">
           <a class="btn btn--primary" href="https://discord.com/oauth2/authorize?client_id=1556613278992572438&amp;scope=bot%20applications.commands&amp;permissions=281474976730128" target="_blank" rel="noopener" data-discord-install data-link="discord_install" data-link-loc="discord">디스코드에 추가</a>
           <a class="btn btn--ghost" href="/discord/" data-link="discord" data-link-loc="discord">자세히 보기</a>
         </div>
-        <p class="dc-note">PC 크롬과 Replix 익스텐션이 필요해요. 넷플릭스는 각자 자기 계정으로 봐요.</p>
+        <p class="dc-safe"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>보는 작품은 /같이보기 를 시작한 채널에만 보여요.</p>
+        <p class="dc-note">PC 크롬과 Replix 익스텐션이 필요해요.</p>
       </div>
-      <figure class="dc-shot reveal" role="img"
-              aria-label="디스코드 화면 예시: 우리 서버의 일반 음성 채널 이름 아래에 '넷플릭스에서 밤의 정원 3화 보는 중'이라는 상태가 떠 있고, 지혜, 수민, 현우가 들어와 있다. 채팅에는 Replix 봇이 올린 '밤의 정원 3화' 안내 카드와 참여하기 버튼, 그리고 지혜님이 함께 볼 작품을 골랐다며 수민과 현우를 부르는 알림이 있다.">
+      <figure class="dc-shot reveal" role="img" aria-label="움직이는 디스코드 창: 일반 음성 채널에서 지혜가 /같이보기 로 밤의 정원 시즌2 1화를 틀자 수민, 현우, 민지가 차례로 들어오고 카드의 인원이 1명에서 4명으로 는다. 봇이 나중에 온 민지를 부르고, 민지가 [참여하기]를 누르자 크롬 창에 Replix 가 열려 같은 장면의 지혜의 방에 들어간다">
         <div class="dc-app">
           <aside class="dc-side">
             <span class="dc-server">우리 서버</span>
@@ -327,11 +324,12 @@
             <span class="dc-ch"><svg viewBox="0 0 24 24"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg>잡담</span>
             <span class="dc-group">음성 채널</span>
             <span class="dc-ch dc-ch--on"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>일반</span>
-            <p class="dc-status">🍿 넷플릭스에서 『밤의 정원』 3화 보는 중</p>
+            <p class="dc-status">🍿 넷플릭스에서 『밤의 정원』 시즌2 1화 보는 중</p>
             <ul class="dc-people">
               <li><i class="rm-av" style="--bg:hsl(262 45% 88%); --fg:hsl(262 35% 34%)">지</i>지혜</li>
-              <li><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i>수민</li>
-              <li><i class="rm-av" style="--bg:hsl(168 45% 86%); --fg:hsl(168 40% 26%)">현</i>현우</li>
+              <li class="dx-j2"><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i>수민</li>
+              <li class="dx-j3"><i class="rm-av" style="--bg:hsl(168 45% 86%); --fg:hsl(168 40% 26%)">현</i>현우</li>
+              <li class="dx-j4"><i class="rm-av" style="--bg:hsl(330 45% 90%); --fg:hsl(330 35% 36%)">민</i>민지</li>
             </ul>
           </aside>
           <div class="dc-chat">
@@ -339,24 +337,38 @@
             <div class="dc-msg">
               <img class="dc-av" src="/assets/logo/replix-profile-96.png" alt="" width="36" height="36">
               <div>
-                <div class="dc-meta"><b>Replix</b><span class="dc-tag">앱</span><span class="dc-time">오후 9:02</span></div>
+                <div class="dc-meta"><b>Replix</b><span class="dc-tag">앱</span><span class="dc-time">오후 9:00</span></div>
                 <div class="dc-embed">
-                  <b>🍿 『밤의 정원』 3화</b>
-                  <p>넷플릭스에서 재생 위치를 맞춰 함께 보고 있어요. 지금 3명이 보고 있어요.</p>
+                  <b>🍿 『밤의 정원』 시즌2 1화</b>
+                  <p>넷플릭스에서 재생 위치를 맞춰 함께 보고 있어요. 지금 <span class="dx-count"><span class="dx-c1">1명</span><span class="dx-c2">2명</span><span class="dx-c3">3명</span><span class="dx-c4">4명</span></span>이 보고 있어요.</p>
                 </div>
-                <div class="dc-btns">
-                  <span class="dc-btn dc-btn--join">참여하기</span>
-                  <span class="dc-btn">익스텐션 설치<svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span>
-                </div>
+                <div class="dc-btns"><span class="dc-btn dc-btn--join">참여하기</span><span class="dc-btn">익스텐션 설치<svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></div>
               </div>
             </div>
-            <div class="dc-msg">
+            <div class="dc-msg dx-hello">
               <img class="dc-av" src="/assets/logo/replix-profile-96.png" alt="" width="36" height="36">
               <div>
-                <div class="dc-meta"><b>Replix</b><span class="dc-tag">앱</span><span class="dc-time">오후 9:03</span></div>
-                <p class="dc-text">🍿 지혜님이 함께 볼 작품을 골랐어요 — 『밤의 정원』 3화<br>
-                  <span class="dc-mention">@수민</span> <span class="dc-mention">@현우</span> 님, [참여하기]를 눌러 들어오세요.</p>
-                <div class="dc-btns"><span class="dc-btn dc-btn--join">참여하기</span></div>
+                <div class="dc-meta"><b>Replix</b><span class="dc-tag">앱</span><span class="dc-time">오후 9:40</span></div>
+                <p class="dc-text"><span class="dc-mention">@민지</span> 님, 이 음성 채널에서 『밤의 정원』 시즌2 1화 함께 보는 중이에요. [참여하기]를 누르면 나만 보이는 입장 링크가 와요.</p>
+                <div class="dc-btns"><span class="dc-btn dc-btn--join">참여하기</span><svg class="dx-cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l14 8.2-6.1 1.5 3.6 6.7-2.6 1.4-3.6-6.7L5.6 18z" fill="#fff" stroke="#1b1b20" stroke-width="1.4" stroke-linejoin="round"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="dx-scrim" aria-hidden="true"></div>
+        <div class="dx-open" aria-hidden="true">
+          <div class="xt-win">
+            <div class="xt-bar"><span class="xt-dots"><i></i><i></i><i></i></span><span class="xt-tab">밤의 정원 시즌2 1화</span></div>
+            <div class="xt-body">
+              <div class="xt-video"><div class="rm-night"><i class="rm-moon"></i><svg class="rm-ridge rm-ridge--far" viewBox="0 0 400 120" preserveAspectRatio="none"><path d="M0 64 L52 40 L110 56 L170 22 L238 50 L300 30 L360 48 L400 36 L400 120 L0 120 Z"/></svg><svg class="rm-ridge rm-ridge--near" viewBox="0 0 400 80" preserveAspectRatio="none"><path d="M0 40 L70 28 L140 40 L220 20 L300 36 L400 24 L400 80 L0 80 Z"/></svg></div><span class="xt-title">밤의 정원 시즌2 1화</span><span class="rm-bar"><i class="dx-play"></i></span></div>
+              <div class="xt-panel dx-room">
+                <div class="xt-phead"><img src="/assets/logo/replix-horizontal-light.png" alt=""></div>
+                <div class="rm-rhead"><div class="rm-rname"><b>지혜의 방</b><span>밤의 정원 시즌2 1화</span></div><span class="rm-sync"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>재생 맞춤</span></div>
+                <div class="dx-crew"><span class="dx-faces"><i class="rm-av" style="--bg:hsl(262 45% 88%); --fg:hsl(262 35% 34%)">지</i><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i><i class="rm-av" style="--bg:hsl(168 45% 86%); --fg:hsl(168 40% 26%)">현</i><span class="dx-new"><i class="rm-av" style="--bg:hsl(330 45% 90%); --fg:hsl(330 35% 36%)">민</i></span></span>4명이 함께 보는 중</div>
+                <div class="rm-msgs">
+                  <span class="rm-sys dx-sysline"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg>민지님이 들어왔어요</span>
+                  <div class="rm-them dx-bubble"><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i><div><b>수민</b><p class="rm-bub">딱 맞춰 왔네 👋</p></div></div>
+                </div>
               </div>
             </div>
           </div>

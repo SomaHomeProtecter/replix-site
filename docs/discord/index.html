@@ -1,9 +1,9 @@
 <!doctype html>
-<!-- 디스코드에서 같이 보기 안내(HP-497, 2026-10-05 조현빈 요청) — https://replix.tv/discord/
-     랜딩의 #discord 섹션이 '자세히 보기'로 보내는 곳. 봇을 넣을 서버 관리자가 무엇이 생기고 무엇을 허락하는지 알고
-     넣게 하는 페이지다: 쓰는 법 · 디스코드에 보이는 것 · 권한과 그 이유 · 보내는 정보.
+<!-- 디스코드에서 같이 보기 안내(HP-497) — https://replix.tv/discord/
+     랜딩의 #discord 섹션이 '자세히 보기'로 보내는 곳. 봇을 넣을 서버 관리자가 무엇이 생기고 무엇을 허락하는지 그림으로 보고
+     넣게 하는 페이지다: 쓰는 법(네 장면) · 권한 · 보내는 정보 · 각자 계정(2026-10-05 조현빈 피드백으로 글을 줄이고 그림 위주로).
      [디스코드에 추가]의 주소는 랜딩 #discord 와 같다 — 운영 봇 id 를 바꾸면 두 곳을 함께(scripts/test-discord.mjs 가
-     맞춰 본다). 디스코드 화면 그림은 랜딩과 같은 마크업·스타일(css/discord.css)이다. 계측 스크립트는 싣지 않는다. -->
+     맞춰 본다). 스타일 = css/discord.css(디스코드·크롬 창 공통) + css/discord-page.css(이 페이지). 계측 스크립트는 싣지 않는다. -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -16,31 +16,14 @@
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/rooms.css">
 <link rel="stylesheet" href="/css/discord.css">
+<link rel="stylesheet" href="/css/discord-page.css">
 <style>
-  /* 이 페이지만의 틀 — 위 띠(로고·설치), 머리(랜딩 #discord 와 같은 두 칸), 아래 문서 단락. */
-  .band-soft { background: var(--soft); } /* 랜딩은 css/chart.css 에서 정의 — 이 페이지는 그 파일을 싣지 않는다 */
+  /* 이 페이지만의 틀 — 위 띠(로고·설치), 마무리 상자, 바닥 줄. 랜딩은 css/chart.css 의 .band-soft 를 쓰지만 이 페이지는 그 파일을 싣지 않는다. */
+  .band-soft { background: var(--soft); }
   .dp-top { position: sticky; top: 0; z-index: 5; background: rgba(250,249,249,.86);
     backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
   .dp-top .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
   .dp-top img { display: block; height: 30px; width: auto; }
-  .dp-hero { padding-block: clamp(48px, 8vh, 96px) clamp(56px, 9vh, 104px); }
-  /* 크기는 랜딩 #discord 제목과 같게 — 더 크면 둘째 줄이 '한'에서 갈린다 */
-  .dp-hero h1 { margin-top: 14px; font-size: clamp(32px, 3.8vw, 52px); letter-spacing: -.05em; line-height: 1.06; }
-  .dp-lead { margin-top: 18px; max-width: 40ch; font-size: 17px; line-height: 1.7; color: var(--ink-2); }
-  .dp-doc { max-width: 820px; margin: 0 auto; padding: clamp(56px, 9vh, 96px) var(--gut) 104px; line-height: 1.7; }
-  .dp-doc h2 { margin-top: 64px; font-size: clamp(24px, 2.6vw, 30px); letter-spacing: -.04em; line-height: 1.2; }
-  .dp-doc h2:first-child { margin-top: 0; }
-  .dp-doc > p, .dp-doc li { font-size: 16px; color: var(--ink-2); }
-  .dp-doc > p { margin-top: 12px; }
-  .dp-list { margin: 20px 0 0; padding: 0; list-style: none; display: grid; gap: 14px; }
-  .dp-list li { padding: 18px 20px; border-radius: var(--r-md); background: var(--raise); border: 1px solid var(--line); }
-  .dp-list b { display: block; color: var(--ink); font-size: 16.5px; letter-spacing: -.02em; }
-  .dp-list span { display: block; margin-top: 4px; font-size: 15px; line-height: 1.65; color: var(--muted); }
-  .dp-perm { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 15px; }
-  .dp-perm th, .dp-perm td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-  .dp-perm th { color: var(--ink); font-weight: 700; white-space: nowrap; }
-  .dp-perm td { color: var(--ink-2); line-height: 1.6; }
-  .dp-perm caption { caption-side: bottom; padding-top: 12px; text-align: left; font-size: 14px; color: var(--muted); }
   .dp-cta { margin-top: 64px; padding: 36px clamp(20px, 4vw, 40px); border-radius: var(--r-lg); background: var(--soft);
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; }
   .dp-cta b { font-size: 20px; letter-spacing: -.03em; color: var(--ink); }
@@ -58,20 +41,24 @@
 </header>
 
 <main>
-  <section class="band-soft dc dp-hero">
+  <!-- ═══ 머리 — 랜딩 #discord 와 겹치지 않게(2026-10-05 조현빈: '자세히 보기'로 넘어온 줄 몰랐다 · 디스코드 창은 남긴다) ═══
+       랜딩 섹션은 회색 띠에 '왼쪽 글 · 오른쪽 디스코드 창' 두 칸이다. 여기는 위치 표시 아래 가운데 정렬 머리, 그 아래에 같은
+       디스코드 창을 크게 놓는다 — 창 아래쪽은 다음 구획의 회색으로 이어진다. -->
+  <section class="dp-intro">
     <div class="wrap">
-      <div class="dc-wrap">
-        <div class="dc-copy">
-          <span class="rm-eyebrow">디스코드에서 같이 보기</span>
-          <h1>음성 채널에서<br><span class="dc-cmd">/같이보기</span> <span class="dc-keep">한 번이면</span></h1>
-          <p class="dp-lead">디스코드에 모인 친구들과 넷플릭스를 같은 장면에서 함께 보세요. 봇이 채널에 입장 안내를 올리고,
-            누가 들어오면 불러 줘요.</p>
-          <div class="dc-cta">
-            <a class="btn btn--primary" href="https://discord.com/oauth2/authorize?client_id=1556613278992572438&amp;scope=bot%20applications.commands&amp;permissions=281474976730128" target="_blank" rel="noopener" data-discord-install>디스코드에 추가</a>
-          </div>
-          <p class="dc-note">PC 크롬과 Replix 익스텐션이 필요해요. 넷플릭스는 각자 자기 계정으로 봐요.</p>
+      <nav class="dp-crumb" aria-label="현재 위치">
+        <a href="/">Replix</a><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><span aria-current="page">디스코드에서 같이 보기</span>
+      </nav>
+      <div class="dp-app">
+        <p class="dp-app-id"><img src="/assets/logo/replix-profile-96.png" alt="" width="26" height="26"><b>Replix</b><span class="dc-tag">앱</span><span>디스코드 봇</span></p>
+        <h1>디스코드에서 같이 보기</h1>
+        <p class="dp-lead">음성 채널에서 <span class="dc-cmd">/같이보기</span> 한 번으로 친구들과 넷플릭스를 같은 장면에서 봐요.</p>
+        <div class="dp-app-cta">
+          <a class="btn btn--primary" href="https://discord.com/oauth2/authorize?client_id=1556613278992572438&amp;scope=bot%20applications.commands&amp;permissions=281474976730128" target="_blank" rel="noopener" data-discord-install>디스코드에 추가</a>
+          <span class="dp-app-note">PC 크롬과 Replix 익스텐션이 필요해요</span>
         </div>
-      <figure class="dc-shot" role="img"
+      </div>
+      <figure class="dc-shot dp-intro-shot" role="img"
               aria-label="디스코드 화면 예시: 우리 서버의 일반 음성 채널 이름 아래에 '넷플릭스에서 밤의 정원 3화 보는 중'이라는 상태가 떠 있고, 지혜, 수민, 현우가 들어와 있다. 채팅에는 Replix 봇이 올린 '밤의 정원 3화' 안내 카드와 참여하기 버튼, 그리고 지혜님이 함께 볼 작품을 골랐다며 수민과 현우를 부르는 알림이 있다.">
         <div class="dc-app">
           <aside class="dc-side">
@@ -115,53 +102,204 @@
           </div>
         </div>
       </figure>
+    </div>
+  </section>
+
+  <!-- ═══ 이렇게 써요 — 네 장면 ═══ -->
+  <section class="band-soft dp-sec">
+    <div class="wrap">
+      <div class="dp-shead">
+        <span class="rm-eyebrow">이렇게 써요</span>
+        <h2>봇 추가부터 함께 보기까지</h2>
+      </div>
+      <div class="dp-grid dp-grid--2">
+
+        <article class="dp-card">
+          <figure class="dp-pic" role="img" aria-label="봇 추가 창 예시: Replix를 넣을 서버로 우리 서버를 고르고 계속하기를 누른다.">
+            <div class="dc-auth">
+              <div class="dc-auth-pair"><img src="/assets/logo/replix-profile-96.png" alt=""><i></i><span class="dc-guild">우</span></div>
+              <div class="dc-auth-name"><b>Replix</b><span>서버에 봇을 추가해요</span></div>
+              <div class="dc-field">서버 선택</div>
+              <div class="dc-select"><span class="dc-guild">우</span>우리 서버<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+              <div class="dc-auth-btns"><span>취소</span><b>계속하기</b></div>
+            </div>
+          </figure>
+          <div class="dp-cap">
+            <h3><span class="dp-num">01</span>서버에 Replix 봇 추가</h3>
+            <p>서버 관리자가 한 번만 넣으면 돼요.</p>
+          </div>
+        </article>
+
+        <article class="dp-card">
+          <figure class="dp-pic" role="img" aria-label="/같이보기 예시: 채팅 입력창에 /같이보기 를 치면 Replix 명령이 뜨고, 보내면 나에게만 보이는 [시작하기] 안내가 온다.">
+            <div class="dc-compose">
+              <div class="dc-pop">
+                <div class="dc-pop-head"><img src="/assets/logo/replix-profile-96.png" alt="">Replix</div>
+                <div class="dc-pop-item dc-pop-item--on"><div><b>/같이보기</b><small>이 음성 채널에서 리플릭스로 함께 보기를 시작해요</small></div><em>Replix</em></div>
+                <div class="dc-pop-item"><div><b>/같이보기종료</b><small>이 음성 채널의 함께 보기 안내를 닫아요</small></div><em>Replix</em></div>
+              </div>
+              <div class="dc-input"><span class="dc-plus"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span><span class="dc-typed">/같이보기</span><span class="dc-caret"></span></div>
+            </div>
+            <span class="dp-arrow"><svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span>
+            <div class="dc-app dc-app--solo dc-app--mini"><div class="dc-chat">
+              <div class="dc-msg dc-msg--eph">
+                <img class="dc-av" src="/assets/logo/replix-profile-96.png" alt="" width="36" height="36">
+                <div>
+                  <div class="dc-meta"><b>Replix</b><span class="dc-tag">앱</span><span class="dc-time">오후 9:00</span></div>
+                  <p class="dc-text">PC 크롬에서 아래 버튼을 누르고 함께 볼 회차를 열어 주세요. 30분 안에 시작해야 해요.</p>
+                  <div class="dc-btns"><span class="dc-btn">시작하기<svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></div>
+                  <p class="dc-eph"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>나만 볼 수 있어요</p>
+                </div>
+              </div>
+            </div></div>
+          </figure>
+          <div class="dp-cap">
+            <h3><span class="dp-num">02</span>음성 채널에서 <span class="dc-cmd">/같이보기</span></h3>
+            <p>나에게만 [시작하기] 링크가 와요.</p>
+          </div>
+        </article>
+
+        <article class="dp-card">
+          <figure class="dp-pic" role="img" aria-label="PC 크롬 예시: 밤의 정원 3화를 연 화면 옆 Replix 패널이 '디스코드 「우리 서버 › 일반」에서 함께 보기를 시작할까요?'라고 묻는다. 시작을 누르면 '디스코드 채널에 초대장을 올렸어요'가 뜬다.">
+            <div class="xt-win">
+              <div class="xt-bar"><span class="xt-dots"><i></i><i></i><i></i></span><span class="xt-tab">밤의 정원 3화</span></div>
+              <div class="xt-body">
+                <div class="xt-video">
+                  <span class="rm-night"><i class="rm-moon"></i><svg class="rm-ridge rm-ridge--far" viewBox="0 0 400 120" preserveAspectRatio="none"><path d="M0 64 L52 40 L110 56 L170 22 L238 50 L300 30 L360 48 L400 36 L400 120 L0 120 Z"/></svg><svg class="rm-ridge rm-ridge--near" viewBox="0 0 400 80" preserveAspectRatio="none"><path d="M0 40 L70 28 L140 40 L220 20 L300 36 L400 24 L400 80 L0 80 Z"/></svg></span>
+                  <span class="xt-title">밤의 정원 3화</span>
+                  <span class="rm-bar"><i style="width:4%"></i></span>
+                </div>
+                <div class="xt-panel">
+                  <div class="xt-phead"><img src="/assets/logo/replix-horizontal-light.png" alt=""></div>
+                  <div class="xt-skel"><i></i><i></i><i></i><i></i></div>
+                  <div class="xt-dim">
+                    <div class="xt-dialog">
+                      <div class="xt-ic">🎧</div>
+                      <b>디스코드 「우리 서버 › 일반」에서 함께 보기를 시작할까요?</b>
+                      <span class="xt-go">시작</span>
+                      <span class="xt-no">취소</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="xt-after"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>디스코드 채널에 초대장을 올렸어요</span>
+          </figure>
+          <div class="dp-cap">
+            <h3><span class="dp-num">03</span>PC 크롬에서 회차 열고 [시작]</h3>
+            <p>Replix 패널이 이 채널에서 시작할지 물어요.</p>
+          </div>
+        </article>
+
+        <article class="dp-card">
+          <figure class="dp-pic" role="img" aria-label="수민의 디스코드 예시: 수민을 부르는 '지혜님이 함께 볼 작품을 골랐어요' 알림에서 참여하기를 누르자, 수민에게만 보이는 입장 링크가 왔다.">
+            <span class="dp-who"><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i>수민의 디스코드</span>
+            <div class="dc-app dc-app--solo"><div class="dc-chat">
+              <div class="dc-msg dc-msg--hl">
+                <img class="dc-av" src="/assets/logo/replix-profile-96.png" alt="" width="36" height="36">
+                <div>
+                  <div class="dc-meta"><b>Replix</b><span class="dc-tag">앱</span><span class="dc-time">오후 9:02</span></div>
+                  <p class="dc-text">🍿 지혜님이 함께 볼 작품을 골랐어요 — 『밤의 정원』 3화<br>
+                    <span class="dc-mention dc-mention--me">@수민</span> <span class="dc-mention">@현우</span> 님, [참여하기]를 눌러 들어오세요. 나만 보이는 입장 링크가 와요.</p>
+                  <div class="dc-btns"><span class="dc-btn dc-btn--join">참여하기</span></div>
+                </div>
+              </div>
+              <div class="dc-msg dc-msg--eph">
+                <img class="dc-av" src="/assets/logo/replix-profile-96.png" alt="" width="36" height="36">
+                <div>
+                  <div class="dc-meta"><b>Replix</b><span class="dc-tag">앱</span><span class="dc-time">오후 9:03</span></div>
+                  <p class="dc-text">나만 보이는 입장 링크예요. PC 크롬에서 열어 주세요. 익스텐션이 없으면 설치 안내가 나와요.</p>
+                  <div class="dc-btns"><span class="dc-btn">리플릭스로 들어가기<svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></div>
+                  <p class="dc-eph"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>나만 볼 수 있어요</p>
+                </div>
+              </div>
+            </div></div>
+          </figure>
+          <div class="dp-cap">
+            <h3><span class="dp-num">04</span>친구들은 [참여하기]로</h3>
+            <p>누른 사람에게만 입장 링크가 와요.</p>
+          </div>
+        </article>
+
+      </div>
+      <p class="dp-note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+        <span>끝낼 때는 <span class="dc-cmd">/같이보기종료</span> — 디스코드 안내만 닫히고, 그룹방은 그대로예요.</span></p>
+    </div>
+  </section>
+
+  <!-- ═══ 알아 두세요 — 세 가지 ═══ -->
+  <section class="band-white dp-sec dp-sec--tight">
+    <div class="wrap">
+      <div class="dp-shead">
+        <span class="rm-eyebrow">알아 두세요</span>
+        <h2>넣기 전에 확인할 세 가지</h2>
+      </div>
+      <div class="dp-grid dp-grid--3">
+
+        <article class="dp-card">
+          <figure class="dp-pic" role="img" aria-label="권한 예시: Replix에 주는 권한 다섯 개. 채널 보기, 메시지 보내기, 링크 첨부는 카드와 알림용이고, 채널 관리와 음성 채널 상태 설정은 상태 글자용이라 빼도 된다.">
+            <div class="dc-perms">
+              <div class="dc-perms-head"><b>Replix</b>에 주는 권한</div>
+              <div class="dc-pset">
+                <span class="dc-pset-tag">카드와 알림</span>
+                <ul><li><span class="dc-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>채널 보기</li><li><span class="dc-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>메시지 보내기</li><li><span class="dc-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>링크 첨부</li></ul>
+              </div>
+              <div class="dc-pset">
+                <span class="dc-pset-tag">상태 글자<small>빼도 돼요</small></span>
+                <ul><li><span class="dc-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>채널 관리</li><li><span class="dc-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>음성 채널 상태 설정</li></ul>
+              </div>
+            </div>
+          </figure>
+          <div class="dp-cap">
+            <h3>권한은 다섯 개</h3>
+            <p>채팅 내용을 읽는 권한은 요청하지 않아요.</p>
+          </div>
+        </article>
+
+        <article class="dp-card">
+          <figure class="dp-pic" role="img" aria-label="보내는 정보 예시: 디스코드로 가는 것은 작품명과 회차, 보고 있는 인원, 시작한 사람의 디스코드 이름이다. Replix 닉네임과 Replix 채팅은 가지 않는다.">
+            <div class="dp-send dp-send--yes">
+              <h4><svg viewBox="0 0 24 24" stroke="#0b7a52"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>디스코드로 가요</h4>
+              <div class="dp-chips"><span>작품명과 회차</span><span>보고 있는 인원</span><span>시작한 사람의 디스코드 이름</span></div>
+            </div>
+            <div class="dp-send dp-send--no">
+              <h4><svg viewBox="0 0 24 24" stroke="#a3060f"><path d="M6 6l12 12M18 6 6 18"/></svg>가지 않아요</h4>
+              <div class="dp-chips"><span>Replix 닉네임</span><span>Replix 채팅</span></div>
+            </div>
+          </figure>
+          <div class="dp-cap">
+            <h3>디스코드로 보내는 건 이것뿐</h3>
+            <p>Replix 닉네임과 채팅은 보내지 않아요. <a href="/privacy.html">개인정보처리방침</a></p>
+          </div>
+        </article>
+
+        <article class="dp-card">
+          <figure class="dp-pic" role="img" aria-label="각자 계정 예시: 지혜, 수민, 현우가 각자 자기 계정의 화면에서 같은 장면을 같은 32분 47초에 보고 있다.">
+            <div class="xt-list">
+              <div class="xt-row"><span class="xt-thumb"><span class="rm-night"><i class="rm-moon"></i><svg class="rm-ridge rm-ridge--far" viewBox="0 0 400 120" preserveAspectRatio="none"><path d="M0 64 L52 40 L110 56 L170 22 L238 50 L300 30 L360 48 L400 36 L400 120 L0 120 Z"/></svg><svg class="rm-ridge rm-ridge--near" viewBox="0 0 400 80" preserveAspectRatio="none"><path d="M0 40 L70 28 L140 40 L220 20 L300 36 L400 24 L400 80 L0 80 Z"/></svg></span><span class="rm-bar"><i></i></span></span><span class="xt-who"><i class="rm-av" style="--bg:hsl(262 45% 88%); --fg:hsl(262 35% 34%)">지</i>지혜의 계정</span><span class="xt-t">32:47</span></div>
+              <div class="xt-row"><span class="xt-thumb"><span class="rm-night"><i class="rm-moon"></i><svg class="rm-ridge rm-ridge--far" viewBox="0 0 400 120" preserveAspectRatio="none"><path d="M0 64 L52 40 L110 56 L170 22 L238 50 L300 30 L360 48 L400 36 L400 120 L0 120 Z"/></svg><svg class="rm-ridge rm-ridge--near" viewBox="0 0 400 80" preserveAspectRatio="none"><path d="M0 40 L70 28 L140 40 L220 20 L300 36 L400 24 L400 80 L0 80 Z"/></svg></span><span class="rm-bar"><i></i></span></span><span class="xt-who"><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i>수민의 계정</span><span class="xt-t">32:47</span></div>
+              <div class="xt-row"><span class="xt-thumb"><span class="rm-night"><i class="rm-moon"></i><svg class="rm-ridge rm-ridge--far" viewBox="0 0 400 120" preserveAspectRatio="none"><path d="M0 64 L52 40 L110 56 L170 22 L238 50 L300 30 L360 48 L400 36 L400 120 L0 120 Z"/></svg><svg class="rm-ridge rm-ridge--near" viewBox="0 0 400 80" preserveAspectRatio="none"><path d="M0 40 L70 28 L140 40 L220 20 L300 36 L400 24 L400 80 L0 80 Z"/></svg></span><span class="rm-bar"><i></i></span></span><span class="xt-who"><i class="rm-av" style="--bg:hsl(168 45% 86%); --fg:hsl(168 40% 26%)">현</i>현우의 계정</span><span class="xt-t">32:47</span></div>
+              <span class="xt-sync"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>재생 맞춤</span>
+            </div>
+          </figure>
+          <div class="dp-cap">
+            <h3>각자 자기 넷플릭스 계정으로</h3>
+            <p>영상은 각자 틀고, 재생 위치만 맞춰요.</p>
+          </div>
+        </article>
+
       </div>
     </div>
   </section>
 
-  <div class="dp-doc">
-    <h2>이렇게 써요</h2>
-    <ol class="dp-list">
-      <li><b>1. 서버에 Replix 봇 추가</b><span>[디스코드에 추가]를 누르고 봇을 넣을 서버를 고르세요. 서버 관리 권한이 있는
-        사람이 한 번만 넣으면 돼요.</span></li>
-      <li><b>2. 음성 채널에서 <span class="dc-cmd">/같이보기</span></b><span>음성 채널에 들어가 채팅에 /같이보기 를 입력하면
-        나에게만 [시작하기] 링크가 와요. 30분 안에 시작하면 돼요.</span></li>
-      <li><b>3. PC 크롬에서 볼 회차 열기</b><span>[시작하기]를 누르면 넷플릭스로 넘어가요. Replix 패널에서 [시작]을 누르면
-        채널에 카드가 올라오고, 친구들은 카드의 [참여하기]로 받은 나만의 입장 링크로 들어와요.</span></li>
-    </ol>
-    <p>그만할 때는 음성 채널에서 /같이보기종료 를 입력하세요. 안내만 닫히고, 이미 함께 보던 방은 그대로예요.</p>
-
-    <h2>디스코드에 이렇게 보여요</h2>
-    <ul class="dp-list">
-      <li><b>입장 카드</b><span>무엇을 몇 명이 보고 있는지와 [참여하기] 버튼. 카드에는 입장 링크가 없어요 — [참여하기]를
-        누른 사람이 그 음성 채널에 있을 때만 그 사람에게만 링크를 보여 줘요.</span></li>
-      <li><b>음성 채널 상태</b><span>채널 이름 아래에 '🍿 넷플릭스에서 『작품』 n화 보는 중'. 함께 보기가 끝나면 원래
-        글자로 돌아가요.</span></li>
-      <li><b>알림</b><span>회차를 고르면 '작품을 골랐어요' 알림으로 채널에 있는 친구들을 부르고, 나중에 들어온 친구도
-        한 번 불러 줘요(같은 사람은 30분에 한 번).</span></li>
-    </ul>
-
-    <h2>필요한 권한</h2>
-    <table class="dp-perm">
-      <caption>채팅 내용을 읽는 권한은 요청하지 않아요.</caption>
-      <tr><th>채널 보기 · 메시지 보내기 · 링크 첨부</th><td>음성 채널 채팅에 입장 카드와 알림을 올려요.</td></tr>
-      <tr><th>채널 관리 · 음성 채널 상태 설정</th><td>음성 채널 상태 글자를 바꿔요. 봇은 음성 채널에 들어가지 않기 때문에
-        디스코드 규칙상 이 두 권한이 있어야 해요. 빼고 추가하면 상태 글자 없이 카드와 알림만 보여요.</td></tr>
-    </table>
-
-    <h2>알아 두세요</h2>
-    <ul class="dp-list">
-      <li><b>디스코드로 보내는 것</b><span>작품명과 시즌·회차 번호, 보고 있는 인원, /같이보기 를 입력한 사람의 디스코드
-        이름이에요. Replix 닉네임과 채팅은 보내지 않아요. 자세한 내용은 <a href="/privacy.html">개인정보처리방침</a>에 있어요.</span></li>
-      <li><b>각자 자기 넷플릭스 계정으로</b><span>Replix는 영상을 대신 틀어 주지 않아요. 각자 PC 크롬에서 자기 계정으로
-        보면서 재생 위치를 맞춰요.</span></li>
-    </ul>
-
-    <div class="dp-cta">
-      <b>디스코드 친구들과 같이 볼 준비가 됐나요?</b>
-      <a class="btn btn--primary" href="https://discord.com/oauth2/authorize?client_id=1556613278992572438&amp;scope=bot%20applications.commands&amp;permissions=281474976730128" target="_blank" rel="noopener" data-discord-install>디스코드에 추가</a>
+  <section class="band-white dp-end">
+    <div class="wrap" style="max-width:1280px; padding-inline:clamp(20px, 4.4vw, 64px)">
+      <div class="dp-cta">
+        <b>디스코드 친구들과 같이 볼 준비가 됐나요?</b>
+        <a class="btn btn--primary" href="https://discord.com/oauth2/authorize?client_id=1556613278992572438&amp;scope=bot%20applications.commands&amp;permissions=281474976730128" target="_blank" rel="noopener" data-discord-install>디스코드에 추가</a>
+      </div>
     </div>
-  </div>
+  </section>
 </main>
 
 <footer class="dp-foot">

@@ -46,11 +46,22 @@ assert.match(landing, /<link rel="stylesheet" href="css\/discord\.css">/);
 assert.match(landing.slice(discord, scenes), /href="\/discord\/"/, "섹션의 '자세히 보기'");
 
 // ── /discord/: 한 단계 아래 경로라 스타일·그림은 절대 경로로, 실제 화면 그림은 움직임 없이 보인다
-for (const css of ['tokens', 'base', 'rooms', 'discord']) {
+for (const css of ['tokens', 'base', 'rooms', 'discord', 'discord-page']) {
   assert.match(page, new RegExp(`<link rel="stylesheet" href="/css/${css}\\.css">`), `/css/${css}.css`);
 }
 assert.doesNotMatch(page, /class="[^"]*\breveal\b/, '이 페이지는 등장 스크립트를 싣지 않는다 — reveal 을 달면 보이지 않는다');
 assert.match(page, /href="\/privacy\.html"/, '보내는 정보는 처리방침으로 이어진다');
+
+// ── 랜딩 섹션의 움직이는 디스코드 창(2026-10-05 조현빈 결정): 명령을 안내하고, 화면에 들어온 뒤에 움직이고,
+//    움직임 줄이기에서는 누르기·Replix 창을 띄우지 않는다
+const section = landing.slice(discord, scenes);
+assert.match(landing, /<section class="[^"]*\bdx\b[^"]*" id="discord"/, '움직임은 .dx 섹션 안에서만 건다');
+assert.match(section, /<figure class="dc-shot reveal"/, '그림은 .reveal — js/reveal.js 가 .in 을 붙여야 움직이기 시작한다');
+assert.match(section, /class="dc-cmd">\/같이보기<\/span>/, '음성 채널에서 입력할 명령을 안내한다');
+const dcss = read('docs/css/discord.css');
+assert.match(dcss, /\.dx \.dc-shot:not\(\.in\)[^{]*\{ animation-play-state: paused; \}/, '화면에 들어오기 전에는 첫 장면에 멈춰 둔다');
+assert.match(dcss, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*\.dx-cursor, \.dx-scrim, \.dx-open \{ display: none; \}/,
+  '움직임 줄이기에서는 누르기·Replix 창을 띄우지 않는다');
 
 // ── 문구: 제품 호칭은 '익스텐션'(워크스페이스 CLAUDE.md §1), 봇이 보내지 않는 것을 밝힌다
 const text = (html) => html.replace(/<!--[\s\S]*?-->/g, '').replace(/<style>[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ');
