@@ -140,7 +140,28 @@ assert.equal(a.collectingFor(null, true), true, '옵트아웃 지역 미선택 =
 assert.equal(a.collectingFor('denied', true), false, '거부하면 어디서든 수집 안 함');
 assert.match(a.noticeText(), /거부/, '안내 배너가 거부 방법을 밝힌다(사후 통제권)');
 assert.match(a.noticeText(), /Amplitude와 Google Analytics/, '받는 곳을 밝힌다(투명성)');
-assert.match(a.noticeText(), /허용하면[^.]*화면 조작 기록/, '리플레이는 허용해야만 — 안내가 그걸 밝힌다');
+assert.match(a.noticeText(false), /허용하면[^.]*화면 조작 기록/, '랜딩 리플레이 옵트아웃 시행 전: 리플레이는 허용해야만 — 안내가 그걸 밝힌다');
+
+// 랜딩 세션 리플레이 옵트아웃(HP-457 확대, 2026-10-10 고경우) — 한국 시간대 랜딩은 미선택이어도 녹화. 근거는 국내 관행 실측
+// (29CM·당근·무신사·티빙·인프런·클래스101 이 첫 화면에서 동의 없이 녹화) + 랜딩은 로그인·남의 글이 없어 비식별에 가깝다.
+// 작품 탐색(남의 평가·채팅·계정 이름)과 해외(CIPA·GDPR)는 [허용] 유지, 거부는 어디서든 끈다.
+const RO_BEFORE = Date.parse('2026-10-09T23:59:59+09:00');
+const RO_AFTER = Date.parse('2026-10-10T00:00:00+09:00');
+assert.equal(a.REPLAY_OPTOUT_FROM, RO_AFTER, '시행일 — 바꾸면 privacy.html 의 시행일도 같이(아래에서 대조한다)');
+assert.ok(a.REPLAY_OPTOUT_FROM > a.OPTOUT_FROM, '이벤트 옵트아웃(10-01) 뒤에 리플레이 옵트아웃(10-10)이 따로 시행됐다');
+assert.equal(a.replayOptOutOn('replix.tv', RO_BEFORE), false, '시행일 전 운영은 허용 뒤에만');
+assert.equal(a.replayOptOutOn('replix.tv', RO_AFTER), true);
+assert.equal(a.replayOptOutOn('localhost', 0), true, '로컬은 검증할 수 있게 항상');
+assert.equal(a.replayFor('granted', false, 'web_catalog', false), true, '허용하면 어디서나');
+assert.equal(a.replayFor('denied', true, 'web_landing', true), false, '거부하면 어디서도 아니다');
+assert.equal(a.replayFor(null, true, 'web_landing', true), true, '한국 시간대 랜딩 미선택 = 녹화(옵트아웃)');
+assert.equal(a.replayFor(null, true, 'web_catalog', true), false, '작품 탐색 미선택 = 녹화 안 함(남의 글이 뜨는 화면)');
+assert.equal(a.replayFor(null, false, 'web_landing', true), false, '해외(옵트인 지역) 미선택 = 녹화 안 함');
+assert.equal(a.replayFor(null, true, 'web_landing', false), false, '시행 전에는 미선택 녹화 없음');
+assert.match(a.noticeText(true), /첫 화면에서는 화면 조작 기록/, '시행 뒤 안내는 첫 화면 녹화가 미선택에서도 된다고 밝힌다(투명성)');
+assert.match(a.noticeText(true), /허용하면 작품 탐색에서의 화면 조작 기록/, '작품 탐색 녹화는 여전히 허용해야만');
+assert.match(a.noticeText(true), /거부/, '거부 방법(사후 통제권)');
+assert.match(a.noticeText(true), /다른 이용자의 글·닉네임은 기록하지 않습니다/, '가림을 밝힌다');
 
 // 소스 규칙
 const src = read('docs/js/analytics.js');
@@ -163,9 +184,9 @@ const me = read('catalog/app/src/pages/Me.tsx');
 assert.match(me, /<ol className="amp-mask /, '내 활동(#/me)의 채팅 목록 — 답글 원문(남의 글·닉네임)이 섞이므로 통째로 글자 가림(HP-443)');
 assert.match(me, /<div className="amp-mask /, '내 활동의 내 평가 한 건 — 작품 페이지의 평가와 같은 가림');
 assert.equal(a.SR_CONFIG.privacyConfig.defaultMaskLevel, 'medium', '검색창·평가 입력란·피드백 입력란은 medium 이 가린다');
-assert.match(src, /if \(_consent !== 'granted' \|\| !replayOn\(location\.hostname, location\.pathname, Date\.now\(\)\)\) \{ start\(\); return; \}/,
-  '허용을 누르지 않았거나 랜딩·시행일 조건이 아니면 플러그인 스크립트를 받지도 않는다(옵트아웃 수집 중에도 녹화는 안 함)');
-assert.match(src, /function attachReplay\(a\) \{\s*if \(_replay \|\| _consent !== 'granted'/, '리플레이는 명시적 허용에서만 붙는다');
+assert.match(src, /if \(!replaying\(\)\) \{ start\(\); return; \}/,
+  '리플레이를 붙일 상태(허용 / 랜딩·한국 시간대 미선택·시행 뒤)가 아니면 플러그인 스크립트를 받지도 않는다 — 작품 탐색의 옵트아웃 수집 중에도 녹화는 안 함');
+assert.match(src, /function attachReplay\(a\) \{\s*if \(_replay \|\| !replaying\(\)\)/, '리플레이는 replaying()(replayFor)이 허락할 때만 붙는다');
 assert.match(src, /if \(_revoked\) \{ try \{ a\.setOptOut\(false\); a\.reset\(\);/,
   '옵트아웃 수집 중 허용을 눌러도 device_id 를 새로 만들지 않는다 — 새로 만드는 건 거부 뒤 재허용뿐');
 assert.match(src, /function send\(fn\) \{\s*if \(!collecting\(\)\) return;/, '전송 게이트는 collecting() 하나');
@@ -189,7 +210,17 @@ assert.match(privacy, /작품 탐색의 로그인\s+정보와도 결합하지 �
 assert.match(src, /function track\(name, props\) \{\s*send\(function \(a\) \{ a\.track\(name, Object\.assign\(commonProps\(\), props \|\| \{\}\)\); \}\);/,
   '웹 이벤트에 회원 식별값을 붙이지 않는다(setUserId 금지) — 붙이는 순간 옵트아웃 근거가 무너진다');
 assert.doesNotMatch(src, /setUserId|identify\(/, '웹 계측은 사람을 식별하지 않는다(옵트아웃의 전제)');
-assert.match(privacy, /화면 조작 기록은[^.]*명시적으로 동의한 경우에만/, '리플레이는 동의한 경우에만이라는 약속을 유지한다');
+assert.match(privacy, /화면 조작 기록은 첫 화면에 한국 시간대에서 접속한 경우 별도\s+동의 없이\(거부하지 않은 경우\) 이루어지며/,
+  '6항 — 랜딩·한국 시간대 리플레이 옵트아웃(2026-10-10)을 밝힌다');
+assert.match(privacy, /작품 탐색과 그 밖의 지역에서는 명시적으로 동의한\s+경우에만 이루어집니다/, '6항 — 작품 탐색·해외 리플레이는 동의 유지');
+assert.match(privacy, /첫 화면에 한국 시간대에서 접속한 경우\(거부하지 않은 경우\), 그리고\s+첫 화면·작품 탐색에서 화면 조작 기록을 허용한 경우/,
+  '1항 — 수집 항목이 랜딩 옵트아웃 녹화를 밝힌다');
+const roEffective = new Date(a.REPLAY_OPTOUT_FROM + 9 * 3600 * 1000).toISOString().slice(0, 10);
+assert.ok(privacy.includes('시행일 ' + roEffective), `privacy.html 에 랜딩 리플레이 옵트아웃 시행일 ${roEffective} 가 있어야 한다`);
+assert.doesNotMatch(src, /_consent !== 'granted' \|\| !replayOn/, '리플레이 게이트는 replaying()(replayFor) 하나로 — 허용 전용 게이트가 되살아나면 옵트아웃이 조용히 죽는다');
+assert.match(src, /function replaying\(\) \{[\s\S]*?replayFor\(_consent, optOutNow\(\), surfaceOf\(location\.pathname\), replayOptOutNow\(\)\)/,
+  '런타임 게이트가 순수 함수 replayFor 를 쓴다(위 표가 곧 동작)');
+assert.match(src, /noticeText\(replayOptOutNow\(\)\)/, '배너 안내 문구가 시행 여부를 따른다');
 assert.match(privacy, /다른 이용자가 쓴 평가·채팅과\s+닉네임/, '처리방침이 작품 탐색 녹화에서 가리는 것을 밝힌다');
 // 옛 문구는 '확장 프로그램'이라 불렀다(2026-10-04부터 '익스텐션') — 어느 표기로 되살아나도 잡는다.
 assert.doesNotMatch(privacy, /작품 탐색 화면과 (?:확장\s+프로그램|익스텐션)에서는 기록하지 않습니다/, '작품 탐색도 녹화한다 — 옛 문구가 남으면 방침이 거짓말');

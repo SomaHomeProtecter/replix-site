@@ -2,13 +2,14 @@
    설계 요지:
    ① 동의 방식은 지역으로 가른다(HP-466, 시행 OPTOUT_FROM). **한국 시간대** 방문자는 랜딩·작품 탐색 모두 옵트아웃 —
       미선택이어도 이벤트를 수집하고 배너는 '수집 안내 + 거부'다(개인정보위 2024-01-31: 특정 개인을 식별하지 않는 행태정보는
-      동의 없이 처리 가능, 투명성·거부권 조건). **그 밖의 지역**(EU 쿠키 동의·캘리포니아 도청법)과 **세션 리플레이**는
-      옵트인 — [허용] 뒤에만.
+      동의 없이 처리 가능, 투명성·거부권 조건). **그 밖의 지역**(EU 쿠키 동의·캘리포니아 도청법)은 옵트인 — [허용] 뒤에만.
+      **세션 리플레이**는 한국 시간대 **랜딩**에서만 2026-10-10 부터 옵트아웃(REPLAY_OPTOUT_FROM), 작품 탐색·해외는 [허용] 뒤에만.
    ② SDK 는 허용 뒤 동적으로 붙이고, 그 전 호출은 큐에 쌓아 로드 뒤 보낸다.
    ③ 자동수집(pageViews·pageUrlEnrichment·form)은 끈다 — 전체 URL 이 실리면 /catalog 해시의 작품 ID 나
       쿼리가 새 나간다. page_path 는 cleanPath 로 직접 정제한다(라우트 이름까지만).
    ④ IP 는 끈다 — 처리방침 수집 항목에 없다. 익스텐션(HTTP API, ip 미전송)과 같은 수준으로 맞춘다.
-   ⑤ 세션 리플레이(HP-457)는 **랜딩·작품 탐색**, 시행일부터, [허용] 뒤에만 붙인다 — 아래 REPLAY_FROM 참조.
+   ⑤ 세션 리플레이(HP-457)는 **랜딩·작품 탐색**, 시행일부터 — 랜딩·한국 시간대는 미선택이어도, 그 밖은 [허용] 뒤에만
+      (replayFor). 아래 REPLAY_FROM·REPLAY_OPTOUT_FROM 참조.
    ⑥ Google Analytics(HP-465)도 **같은 동의 뒤에만**, 처리방침 시행일부터 붙인다 — 아래 GA_FROM 참조. 자동 수집 값
       (전체 URL·문서 제목·전체 리퍼러)을 정리된 값으로 덮어 Amplitude 와 같은 금지 목록(트래킹 플랜 §2)을 지킨다.
    카탈로그(React)는 이 파일을 /js/analytics.js 로 따로 로드해 window.ReplixAnalytics 로만 부른다.
@@ -32,9 +33,15 @@ export var API_KEYS = { prod: '6f7bcf8fc37e9f93d442f943c23b6861', dev: 'fa98652a
      개정 즉시 공지"다(고경우 결정, 처리방침 11항도 같이 고침). 운영(replix.tv)만 날짜를 본다. 로컬·미리보기는 검증할 수 있어야 하므로 항상 켠다(dev 프로젝트로 간다).
      ⚠️ 공고(=이 변경의 배포·공지 게시)가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
    · **입력값은 가린다**(medium). 랜딩에는 입력 필드·이용자 생성 콘텐츠가 없지만, 생겨도 새 나가지 않게.
+   · **랜딩·한국 시간대는 옵트아웃**(2026-10-10 고경우 결정, REPLAY_OPTOUT_FROM). 국내 주요 사이트를 2026-10-10 실측한 결과
+     29CM(Datadog)·당근·인프런·클래스101(Clarity)·무신사(Hotjar)·티빙(Amplitude) 모두 첫 화면에서 동의 배너 없이 녹화한다 —
+     국내 관행에 맞추되, 랜딩은 로그인·남의 글이 없어 비식별에 가깝다는 점이 근거다. **작품 탐색은 [허용] 유지**(남의 평가·
+     채팅·계정 이름이 뜨는 화면이라 가림에 기댄다), **해외는 [허용] 유지**(CIPA·GDPR). 거부는 어디서든 끈다. replayFor 가 가른다.
    플러그인은 자기 원격 설정(sr-client-cfg.amplitude.com)을 받는다 — 끌 수 없다. 대시보드의 Session Replay
    설정에서 마스킹을 낮추면 이 값보다 느슨해질 수 있으므로 거기는 건드리지 않는다(트래킹 플랜 §7). */
 export var REPLAY_FROM = Date.parse('2026-10-01T00:00:00+09:00');
+/* 랜딩·한국 시간대의 리플레이 옵트아웃 시행일(처리방침 1·6항 개정, 공고와 동시). ⚠️ 옮기면 privacy.html 시행일과 같이. */
+export var REPLAY_OPTOUT_FROM = Date.parse('2026-10-10T00:00:00+09:00');
 export var SR_URL = 'https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.35.4-min.js.gz';
 /* storeType 'memory' — 아직 안 보낸 녹화 조각을 브라우저 저장소(IndexedDB)에 남기지 않는다. 철회하면 그 즉시 사라져야
    한다는 약속(처리방침 6항)을 저장소 청소에 기대지 않고 지키려는 것이다.
@@ -60,7 +67,8 @@ export var GA_CONFIG = { send_page_view: false, allow_google_signals: false, all
      있지만 웹 이벤트에 회원 식별값을 싣지 않으므로 '식별하지 않는다'는 조건이 그대로다 — 아래 넷째 항목이 이걸 지킨다.
    · **한국 시간대만.** 브라우저 시간대가 Asia/Seoul 이면 국내 방문자로 본다. EU 는 분석 쿠키에 사전 동의가 필요하고
      (GDPR·ePrivacy), 캘리포니아는 도청법(CIPA) 소송이 잦다 — 그 밖의 시간대·모름은 옵트인 그대로.
-   · **리플레이는 제외.** 화면 조작 녹화는 CIPA 세션 리플레이 소송의 주 대상이라 [허용]을 누른 경우에만 붙인다.
+   · **리플레이는 랜딩만.** 화면 조작 녹화는 CIPA 세션 리플레이 소송의 주 대상이라 처음엔 [허용]에서만 붙였다가,
+     2026-10-10 부터 한국 시간대 랜딩은 미선택이어도 붙인다(위 리플레이 주석). 작품 탐색·해외는 그대로 [허용] 뒤에만.
    · **식별하지 않는다는 조건을 지킨다.** 웹 계측은 IP 를 끄고, 로그인(작품 탐색 Keycloak)과 연결하지 않는다 — 회원
      식별값을 웹 이벤트에 싣는 순간 이 근거가 무너져 동의가 필요해진다(트래킹 플랜 §4).
    · **시행일부터.** 처리방침 1·6항 개정, 2026-10-01 공고와 동시에 시행. ⚠️ 날짜를 옮기면 privacy.html 시행일과 같이. */
@@ -93,6 +101,16 @@ export function replayInForce(hostname, nowMs) { return envOf(hostname) !== 'pro
 /* 표면(랜딩·작품 탐색)은 가리지 않는다 — pathname 은 표면을 다시 좁힐 때를 위해 남겨 둔 인자다. */
 export function replayOn(hostname, pathname, nowMs) {
   return replayInForce(hostname, nowMs);
+}
+/* 랜딩·한국 시간대의 리플레이 옵트아웃 조항이 시행 중인가 — 운영은 시행일부터, 그 밖은 항상. */
+export function replayOptOutOn(hostname, nowMs) { return envOf(hostname) !== 'prod' || nowMs >= REPLAY_OPTOUT_FROM; }
+/* 리플레이를 붙이는가. 허용했으면 어디서나, 거부했으면 어디서도 아니다. 미선택은 **옵트아웃 지역(한국 시간대)의 랜딩**에서만,
+   옵트아웃 조항 시행 뒤에(2026-10-10 고경우 결정 — 국내 관행 실측, 위 리플레이 주석). 작품 탐색은 남의 평가·채팅·계정
+   이름이 뜨는 화면이라 가림에 기대므로 미선택에서는 붙이지 않는다. */
+export function replayFor(consent, optOut, surface, replayOptOut) {
+  if (consent === 'granted') return true;
+  if (consent !== null) return false;
+  return optOut && replayOptOut && surface === 'web_landing';
 }
 /* GA 조항이 시행 중인가 — 운영은 시행일부터, 그 밖은 항상. 표면은 가리지 않는다(작품 번호는 gaPage 가 뺀다). */
 export function gaOn(hostname, nowMs) { return envOf(hostname) !== 'prod' || nowMs >= GA_FROM; }
@@ -131,12 +149,19 @@ export function parseConsent(raw, version) {
 export function optOutOn(hostname, nowMs, timeZone) {
   return timeZone === KR_TZ && (envOf(hostname) !== 'prod' || nowMs >= OPTOUT_FROM);
 }
-/* 이벤트(Amplitude·GA)를 보내는가. 리플레이는 이것과 별개로 명시적 허용('granted')에서만. */
+/* 이벤트(Amplitude·GA)를 보내는가. 리플레이는 이것과 별개로 replayFor 가 가른다. */
 export function collectingFor(consent, optOut) {
   return consent === 'granted' || (consent === null && optOut);
 }
-/* 옵트아웃 지역의 안내 배너 — 무엇을 어디로 보내는지, 거부 방법, 허용하면 더해지는 것(리플레이)을 밝힌다. */
-export function noticeText() {
+/* 옵트아웃 지역의 안내 배너 — 무엇을 어디로 보내는지, 거부 방법, 허용하면 더해지는 것을 밝힌다. 랜딩 리플레이 옵트아웃
+   시행 뒤(replayOptOut)에는 첫 화면의 녹화도 미선택에서 이루어진다고 적는다 — 두 표면이 같은 배너를 쓰므로 한 문구로 둘 다 밝힌다. */
+export function noticeText(replayOptOut) {
+  if (replayOptOut) {
+    return 'Replix는 사이트 개선을 위해 방문 통계(기기 식별값과 사용 이벤트)를 개인을 알아볼 수 없는 형태로 수집해 ' +
+      'Amplitude와 Google Analytics(모두 미국)로 보내고, 첫 화면에서는 화면 조작 기록(스크롤·클릭)도 Amplitude에 기록합니다. ' +
+      '원하지 않으면 거부를 눌러 주세요. 허용하면 작품 탐색에서의 화면 조작 기록도 함께 기록합니다. ' +
+      '입력한 내용과 다른 이용자의 글·닉네임은 기록하지 않습니다.';
+  }
   return 'Replix는 사이트 개선을 위해 방문 통계(기기 식별값과 사용 이벤트)를 개인을 알아볼 수 없는 형태로 수집해 ' +
     'Amplitude와 Google Analytics(모두 미국)로 보냅니다. 원하지 않으면 거부를 눌러 주세요. ' +
     '허용하면 화면 조작 기록(스크롤·클릭)도 함께 기록합니다. 입력한 내용과 다른 이용자의 글·닉네임은 기록하지 않습니다.';
@@ -186,6 +211,12 @@ function nowVersion() { return consentVersion(location.hostname, Date.now()); }
 function timeZone() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) { return ''; } }
 function optOutNow() { return optOutOn(location.hostname, Date.now(), timeZone()); }
 function collecting() { return collectingFor(_consent, optOutNow()); }
+function replayOptOutNow() { return replayOptOutOn(location.hostname, Date.now()); }
+/* 리플레이를 붙일 상태인가 — 조항 시행 중이고, replayFor(허용 / 랜딩·한국 시간대 미선택)가 허락할 때. */
+function replaying() {
+  return replayOn(location.hostname, location.pathname, Date.now()) &&
+    replayFor(_consent, optOutNow(), surfaceOf(location.pathname), replayOptOutNow());
+}
 function readConsent() { try { return parseConsent(localStorage.getItem(CONSENT_KEY), nowVersion()); } catch (_) { return null; } }
 function writeConsent(d) {
   try { localStorage.setItem(CONSENT_KEY, JSON.stringify({ decision: d, decidedAt: Date.now(), version: nowVersion() })); }
@@ -203,15 +234,16 @@ function commonProps() {
 }
 /* 리플레이 플러그인을 SDK 에 붙인다. 스크립트가 안 실렸으면(차단·랜딩 아님) 아무 일도 하지 않는다. */
 function attachReplay(a) {
-  if (_replay || _consent !== 'granted' || !replayOn(location.hostname, location.pathname, Date.now())) return;
+  if (_replay || !replaying()) return;
   try {
     var sr = window.sessionReplay;
     if (sr && sr.plugin) { _replay = sr.plugin(SR_CONFIG); a.add(_replay); }
   } catch (_) { _replay = null; /* fail-open — 이벤트 계측은 그대로 간다 */ }
 }
-/* SDK 가 이미 떠 있는 상태에서 [허용]을 받았을 때 — 플러그인 스크립트를 그제야 받아 붙인다(옵트아웃 수집 중에는 안 받았다). */
+/* SDK 가 이미 떠 있는 상태에서 [허용]을 받았을 때 — 플러그인 스크립트를 그제야 받아 붙인다(작품 탐색의 옵트아웃 수집 중에는
+   안 받았다. 랜딩·한국 시간대는 loadSdk 가 처음부터 붙여 두므로 여기서는 _replay 가 이미 있어 그냥 돌아간다). */
 function loadReplay(a) {
-  if (_replay || _consent !== 'granted' || !replayOn(location.hostname, location.pathname, Date.now())) return;
+  if (_replay || !replaying()) return;
   if (window.sessionReplay && window.sessionReplay.plugin) { attachReplay(a); return; }
   var r = document.createElement('script');
   r.src = SR_URL; r.async = true;
@@ -241,7 +273,7 @@ function loadSdk() {
       _sdk = 'ready';
       _queue.splice(0).forEach(function (f) { f(a); });
     };
-    if (_consent !== 'granted' || !replayOn(location.hostname, location.pathname, Date.now())) { start(); return; }
+    if (!replaying()) { start(); return; }
     /* 리플레이 플러그인은 init **앞에** 붙여야 첫 화면부터 찍힌다. 막히거나 실패해도 이벤트 계측은 그대로 간다. */
     var r = document.createElement('script');
     r.src = SR_URL; r.async = true;
@@ -379,7 +411,7 @@ export function showBanner() {
   var notice = optOutNow();   /* 옵트아웃 지역은 '수집 안내 + 거부', 그 밖은 '동의 요청' */
   el.id = 'rx-consent'; el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', notice ? '방문 통계 수집 안내' : '방문 통계 수집 동의');
-  el.innerHTML = '<p>' + (notice ? noticeText() : bannerText(nowVersion())) + ' <a href="/privacy">개인정보처리방침</a></p>' +
+  el.innerHTML = '<p>' + (notice ? noticeText(replayOptOutNow()) : bannerText(nowVersion())) + ' <a href="/privacy">개인정보처리방침</a></p>' +
     '<div class="rx-consent-actions"><button type="button" class="rx-deny">거부</button>' +
     '<button type="button" class="rx-allow">허용</button></div>';
   el.querySelector('.rx-allow').addEventListener('click', function () { setConsent('granted'); });
