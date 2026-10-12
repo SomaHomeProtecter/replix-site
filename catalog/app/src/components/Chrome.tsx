@@ -370,7 +370,8 @@ export function Footer() {
               <li><a href="/" className="hover:text-ink">Replix 홈</a></li>
             </ul>
             <ul className="space-y-1.5 text-muted">
-              <li><a href="/privacy" className="hover:text-ink">개인정보처리방침</a></li>
+              {/* 처리방침은 다른 링크와 굵기·색으로 구분한다 — 표준 개인정보 보호지침 제20조 ①(HP-585, 랜딩 .foot-privacy 와 같은 규칙). */}
+              <li><a href="/privacy" className="font-bold text-ink">개인정보처리방침</a></li>
               <li><a href="/terms" className="hover:text-ink">이용약관</a></li>
               <li><a href={STORE} target="_blank" rel="noopener" className="hover:text-ink" data-cta="catalog_footer">크롬 익스텐션 설치</a></li>
               {/* 방문 통계 동의를 다시 묻는다 — /js/analytics.js 가 위임 처리. 처리방침 §6 이 약속한 철회 경로. */}
