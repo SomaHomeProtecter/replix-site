@@ -291,4 +291,4 @@ npm run shot           # 빌드 후 데스크톱·모바일 스크린샷을 ../s
 - 이 페이지를 정적(GitHub Pages)으로 낼지, 동적 렌더가 필요한지. 지금 시안은
   React 앱이라 정적으로 내려면 빌드 산출물을 `docs/` 에 넣는 방식이 된다.
 
-전체 스펙 초안 = `Replix-workspace/memory/confluence-draft-hp124-curation-spec.md`
+전체 스펙 초안(2026-09-02 보존본) = `Replix-workspace/docs/superpowers/specs/2026-09-02-hp124-curation-spec.md`
