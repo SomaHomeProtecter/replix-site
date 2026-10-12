@@ -74,9 +74,11 @@ assert.equal(a.replayOn('localhost', '/', 0), true, '로컬은 검증할 수 있
 assert.equal(a.replayOn('localhost', '/catalog/', 0), true);
 assert.equal(a.consentVersion('replix.tv', BEFORE), 1);
 assert.equal(a.consentVersion('replix.tv', AFTER), 4, '시행일부터 새 문구로 다시 묻는다(리플레이·GA·작품 탐색 녹화 같은 날)');
-assert.match(a.bannerText(2), /화면 조작 기록/, '동의 문구가 녹화를 밝힌다');
-assert.match(a.bannerText(2), /첫 화면/, '배너는 두 표면이 같이 쓴다 — 범위를 적는다');
-assert.doesNotMatch(a.bannerText(1), /화면 조작/, '시행 전 문구에는 아직 없는 수집을 적지 않는다');
+assert.match(a.bannerDetail(2), /화면 조작 기록/, '동의 세부가 녹화를 밝힌다');
+assert.match(a.bannerDetail(2), /첫 화면/, '배너는 두 표면이 같이 쓴다 — 범위를 적는다');
+assert.doesNotMatch(a.bannerDetail(1), /화면 조작/, '시행 전 문구에는 아직 없는 수집을 적지 않는다');
+assert.match(a.bannerText(2), /스크롤·클릭/, '동의 요약도 녹화를 밝힌다 — 허용은 동의라 무엇에 동의하는지 요약에서 보여야 한다(HP-585)');
+assert.doesNotMatch(a.bannerText(1), /스크롤·클릭/, '시행 전 요약에는 아직 없는 수집을 적지 않는다');
 assert.match(a.SR_URL, /^https:\/\/cdn\.amplitude\.com\/libs\/plugin-session-replay-browser-1\.\d+\.\d+-min\.js\.gz$/);
 assert.equal(a.SR_CONFIG.sampleRate, 1);
 assert.equal(a.SR_CONFIG.storeType, 'memory', '미전송 녹화 조각을 IndexedDB 에 남기지 않는다(철회 즉시 소멸)');
@@ -94,13 +96,14 @@ assert.equal(a.gaOn('localhost', 0), true, '로컬은 검증할 수 있게 항�
 assert.equal(a.consentVersion('replix.tv', GA_BEFORE), 1, '시행 전에는 처음 문구(1)');
 assert.equal(a.consentVersion('replix.tv', GA_AFTER), 4, 'GA·작품 탐색 녹화를 밝힌 문구로 다시 묻는다');
 assert.equal(a.consentVersion('localhost', 0), 4);
-assert.match(a.bannerText(4), /Google Analytics/);
-assert.match(a.bannerText(4), /작품 탐색/, '4 는 녹화 범위(작품 탐색)를 밝힌다');
-assert.doesNotMatch(a.bannerText(3), /작품 탐색/, '3 은 랜딩 녹화만');
-assert.doesNotMatch(a.noticeText(), /첫 화면에서의 화면 조작/, '안내 배너도 녹화 범위를 첫 화면으로 한정하지 않는다');
-assert.match(a.bannerText(3), /Google Analytics/, '동의 문구가 받는 곳(Google)을 밝힌다');
-assert.match(a.bannerText(3), /화면 조작 기록/, '3 은 2 의 범위를 그대로 포함한다');
-assert.doesNotMatch(a.bannerText(2), /Google/, '시행 전 문구에는 아직 없는 수신자를 적지 않는다');
+assert.match(a.bannerDetail(4), /Google Analytics/);
+assert.match(a.bannerDetail(4), /작품 탐색/, '4 는 녹화 범위(작품 탐색)를 밝힌다');
+assert.doesNotMatch(a.bannerDetail(3), /작품 탐색/, '3 은 랜딩 녹화만');
+assert.match(a.noticeDetail(false), /허용하면 첫 화면과 작품 탐색/, '리플레이 옵트아웃 시행 전 안내는 녹화를 첫 화면으로 한정하지 않고, 허용해야만 한다고 밝힌다');
+assert.doesNotMatch(a.noticeText(false), /첫 화면/, '시행 전 요약은 첫 화면 녹화를 기본으로 말하지 않는다');
+assert.match(a.bannerDetail(3), /Google Analytics/, '동의 세부가 받는 곳(Google)을 밝힌다');
+assert.match(a.bannerDetail(3), /화면 조작 기록/, '3 은 2 의 범위를 그대로 포함한다');
+assert.doesNotMatch(a.bannerDetail(2), /Google/, '시행 전 문구에는 아직 없는 수신자를 적지 않는다');
 // 자동 수집을 끄고 우리가 정리한 값만 싣는다 — gtag 기본값은 전체 URL·문서 제목·전체 리퍼러를 보낸다(§2).
 assert.equal(a.GA_CONFIG.send_page_view, false, '자동 page_view 는 전체 URL(작품 번호 해시)을 싣는다 — 끈다');
 assert.equal(a.GA_CONFIG.allow_google_signals, false, 'Google 신호(광고 계정과 기기 연결) 끈다');
@@ -138,9 +141,9 @@ assert.equal(a.collectingFor('granted', false), true);
 assert.equal(a.collectingFor(null, false), false, '옵트인 지역 미선택 = 수집 안 함');
 assert.equal(a.collectingFor(null, true), true, '옵트아웃 지역 미선택 = 수집');
 assert.equal(a.collectingFor('denied', true), false, '거부하면 어디서든 수집 안 함');
-assert.match(a.noticeText(), /거부/, '안내 배너가 거부 방법을 밝힌다(사후 통제권)');
-assert.match(a.noticeText(), /Amplitude와 Google Analytics/, '받는 곳을 밝힌다(투명성)');
-assert.match(a.noticeText(false), /허용하면[^.]*화면 조작 기록/, '랜딩 리플레이 옵트아웃 시행 전: 리플레이는 허용해야만 — 안내가 그걸 밝힌다');
+assert.match(a.noticeDetail(false), /거부하면 바로 멈추고/, '안내 세부가 거부의 효과를 밝힌다(사후 통제권) — 거부 버튼이 늘 보이는 것은 아래 소스 규칙이 고정');
+assert.match(a.noticeDetail(false), /Amplitude와 Google Analytics\(모두 미국\)/, '받는 곳·국가를 세부에 밝힌다(투명성)');
+assert.match(a.noticeText(false), /허용하면[^.]*스크롤·클릭/, '랜딩 리플레이 옵트아웃 시행 전: 리플레이는 허용해야만 — 요약이 그걸 밝힌다');
 
 // 랜딩 세션 리플레이 옵트아웃(HP-457 확대, 2026-10-10 고경우) — 한국 시간대 랜딩은 미선택이어도 녹화. 근거는 국내 관행 실측
 // (29CM·당근·무신사·티빙·인프런·클래스101 이 첫 화면에서 동의 없이 녹화) + 랜딩은 로그인·남의 글이 없어 비식별에 가깝다.
@@ -158,10 +161,22 @@ assert.equal(a.replayFor(null, true, 'web_landing', true), true, '한국 시간�
 assert.equal(a.replayFor(null, true, 'web_catalog', true), false, '작품 탐색 미선택 = 녹화 안 함(남의 글이 뜨는 화면)');
 assert.equal(a.replayFor(null, false, 'web_landing', true), false, '해외(옵트인 지역) 미선택 = 녹화 안 함');
 assert.equal(a.replayFor(null, true, 'web_landing', false), false, '시행 전에는 미선택 녹화 없음');
-assert.match(a.noticeText(true), /첫 화면에서는 화면 조작 기록/, '시행 뒤 안내는 첫 화면 녹화가 미선택에서도 된다고 밝힌다(투명성)');
-assert.match(a.noticeText(true), /허용하면 작품 탐색에서의 화면 조작 기록/, '작품 탐색 녹화는 여전히 허용해야만');
-assert.match(a.noticeText(true), /거부/, '거부 방법(사후 통제권)');
-assert.match(a.noticeText(true), /다른 이용자의 글·닉네임은 기록하지 않습니다/, '가림을 밝힌다');
+assert.match(a.noticeText(true), /첫 화면의 스크롤·클릭 기록/, '시행 뒤 요약은 첫 화면 녹화가 미선택에서도 된다고 밝힌다(투명성)');
+assert.match(a.noticeText(true), /허용하면 작품 탐색에서도 기록/, '작품 탐색 녹화는 여전히 허용해야만 — 허용이 더하는 것을 요약에서 밝힌다');
+assert.match(a.noticeDetail(true), /첫 화면의 스크롤·클릭 기록은 Amplitude/, '세부가 녹화를 받는 곳을 밝힌다');
+assert.match(a.noticeDetail(true), /거부하면 바로 멈추고/, '거부의 효과(사후 통제권)');
+assert.match(a.noticeDetail(true), /다른 이용자의 글·닉네임은 기록하지 않/, '가림을 밝힌다');
+
+// 배너 두 층(HP-585, 2026-10-12 조현빈 — 2026-10-02 HP-478 '문구를 줄이거나 접지 않는다'를 대체). 요약은 짧게 두어 첫 화면을
+// 덮지 않게 하고, 무엇(스크롤·클릭)과 어디로(미국)는 요약에 남긴다 — 수집 단계 고지가 예측 가능성을 뒷받침한다(개인정보위
+// 통합 안내서 2025.7. p.129). 받는 곳 이름·가리는 것·거부의 효과는 [자세히]로 펼치는 세부에 둔다(작성지침 2026.4. p.93).
+for (const s of [a.noticeText(true), a.noticeText(false), a.bannerText(1), a.bannerText(2), a.bannerText(3), a.bannerText(4)]) {
+  assert.ok(s.length <= 70, `요약은 70자 이하 — 길어지면 배너가 다시 첫 화면을 덮는다(${s.length}자: ${s})`);
+  assert.match(s, /미국/, '요약에 어디로(미국)를 남긴다');
+}
+for (const d of [a.noticeDetail(true), a.noticeDetail(false), a.bannerDetail(4)]) {
+  assert.match(d, /Amplitude와 Google Analytics\(모두 미국\)/, '세부가 받는 곳 이름과 국가를 밝힌다');
+}
 
 // 소스 규칙
 const src = read('docs/js/analytics.js');
@@ -221,6 +236,15 @@ assert.doesNotMatch(src, /_consent !== 'granted' \|\| !replayOn/, '리플레이 
 assert.match(src, /function replaying\(\) \{[\s\S]*?replayFor\(_consent, optOutNow\(\), surfaceOf\(location\.pathname\), replayOptOutNow\(\)\)/,
   '런타임 게이트가 순수 함수 replayFor 를 쓴다(위 표가 곧 동작)');
 assert.match(src, /noticeText\(replayOptOutNow\(\)\)/, '배너 안내 문구가 시행 여부를 따른다');
+// 두 층 배너의 마크업(HP-585) — 세부는 처음엔 접혀 있고, 처리방침 링크는 세부 끝에, 거부 버튼은 접힌 상태에서도 늘 보인다.
+assert.match(src, /class="rx-more" aria-expanded="false" aria-controls="rx-consent-detail">자세히</, '[자세히]는 펼침 상태를 보조 기술에 알린다');
+assert.match(src, /<p class="rx-consent-detail" id="rx-consent-detail" hidden>/, '세부는 처음엔 접혀 있다');
+assert.match(src, /noticeDetail\(replayOptOutNow\(\)\) : bannerDetail\(nowVersion\(\)\)\) \+ ' <a href="\/privacy">개인정보처리방침<\/a>/,
+  '세부가 시행 여부·동의 버전을 따르고, 끝에 처리방침 링크가 있다');
+assert.match(src, /<div class="rx-consent-actions"><button type="button" class="rx-deny">거부<\/button>/, '거부 버튼은 요약 옆에 늘 보인다(사후 통제권)');
+const bannerCss = /var BANNER_CSS = ([\s\S]*?);\n/.exec(src)[1];
+assert.match(bannerCss, /\.rx-deny\{background:rgba\(255,255,255,\.14\)/, '거부도 허용처럼 채운 버튼 — 테두리만 남겨 덜 보이게 하지 않는다(눈속임 설계 유형⑨)');
+assert.doesNotMatch(bannerCss, /\.rx-consent-detail\{[^}]*display/, '세부에 display 를 선언하면 [hidden] 이 져서 늘 펼쳐진다');
 assert.match(privacy, /다른 이용자가 쓴 평가·채팅과\s+닉네임/, '처리방침이 작품 탐색 녹화에서 가리는 것을 밝힌다');
 // 옛 문구는 '확장 프로그램'이라 불렀다(2026-10-04부터 '익스텐션') — 어느 표기로 되살아나도 잡는다.
 assert.doesNotMatch(privacy, /작품 탐색 화면과 (?:확장\s+프로그램|익스텐션)에서는 기록하지 않습니다/, '작품 탐색도 녹화한다 — 옛 문구가 남으면 방침이 거짓말');

@@ -51,7 +51,7 @@ export var SR_URL = 'https://cdn.amplitude.com/libs/plugin-session-replay-browse
    몇 초가 빠질 수 있다. */
 export var SR_CONFIG = { sampleRate: 1, storeType: 'memory', privacyConfig: { defaultMaskLevel: 'medium' } };
 /* ─── Google Analytics(HP-465) ────────────────────────────────────
-   · **같은 동의 뒤에만.** 처리방침 6항이 "동의한 경우에만 분석 도구로 보낸다"고 약속한다 — 배너 문구(버전 3)가 Google 을 밝힌다.
+   · **같은 동의 뒤에만.** 처리방침 6항이 "동의한 경우에만 분석 도구로 보낸다"고 약속한다 — 배너 세부(bannerDetail 버전 3)가 Google 을 밝힌다.
    · **시행일부터.** 2026-10-01 공고와 동시에 시행(리플레이와 같은 개정, 위 주석 참조). 운영만 날짜를 본다. 로컬·미리보기는 검증할 수 있게 항상 켜되 traffic_type=internal 로 표시해 GA 의
      'Internal Traffic' 데이터 필터로 걸러 낸다. ⚠️ 공고가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
    · **자동 수집 값을 덮어쓴다.** gtag 는 기본으로 전체 URL(카탈로그 해시의 작품 번호)·문서 제목·전체 리퍼러(검색어·
@@ -153,21 +153,42 @@ export function optOutOn(hostname, nowMs, timeZone) {
 export function collectingFor(consent, optOut) {
   return consent === 'granted' || (consent === null && optOut);
 }
-/* 옵트아웃 지역의 안내 배너 — 무엇을 어디로 보내는지, 거부 방법, 허용하면 더해지는 것을 밝힌다. 랜딩 리플레이 옵트아웃
-   시행 뒤(replayOptOut)에는 첫 화면의 녹화도 미선택에서 이루어진다고 적는다 — 두 표면이 같은 배너를 쓰므로 한 문구로 둘 다 밝힌다. */
+/* ─── 배너 문구 — 두 층(HP-585) ─────────────────────────────────
+   늘 보이는 요약(한두 문장) + [자세히]를 누르면 배너 안에서 펼쳐지는 세부와 처리방침 링크. 두 표면이 같은 배너를 쓴다.
+   · **왜 줄였나.** 전문을 다 보이던 배너가 휴대폰 첫 화면의 30%(202/664px)를 덮고, PC 1366×640 에서는 히어로 설치 버튼을
+     가렸다(2026-10-12 실측). 동의 없이 처리하는 분석 쿠키·이벤트·리플레이에 수집 시점 화면 고지 의무는 찾지 못했고, 법이
+     정한 투명성 수단은 처리방침 공개다(개인정보 보호법 제30조 ①7호 — 처리방침 1·6항이 갖췄다). 개인정보위 처리방침
+     작성지침(2026.4.) p.93 도 "핵심만 간결하게, 세부는 '링크' 또는 '더 알아보기'로"를 허용한다. 국내 서비스 18곳은 배너
+     자체가 없었다(같은 날 실측). 조사 결과이며 법률 자문이 아니다 — 법률 검토는 HP-282. 2026-10-02 HP-478 의 '문구를
+     줄이거나 접지 않는다'를 2026-10-12 조현빈 결정으로 대체했다.
+   · **요약에 남기는 것.** 무엇(방문 통계·스크롤·클릭 기록)과 어디로(미국) — 수집 단계의 고지가 예측 가능성을 높여 동의 없이
+     처리하는 근거를 뒷받침한다(개인정보위 통합 안내서 2025.7. p.129). 그리고 [허용]이 더하는 것 — 허용은 동의라, 무엇에
+     동의하는지가 요약에서 보여야 한다. 받는 곳 이름·항목·가리는 것·거부의 효과는 세부로 내린다.
+   · 요약은 짧게 유지한다(테스트가 70자 상한을 건다) — 길어지면 배너가 다시 첫 화면을 덮는다. */
+/* 옵트아웃 지역(한국 시간대) 안내의 요약. 랜딩 리플레이 옵트아웃 시행 뒤(replayOptOut)에는 첫 화면 녹화가 미선택에서도
+   이루어진다고 적는다. */
 export function noticeText(replayOptOut) {
-  if (replayOptOut) {
-    return 'Replix는 사이트 개선을 위해 방문 통계(기기 식별값과 사용 이벤트)를 개인을 알아볼 수 없는 형태로 수집해 ' +
-      'Amplitude와 Google Analytics(모두 미국)로 보내고, 첫 화면에서는 화면 조작 기록(스크롤·클릭)도 Amplitude에 기록합니다. ' +
-      '원하지 않으면 거부를 눌러 주세요. 허용하면 작품 탐색에서의 화면 조작 기록도 함께 기록합니다. ' +
-      '입력한 내용과 다른 이용자의 글·닉네임은 기록하지 않습니다.';
-  }
-  return 'Replix는 사이트 개선을 위해 방문 통계(기기 식별값과 사용 이벤트)를 개인을 알아볼 수 없는 형태로 수집해 ' +
-    'Amplitude와 Google Analytics(모두 미국)로 보냅니다. 원하지 않으면 거부를 눌러 주세요. ' +
-    '허용하면 화면 조작 기록(스크롤·클릭)도 함께 기록합니다. 입력한 내용과 다른 이용자의 글·닉네임은 기록하지 않습니다.';
+  return replayOptOut
+    ? '방문 통계와 첫 화면의 스크롤·클릭 기록을 미국 분석 도구로 수집해요. 허용하면 작품 탐색에서도 기록해요.'
+    : '방문 통계를 미국 분석 도구로 수집해요. 허용하면 스크롤·클릭 기록도 남겨요.';
 }
-/* 배너 문구 — 동의가 덮는 범위를 그대로 적는다. 2·3 은 녹화가 랜딩뿐이라 '첫 화면에서'라고 적었고, 4 부터 작품 탐색까지. */
+/* 옵트아웃 지역 안내의 세부([자세히]로 펼침) — 받는 곳·항목·녹화 범위·가리는 것·거부의 효과. */
+export function noticeDetail(replayOptOut) {
+  return '방문 통계(기기 식별값과 사용 이벤트)는 개인을 알아볼 수 없는 형태로 Amplitude와 Google Analytics(모두 미국)로 보냅니다. ' +
+    (replayOptOut
+      ? '첫 화면의 스크롤·클릭 기록은 Amplitude에 기록하고, 허용하면 작품 탐색에서의 스크롤·클릭도 기록합니다. '
+      : '허용하면 첫 화면과 작품 탐색에서의 스크롤·클릭 기록도 Amplitude에 기록합니다. ') +
+    '입력한 내용과 다른 이용자의 글·닉네임은 기록하지 않으며, 거부하면 바로 멈추고 분석용 식별값을 지웁니다.';
+}
+/* 동의 요청(그 밖의 지역)의 요약 — 허용하면 무엇이 어디로 가는지. 범위는 아래 세부와 같은 버전 기준이다. */
 export function bannerText(version) {
+  return version >= 2
+    ? '방문 통계와 스크롤·클릭 기록을 미국 분석 도구로 보내도 될까요?'
+    : '방문 통계를 미국 분석 도구로 보내도 될까요?';
+}
+/* 동의 요청의 세부 — 동의가 덮는 범위를 그대로 적는다. 2·3 은 녹화가 랜딩뿐이라 '첫 화면에서'라고 적었고, 4 부터 작품 탐색까지.
+   문구만 두 층으로 나눈 HP-585 는 범위·받는 곳이 그대로라 동의 버전을 올리지 않았다(이미 받은 동의 유지). */
+export function bannerDetail(version) {
   if (version >= 4) {
     return 'Replix는 사이트 개선을 위해 방문 통계를 익명으로 수집합니다. 허용하면 기기 식별값과 사용 이벤트가 ' +
       'Amplitude와 Google Analytics(모두 미국)로, 첫 화면과 작품 탐색에서의 화면 조작 기록(스크롤·클릭)이 Amplitude로 ' +
@@ -392,18 +413,26 @@ export function setConsent(decision) {
 /* ═══ 동의 배너 ══════════════════════════════════════════════════
    스타일을 JS 에 두는 이유: 랜딩(css/*.css)과 카탈로그(Tailwind 인라인)가 다른 스타일 체계라 두 표면에서
    같은 배너를 보이려면 이 파일이 자기 스타일을 들고 다녀야 한다. 색은 tokens.css 의 --screen-2·--accent 값.
-   휴대폰 폭(560px 이하)에선 여백·글자·버튼만 줄여 높이를 낮춘다 — 고르기 전까지 화면 아래 1/3(242px/740px)을 덮었다(HP-478).
-   ⚠️ 문구는 줄이거나 접지 않는다: 옵트아웃 안내(HP-466)의 근거라 전부 보여야 한다. */
-var BANNER_CSS = '#rx-consent{position:fixed;left:16px;right:16px;bottom:16px;z-index:9999;max-width:680px;margin:0 auto;' +
-  'padding:16px 18px;border-radius:14px;background:#15151b;color:#e8e8ec;box-shadow:0 12px 40px rgba(0,0,0,.35);' +
-  'font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;gap:16px;align-items:center;flex-wrap:wrap}' +
-  '#rx-consent p{margin:0;flex:1 1 320px}#rx-consent a{color:#cfcfd6;text-decoration:underline}' +
-  '#rx-consent .rx-consent-actions{display:flex;gap:8px;margin-left:auto}' +
-  '#rx-consent button{font:inherit;font-weight:700;border:0;border-radius:9px;padding:9px 16px;cursor:pointer}' +
-  '#rx-consent .rx-allow{background:#e50914;color:#fff}' +
-  '#rx-consent .rx-deny{background:transparent;color:#cfcfd6;border:1px solid rgba(255,255,255,.22)}' +
-  '@media (max-width:560px){#rx-consent{left:8px;right:8px;bottom:8px;padding:12px 14px;gap:10px;font-size:12.5px;line-height:1.5;' +
-  'border-radius:12px}#rx-consent p{flex-basis:100%}#rx-consent button{padding:8px 14px}}';
+   두 층(HP-585, 위 '배너 문구' 주석): 요약과 [거부]·[허용]이 한 줄에 서고, [자세히]를 누르면 세부가 배너 아래쪽으로 펼쳐진다
+   (flex-wrap, 세부는 flex-basis 100%). 접힌 높이 — 휴대폰 390×664 에서 70px(약 11%), PC 1366×640 에서 61px(2026-10-12 실측,
+   종전 전문 배너는 202px·30%). 처리방침으로 떠나지 않고 배너 안에서 펼치는 이유: 광고로 들어온 방문자가 랜딩을 떠나지 않게.
+   · [거부]는 [허용]과 같은 크기·같은 채움으로 둔다 — 거부를 테두리만 남겨 덜 보이게 하지 않는다(개인정보위 눈속임 설계 유형⑨).
+   · ⚠️ 세부(.rx-consent-detail)에 display 를 선언하지 않는다 — [hidden] 이 display 선언에 지면(docs/README) 늘 펼쳐진다. */
+var BANNER_CSS = '#rx-consent{position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;max-width:640px;margin:0 auto;' +
+  'padding:10px 10px 10px 16px;border-radius:12px;background:#15151b;color:#e8e8ec;box-shadow:0 8px 28px rgba(0,0,0,.28);' +
+  'font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}' +
+  '#rx-consent p{margin:0}#rx-consent .rx-consent-summary{flex:1 1 0;min-width:0}' +
+  '#rx-consent .rx-more{background:none;border:0;padding:0;margin:0;font:inherit;color:#cfcfd6;text-decoration:underline;' +
+  'text-underline-offset:2px;cursor:pointer;white-space:nowrap}' +
+  '#rx-consent .rx-consent-actions{display:flex;gap:6px;flex:none}' +
+  '#rx-consent .rx-consent-actions button{font:inherit;font-weight:700;border:0;border-radius:8px;padding:8px 14px;' +
+  'min-height:36px;cursor:pointer}' +
+  '#rx-consent .rx-consent-actions .rx-deny{background:rgba(255,255,255,.14);color:#fff}' +
+  '#rx-consent .rx-consent-actions .rx-allow{background:#e50914;color:#fff}' +
+  '#rx-consent .rx-consent-detail{flex:1 1 100%;font-size:12.5px;line-height:1.55;color:#cfcfd6}' +
+  '#rx-consent .rx-consent-detail a{color:#fff;font-weight:700;text-decoration:underline}' +
+  '@media (max-width:560px){#rx-consent{left:8px;right:8px;bottom:8px;padding:8px 8px 8px 12px;font-size:12.5px;line-height:1.45}' +
+  '#rx-consent .rx-consent-actions button{padding:6px 11px;min-height:34px}}';
 export function showBanner() {
   if (_banner) { _banner.style.display = 'flex'; return; }
   var st = document.createElement('style'); st.textContent = BANNER_CSS; document.head.appendChild(st);
@@ -411,11 +440,20 @@ export function showBanner() {
   var notice = optOutNow();   /* 옵트아웃 지역은 '수집 안내 + 거부', 그 밖은 '동의 요청' */
   el.id = 'rx-consent'; el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', notice ? '방문 통계 수집 안내' : '방문 통계 수집 동의');
-  el.innerHTML = '<p>' + (notice ? noticeText(replayOptOutNow()) : bannerText(nowVersion())) + ' <a href="/privacy">개인정보처리방침</a></p>' +
+  el.innerHTML = '<p class="rx-consent-summary">' + (notice ? noticeText(replayOptOutNow()) : bannerText(nowVersion())) +
+    ' <button type="button" class="rx-more" aria-expanded="false" aria-controls="rx-consent-detail">자세히</button></p>' +
     '<div class="rx-consent-actions"><button type="button" class="rx-deny">거부</button>' +
-    '<button type="button" class="rx-allow">허용</button></div>';
+    '<button type="button" class="rx-allow">허용</button></div>' +
+    '<p class="rx-consent-detail" id="rx-consent-detail" hidden>' +
+    (notice ? noticeDetail(replayOptOutNow()) : bannerDetail(nowVersion())) + ' <a href="/privacy">개인정보처리방침</a></p>';
   el.querySelector('.rx-allow').addEventListener('click', function () { setConsent('granted'); });
   el.querySelector('.rx-deny').addEventListener('click', function () { setConsent('denied'); });
+  el.querySelector('.rx-more').addEventListener('click', function () {
+    var detail = el.querySelector('.rx-consent-detail');
+    detail.hidden = !detail.hidden;
+    this.setAttribute('aria-expanded', String(!detail.hidden));
+    this.textContent = detail.hidden ? '자세히' : '접기';
+  });
   document.body.appendChild(el); _banner = el;
 }
 /* [hidden] 속성은 CSS display 선언에 진다(docs/README '고칠 때 알아 둘 것') — style 로 직접 끈다. */
