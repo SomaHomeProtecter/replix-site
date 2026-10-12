@@ -20,15 +20,16 @@ assert.equal(wrapped, tables, '모든 표가 .doc-table-scroll 안에 있다');
 assert.equal((privacy.match(/<div class="doc-table-scroll">/g) || []).length, (privacy.match(/<\/table>\s*<\/div>/g) || []).length, '상자는 표마다 닫힌다');
 assert.match(privacy, /\.doc-table-scroll \{[^}]*overflow-x: auto/, '상자가 가로로 스크롤된다');
 
-// ② 동의 배너 — 휴대폰 폭에서만 여백·글자·버튼을 줄인다. 문구는 그대로(HP-466 법적 근거 — test-analytics 가 문구를
-//    검사한다), 접거나 말줄임하지 않는다.
+// ② 동의 배너 — 휴대폰 폭에서 여백·글자·버튼을 줄인다. 요약은 자르거나 말줄임하지 않고 늘 다 보인다. 접는 것은 [자세히]로
+//    펼치는 세부([hidden])뿐이다(HP-585 — 2026-10-12 조현빈 결정으로 HP-478 의 '접지 않는다'를 대체, 문구 규칙은
+//    test-analytics 가 검사한다).
 const analytics = read('docs/js/analytics.js');
 const css = /var BANNER_CSS = ([\s\S]*?);\n/.exec(analytics)[1];
 const narrow = /@media \(max-width:560px\)\{(.*?)\}'/.exec(css.replace(/'\s*\+\s*'/g, ''));
 assert.ok(narrow, '휴대폰 폭 규칙이 있다');
 const fs = /#rx-consent\{[^}]*font-size:([\d.]+)px/.exec(narrow[1]);
 assert.ok(fs && Number(fs[1]) >= 12 && Number(fs[1]) < 14, `휴대폰 글자는 12px 이상 14px 미만(${fs && fs[1]})`);
-assert.doesNotMatch(css, /line-clamp|text-overflow|max-height/, '배너 문구를 자르거나 접지 않는다');
+assert.doesNotMatch(css, /line-clamp|text-overflow|max-height/, '요약을 자르거나 말줄임하지 않는다 — 접는 것은 세부([hidden])뿐');
 
 // ③ 터치 대상 — 보이는 점·숫자는 그대로 두고 누르는 영역을 24px 이상으로(WCAG 2.5.8).
 const home = read('catalog/app/src/pages/Home.tsx');

@@ -15,6 +15,9 @@ footer { background: var(--screen); color: var(--s-muted); padding-block: 50px 4
 .foot-links { display: flex; flex-wrap: wrap; gap: 22px; margin-left: auto; }
 .foot-links a { color: var(--s-muted); text-decoration: none; transition: color .18s var(--ease); }
 .foot-links a:hover { color: #fff; }
+/* '개인정보처리방침'은 다른 링크와 글자 굵기·색으로 구분한다 — 표준 개인정보 보호지침 제20조 ①(HP-585).
+   작품 탐색(Chrome.tsx)·디스코드 안내·삭제 설문 푸터도 같은 규칙. */
+.foot-links .foot-privacy { color: #fff; font-weight: 700; }
 .foot-legal { margin-top: 32px; padding-top: 22px; border-top: 1px solid var(--s-line);
   color: var(--s-dim); font-size: 12.5px; line-height: 1.72; max-width: 70ch; }
 /* TMDB 출처(이용약관 §3, HP-386) — 로고는 원본 비율(273.42:35.52) 그대로 높이 12px. 워드마크(28px)보다 작게 둔다. */
