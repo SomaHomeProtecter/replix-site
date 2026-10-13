@@ -33,6 +33,17 @@ export function nicknameOf(me) {
   return name || null;
 }
 
+/** 동의 저장으로 끝난 로그인의 login_kind(트래킹 플랜 §6 login_completed, HP-619). 저장(PUT) 응답의 newAccount — 이번 저장이
+ *  계정을 만들었는가(BE 가 계정을 만들기 직전에 판정) — 로 가입(signup)과 약관 개정 뒤 재동의(reconsent)를 가른다. 불리언이
+ *  아니면(이 값이 없는 배포 전 서버·본문을 못 읽음) consent 다 — 모르는 것을 거짓으로 채우면 둘이 뒤바뀌어 세인다.
+ *  동의 창 없이 이미 동의한 회원으로 확인된 로그인은 'login' 이다(auth.ts resolveAccount). 익스텐션 background loginKindOf 와 같은 값. */
+export function loginKindOf(saved) {
+  const newAccount = saved && saved.newAccount;
+  if (newAccount === true) return 'signup';
+  if (newAccount === false) return 'reconsent';
+  return 'consent';
+}
+
 /** 저장 실패 안내. 문서가 갱신됐으면 다시 체크해 달라고, 그 밖은 연결 문제로 안내한다(익스텐션과 같은 문구). */
 export function acceptErrorMessage(code) {
   return code === 'OUTDATED_LEGAL_DOCUMENTS'
