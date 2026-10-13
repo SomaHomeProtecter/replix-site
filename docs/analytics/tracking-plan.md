@@ -82,7 +82,7 @@
 | 속성 | 예 | 왜 |
 | --- | --- | --- |
 | `env` | `prod` \| `dev` | 호스트명으로 판정 — `replix.tv` 만 prod, 미리보기·localhost·file 은 dev. 익스텐션과 같은 두 프로젝트 |
-| `surface` | `web_landing` \| `web_catalog` | 익스텐션(`extension`)과 한 프로젝트에 섞이므로 표면을 가른다 |
+| `surface` | `web_landing` \| `web_catalog` | 익스텐션 이벤트와 한 프로젝트에 섞이므로 표면을 가른다. 익스텐션 이벤트는 대부분 `surface` 가 없고, 피드백 2종과 `login_completed`(HP-619 수정 버전부터)만 `EXT` 를 싣는다(익스텐션 트래킹 플랜 §4) |
 | `locale` | `ko-KR` | `navigator.language` |
 | `page_path` | `/` · `/catalog/` · `/catalog/#/title` · `/catalog/#/notice` · `/catalog/#/me` | 정제된 경로(§7) — 해시는 라우트 이름까지만(`cleanPath`). 작품·회차·공지 ID 없음 |
 | `device_class` | `mobile` \| `tablet` \| `desktop` | 768/1024 경계. 랜딩 레이아웃 판단 |
@@ -104,7 +104,24 @@
 | `catalog_engaged` | catalog | 아래 표 | `feature`, `action`(+`has_results`·`sort`·`source`·`kind`·`score`·`category`). GA 에서는 `source` 가 `click_source` 로 온다(§10) | W5 |
 | `watch_link_clicked` | catalog | 재생 딥링크 `<a>` 클릭(`analytics.ts` `trackWatch`) | `platform`(`netflix`), `from`: `title_hero` \| `moment` \| `home_billboard` \| `home_hot` \| `home_live` \| `my_activity`, `has_timestamp`(bool — `?t=` 유무) | **W5** |
 | `login_started` | catalog | `LoginModal.tsx` 제공자 버튼 클릭 — IdP 로 떠나기 직전 | `provider`: `google` \| `kakao` \| `naver` | **W7** |
-| `login_completed` | catalog | `auth.ts` — 로그인 왕복 뒤 이미 동의한 회원으로 확인됐을 때(`is_new_user: false`), 동의 저장으로 계정이 생겼을 때(`is_new_user: true` — 문서 개정 재동의 포함, 익스텐션 §5.5 와 같은 뜻). 새로고침으로 세션을 되살린 것은 세지 않는다 | `is_new_user`(bool) | **W7** |
+| `login_completed` | catalog | `auth.ts` — 로그인 왕복 뒤 이미 동의한 회원으로 확인됐을 때(`is_new_user: false`), 동의 모달에서 저장했을 때(`is_new_user: true` — 문서 개정 재동의 포함, 익스텐션 §5.5 와 같은 뜻). 새로고침으로 세션을 되살린 것은 세지 않는다(되살린 세션이라도 동의 모달에서 저장하면 센다 — 그 저장이 가입이거나 재동의다) | `is_new_user`(bool — **동의 모달을 거쳤는가. 가입 수가 아니다 — 가입은 `login_kind: signup`**) · `login_kind`: `signup` \| `reconsent` \| `login` \| `consent`(아래, HP-619) | **W7** |
+
+**`login_completed.login_kind` — 가입과 재동의를 가른다(HP-619, 2026-10-14).** `is_new_user` 는 '동의 모달을 거쳤는가'라 약관 개정 뒤
+재동의한 기존 회원도 true 다 — 가입 수로 읽으면 약관을 고칠 때마다 가입이 부푼다. 쌓인 차트가 깨지지 않게 뜻은 그대로 두고, 가입 수는
+`login_kind = signup` 으로 본다. 동의 저장(`PUT /api/v1/users/me/legal-consents`) 응답의 `newAccount` — BE 가 계정을 만들기 직전에 판정한
+"이번 저장이 계정을 만드는가"(Replix-be HP-619) — 로 가른다(`consent-pure.js` `loginKindOf`, 익스텐션과 같은 값).
+
+| `login_kind` | 뜻 | `is_new_user` |
+| --- | --- | --- |
+| `signup` | 이 동의 저장이 계정을 만들었다 — **가입** | true |
+| `reconsent` | 계정이 이미 있던 회원이 새 약관에 동의했다(약관 개정 뒤 재동의) | true |
+| `login` | 로그인 왕복 뒤 이미 동의한 회원으로 확인됐다(동의 모달 없음) | false |
+| `consent` | 동의 모달에서 저장했지만 `newAccount` 를 모른다 — 응답에 이 값이 없는 서버(Replix-be HP-619 운영 배포 전)이거나 본문을 못 읽었다 | true |
+
+> ⚠️ 작품 탐색은 운영 API(`api.replix.tv`)를 부르므로 **Replix-be HP-619 가 운영에 나가기 전에는 동의 모달을 거친 완료가 모두 `consent`** 다.
+> 그 기간과 이 수정 전(`login_kind` 없음)은 가입과 재동의를 가를 수 없다 — 날짜로 거른다.
+> 익스텐션의 `login_completed` 도 같은 이름·같은 `login_kind` 값을 싣고 `surface: EXT` 로 구분된다(익스텐션 트래킹 플랜 §5.5). 두 표면의 가입을 합칠 때는
+> `login_kind = signup` 을 `surface` 구분 없이 더한다. 같은 사람의 첫 저장 둘이 거의 같은 순간 서버에 닿으면 둘 다 `signup` 일 수 있다(드문 경합 — BE 가 받아들인 한계).
 
 `nav_link_clicked` 발화 지점 — 랜딩(`docs/index.html`) 15곳. 마크업의 `data-link`(=`target`) · `data-link-loc`(=`location`):
 
@@ -335,4 +352,5 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v14 | 2026-10-12 | 동의 배너를 두 층으로(§3 UI 행, HP-585) — 요약(70자 이하, 스크롤·클릭·미국·허용이 더하는 것) + 배너 안에서 펼치는 세부와 처리방침 링크, [거부]·[허용] 같은 크기. 휴대폰 첫 화면 가림 30% → 11%, PC 1366×640 에서 히어로 설치 버튼을 더는 가리지 않는다. 수집·옵트아웃·리플레이 범위와 동의 버전(4)은 그대로. 근거 = 수집 시점 화면 고지 의무를 찾지 못했고 법정 투명성 수단은 처리방침(법 제30조), 개인정보위 작성지침(2026.4.) p.93 의 "간결하게 + '더 알아보기'", 국내 서비스 18곳 배너 없음(2026-10-12 실측) — 조사 결과이며 법률 검토는 HP-282. 2026-10-02 HP-478 의 '문구를 줄이거나 접지 않는다'를 대체 — 조현빈 |
 | v15 | 2026-10-13 | 랜딩 제품 화면 전환이 스크롤 비례 → 경계 방식으로 바뀌어 `demo_interacted{scroll_complete}` 의 발화 시점이 '진행도 1 도달'에서 '화면 전체가 들어와 전환 경계를 넘음'으로 앞당겨졌다. 이벤트 이름·속성은 그대로(HP-602) — 조현빈 |
 | v16 | 2026-10-13 | 계측 정확도(HP-615, 2026-10-13 광고 성과 분석): ① GA `page_location` 에 광고 캠페인 쿼리(utm 다섯)를 남긴다 — 광고 클릭 식별값(`gclid` 등)은 처리방침의 GA 수집 항목 밖이라 남기지 않는다(§2·§10) ② GA 로 보낼 때만 `source` → `click_source`, 이름을 정하지 않은 유입 경로 예약어는 GA 에 싣지 않는다(§10) ③ 모든 웹 스토어 링크에 `utm_source=replix.tv&utm_medium=<위치>`(§12), `/discord/` 설치 버튼을 `install_cta_clicked{location: discord}` 로(허용한 방문자만, §11) — `/invite`·`/together` 는 계측 없음 유지 ④ 카탈로그 `page_viewed` 는 페이지가 바뀔 때만 — 홈 안 앵커·공지 항목·로그인 왕복 로드는 세지 않는다(§6) ⑤ 로컬 호스트 미전송(디버그 표시로만)·팀 브라우저 `traffic_type=internal` 표시(§5·§7) ⑥ 옵트아웃·리플레이·배너를 첫 화면·작품 탐색으로 묶는 `fullSurface`, §3 동의 버전 표기를 코드(4)와 맞춤. 동의 버전은 그대로 4 — 조현빈 |
+| v17 | 2026-10-14 | `login_completed` 가입 정정(HP-619, §6): 새 속성 `login_kind`(`signup` · `reconsent` · `login` · `consent`) — 동의 저장 응답의 `newAccount`(Replix-be HP-619)로 가입과 재동의를 가르고, 그 BE 가 운영에 나가기 전에는 `consent`. `is_new_user` 는 뜻(동의 모달을 거쳤는가)을 바꾸지 않되 **가입 수가 아니라고** 정정. §5 `surface` 설명의 익스텐션 값을 실제 값(`EXT`, 피드백 2종·`login_completed` 만)으로 정정 — 조현빈(Claude Code) |
 | v12 | 2026-10-05 | 랜딩 디스코드 섹션(HP-497) — `nav_link_clicked` 에 `location: discord` 와 `target: discord_install`(봇 추가, 새 탭) · `discord`(`/discord/` 페이지) 2곳을 더해 15곳. 봇 추가는 익스텐션 설치가 아니라 `install_cta_clicked` 에 넣지 않는다 — 조현빈 |
