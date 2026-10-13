@@ -43,7 +43,7 @@
 | **우리 `contentId`·`episodeId`** | 공개 카탈로그라도 기기와 묶이면 "무엇을 봤나"가 된다. 인기 작품은 서버 로그·DB 로 답한다 |
 | **검색어** | 검색어는 곧 작품명이다 |
 | **IP 기반 위치** | 처리방침 수집 항목에 IP 가 없다. `trackingOptions.ipAddress = false`. 익스텐션(HTTP API)도 `ip` 를 싣지 않아 위치가 안 잡힌다 — 웹을 그 수준에 맞춘다 |
-| 전체 URL(쿼리·해시 원문) | `/invite?w=..&t=<토큰>`, `/catalog/#/title/<id>` — SDK 자동 페이지뷰·URL 보강을 끄고 `page_path` 를 직접 정제한다(§7). 예외 하나: GA `page_location` 의 **광고 캠페인 쿼리**(`utm_*` 다섯, §10) — 우리가 광고 주소에 붙이는 캠페인 단위 값이라 방문자를 가리키지 않는다. 광고 클릭 식별값(`gclid`·`gbraid`·`wbraid`·`fbclid` — 광고 플랫폼이 클릭마다 붙이는 값)은 처리방침이 밝힌 GA 수집 항목('방문한 페이지(작품·회차 번호를 뺀 경로)') 밖이라 남기지 않는다(HP-615) |
+| 전체 URL(쿼리·해시 원문) | `/invite?w=..&t=<토큰>`, `/catalog/#/title/<id>` — SDK 자동 페이지뷰·URL 보강을 끄고 `page_path` 를 직접 정제한다(§7). 예외 하나: GA `page_location` 의 **광고 캠페인 쿼리**(`utm_*` 다섯, §10) — 우리가 광고 주소에 붙이는 캠페인 단위 값이라 방문자를 가리키지 않는다. 광고 클릭 식별값(`gclid`·`gbraid`·`wbraid`·`fbclid` — 광고 플랫폼이 클릭마다 붙이는 값)은 처리방침이 밝힌 GA 수집 항목('방문한 페이지(작품·회차 번호를 뺀 경로)') 밖이라 남기지 않는다(HP-615). 2026-10-14 부터는 부트 때 주소에서 아예 지워(`CLICK_ID_PARAMS` 11종, `stripClickIds`) Amplitude 귀속·GA·리플레이 모두 보지 못한다 — Amplitude 웹 귀속이 이 값을 사용자 속성으로 보내고 있었다(HP-628) |
 
 > `/invite`·`/together` 는 **계측하지 않는다.** 쿼리에 초대·연결 토큰이 실리고(README 계약 "분석 도구로 보내지 않는다"·"계측 없음"),
 > 주소와 화면(초대의 '넷플릭스에서 열기' 링크, 링크 복사 칸)에 토큰이 있어 녹화·GA 향상된 측정(바깥 링크 클릭의 `link_url`)에 실릴 수 있다. 설치 버튼은 스토어 링크의
@@ -59,7 +59,7 @@
 | 미선택 | **한국 시간대, 두 표면 모두**(첫 화면 `/`·작품 탐색 — `fullSurface()`, 운영 2026-10-01~, §11): 안내 배너 + SDK·GA 로드, 이벤트 수집(리플레이는 §9). **그 밖**: 동의 요청 배너, SDK·쿠키·요청 0건. **그 밖의 페이지(`/discord/`)**: 시간대와 무관하게 배너도 요청도 없다 — 이미 허용한 방문자만 설치 클릭을 보낸다(HP-615) |
 | 거부 | 배너 숨김. SDK·쿠키·요청 0건. **거부는 버전이 바뀌어도 계속 존중**(`parseConsent`) — 옵트아웃에서 옛 거부가 풀리면 거부한 사람을 수집하게 된다 |
 | 허용 | SDK 스크립트 주입 → (랜딩이면 리플레이 플러그인 주입·부착, §9) → `init` → 큐 flush · GA `gtag.js` 주입(§10) → 현재 페이지 `page_viewed`(GA 는 `page_view`) 1회 |
-| 철회 | 푸터 '분석 설정'(`[data-analytics-settings]`) → 배너 재표시 → 거부 시 리플레이 플러그인 제거 + `setOptOut(true)` + `AMP_*` 쿠키·`AMP_*` localStorage·`AMP_*` IndexedDB 삭제(IndexedDB 는 SDK 가 연결을 쥐고 있어 페이지를 떠날 때 실제로 지워진다) |
+| 철회 | 푸터 '분석 설정'(`[data-analytics-settings]`) → 배너 재표시 → 거부 시 리플레이 플러그인 제거 + `setOptOut(true)` + `AMP_*` 쿠키·`AMP_*` localStorage·`AMP_*` IndexedDB 삭제(IndexedDB 는 SDK 가 연결을 쥐고 있어 페이지를 떠날 때 실제로 지워진다). 거부 뒤에는 SDK 의 묶음 전송도 나가지 않는다 — `setOptOut` 은 새 이벤트만 막아 이미 메모리 큐에 든 묶음이 1초 뒤 그대로 나갔으므로(2026-10-14 실측), 보내는 순간 수집 상태를 다시 보는 관문(`gateTransport`, 플러그인 `replix-send-gate`)이 막는다(HP-628) |
 | 재허용 | 같은 페이지에서 거부 뒤 다시 허용하면 `setOptOut(false)` + `reset()` — **새 device_id**. 철회 전 식별값과 이어지지 않는다. 리플레이도 새 식별자로 다시 붙는다. **옵트아웃 수집 중 허용**은 철회가 아니므로 device_id 그대로, 리플레이만 더한다(`_revoked`) |
 | 버전 | `version` 이 바뀌면 다시 묻는다(범위·받는 곳이 바뀌었을 때 올린다). **2 = 랜딩 세션 리플레이**(HP-457) — 배너가 화면 조작 기록을 밝힌다 · **3 = Google Analytics**(HP-465) — 배너 세부가 Google 을 밝힌다(`bannerDetail`) · **4 = 작품 탐색까지 리플레이**(2026-10-01 고경우, §9) — 지금 값(`CONSENT_VERSION`). 문구만 두 층으로 나눈 HP-585 와 계측 정확도를 고친 HP-615 는 범위·받는 곳이 같아 올리지 않았다 — 이미 받은 허용·거부가 그대로 유효하다 |
 
@@ -75,7 +75,7 @@
 - ⚠️ **웹↔익스텐션 기기 연결은 아직 없다.** 랜딩의 device_id 와 익스텐션의 device_id(`chrome.storage`)는 다른 값이라
   "랜딩 → 설치 → 첫 채팅" 퍼널은 한 사람으로 이어지지 않는다. 익스텐션이 `replix.tv` 쿠키를 읽어 승계하는 것은 후속 결정.
   지금은 표면별 전환(W1: 방문→CTA 클릭, 익스텐션 Q1: 설치→채팅)을 각각 본다.
-- `initial_utm_*`·`initial_referring_domain` 등 어트리뷰션 사용자 속성은 SDK 가 자동으로 붙인다(W2).
+- `initial_utm_*`·`initial_referring_domain` 등 어트리뷰션 사용자 속성은 SDK 가 자동으로 붙인다(W2). 광고 클릭 식별값(`gclid`·`fbclid` 등 11종)은 부트 때 주소에서 지워 싣지 않는다(§2, HP-628).
 
 ## 5. 공통 속성 (모든 이벤트에 자동 부착 — `commonProps()`)
 
@@ -211,7 +211,7 @@
 - **떠날 때 flush**: `pagehide` 에서 `setTransport('beacon')` + `flush()`, bfcache 로 돌아오면(`pageshow` `persisted`) `fetch` 로 복귀.
   SDK 는 1초 배치라 같은 탭 링크 클릭 직후 페이지가 먼저 사라진다 — 그 이벤트는 localStorage 큐(`AMP_unsent_*`)에 남아 다음 SDK 페이지가
   보내지만, `/privacy`·`/terms` 처럼 **SDK 가 없는 페이지로 가면 다음 방문까지 밀린다**(2026-09-21 실측, HP-437). beacon 은 응답을 못 받아
-  재시도가 없으므로 떠날 때만 쓴다. 철회 상태에서는 optOut 이라 아무것도 나가지 않는다.
+  재시도가 없으므로 떠날 때만 쓴다. 철회 상태에서는 떠날 때 flush 하지 않고, SDK 의 묶음 전송도 관문이 막는다(§3 철회 행, HP-628 — optOut 만으로는 이미 큐에 든 묶음이 나갔다).
 - **큐**: SDK 로드 전 `track`/`page` 호출은 메모리 큐 → `onload` 뒤 flush. 로드 실패(차단·오프라인)는 큐를 버리고 조용히 포기(fail-open).
 - **카탈로그 연결**: `catalog/app/src/analytics.ts` 가 `/js/analytics.js` 를 런타임에 붙이고 `window.ReplixAnalytics` 로 부른다. 준비 전 호출은 shim 큐 → `replix-analytics-ready` 이벤트에서 flush. Vite dev·`file://` 에서는 no-op.
 - **로컬 호스트는 보내지 않는다**(HP-615, `sendAllowed`): `localhost`·`127.*`·`[::1]`·`0.0.0.0`·사설망(`10.*`·`172.16~31.*`·`192.168.*`)·`*.local`·`*.localhost`·`file://`. 배너는 그대로 보이지만 허용해도 SDK·GA 를 붙이지 않는다 — GA 에 localhost 14세션이 섞였었다(2026-10-13 분석). 개발 중 실제 전송을 봐야 하면 `?replix_analytics_debug=1` 로 그 브라우저에 표시를 남긴다(`=0` 이면 해제) — 그때는 dev 프로젝트·`traffic_type=internal`·GA `debug_mode` 로 간다.
@@ -269,7 +269,7 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | 로드 | 동의 허용 뒤 `gtag/js?id=…` 를 동적 주입(정적 태그 금지 — 테스트가 고정). 두 표면(랜딩·작품 탐색) 모두 |
 | 이벤트 | `track()` 이 Amplitude 와 **같은 이름·속성**으로 GA 에도 보낸다(+`surface`). `page_viewed` 만 GA 표준 `page_view` 로 |
 | 덮어쓰는 값 | `page_location` = `origin + cleanPath()` + **광고 캠페인 쿼리**(`GA_CAMPAIGN_PARAMS` = `utm_source`·`utm_medium`·`utm_campaign`·`utm_content`·`utm_term` — 처음 나온 순서·첫 값을 원래 글자 그대로, 해시 앞. 광고 클릭 식별값·그 밖의 쿼리·작품 번호 없음) · `page_title` = 표면 이름 고정(`Replix 랜딩`·`Replix 작품 탐색`) · `page_referrer` = 외부면 출처만, 같은 출처면 정리된 경로(검색어·초대 토큰 차단) |
-| 캠페인 쿼리를 남기는 이유 | GA 는 **세션 첫 page_view 의 주소**에서 캠페인을 읽는다. 쿼리를 통째로 지우던 때(HP-615 전)는 유료 광고 세션 약 3,130건이 리퍼러만 보고 'Organic Social'(instagram.com·m.facebook.com)로 잡혔다(2026-10-13 광고 성과 분석). 로드 때 `config` 의 `page_location` 에 실어 세션 첫 hit 부터 붙는다 — 2026-10-13 로컬 실측: 첫 hit `en=page_view`·`_ss=1` 의 `dl` 에 utm 이 있고 그 밖의 쿼리(`foo`)는 없다. Google Ads 자동 태깅 값(`gclid`·`gbraid`·`wbraid`)은 싣지 않으므로(§2) **다음 광고(유튜브)도 최종 주소에 utm 을 직접 붙여야** GA 가 캠페인으로 가른다. Amplitude 는 SDK 어트리뷰션이 원래 주소에서 직접 읽어 왔다(§4) |
+| 캠페인 쿼리를 남기는 이유 | GA 는 **세션 첫 page_view 의 주소**에서 캠페인을 읽는다. 쿼리를 통째로 지우던 때(HP-615 전)는 유료 광고 세션 약 3,130건이 리퍼러만 보고 'Organic Social'(instagram.com·m.facebook.com)로 잡혔다(2026-10-13 광고 성과 분석). 로드 때 `config` 의 `page_location` 에 실어 세션 첫 hit 부터 붙는다 — 2026-10-13 로컬 실측: 첫 hit `en=page_view`·`_ss=1` 의 `dl` 에 utm 이 있고 그 밖의 쿼리(`foo`)는 없다. Google Ads 자동 태깅 값(`gclid`·`gbraid`·`wbraid`)은 싣지 않으므로(§2) **다음 광고(유튜브)도 최종 주소에 utm 을 직접 붙여야** GA 가 캠페인으로 가른다. Amplitude 도 2026-10-14 부터 광고 클릭 식별값을 받지 않는다 — 부트 때 주소에서 지운다(§2·§4, HP-628) |
 | 이벤트 속성 이름 | GA 로 보낼 때만 **`source` → `click_source`**(`GA_PARAM_RENAME`). `catalog_engaged{source: 'nav'}` 가 세션 소스 `nav` 로 잡혔다(2026-10-13 GA 리포트 22세션) — gtag 는 `ep.source=nav` 로 그대로 보내고(2026-10-13 로컬 확인) 해석은 GA 서버가 한다. 같은 계열인 `medium`·`campaign`·`term`·`content` 도 GA 쪽 이름을 정하기 전에는 GA 에 싣지 않는다(`gaParams` — 새 이벤트가 실수로 써도 유입 경로가 흔들리지 않게). Amplitude 는 기존 차트를 깨지 않게 `source` 그대로 |
 | 팀·개발 트래픽 | `traffic_type: 'internal'` 을 `config` 에 실어 이 페이지의 모든 수집 요청에 `tt=internal` 이 붙는다(2026-10-13 확인) — 팀 브라우저 표시(§5) 또는 운영이 아닌 곳. 버리지 않고 표시만 한다: GA 관리의 데이터 필터 'Internal Traffic' 이 **활성**이어야 리포트에서 빠진다(사람이 한다) |
 | 끈 것 | 자동 `page_view`(`send_page_view: false`) · Google 신호 · 광고 개인화 |
@@ -354,4 +354,5 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v15 | 2026-10-13 | 랜딩 제품 화면 전환이 스크롤 비례 → 경계 방식으로 바뀌어 `demo_interacted{scroll_complete}` 의 발화 시점이 '진행도 1 도달'에서 '화면 전체가 들어와 전환 경계를 넘음'으로 앞당겨졌다. 이벤트 이름·속성은 그대로(HP-602) — 조현빈 |
 | v16 | 2026-10-13 | 계측 정확도(HP-615, 2026-10-13 광고 성과 분석): ① GA `page_location` 에 광고 캠페인 쿼리(utm 다섯)를 남긴다 — 광고 클릭 식별값(`gclid` 등)은 처리방침의 GA 수집 항목 밖이라 남기지 않는다(§2·§10) ② GA 로 보낼 때만 `source` → `click_source`, 이름을 정하지 않은 유입 경로 예약어는 GA 에 싣지 않는다(§10) ③ 모든 웹 스토어 링크에 `utm_source=replix.tv&utm_medium=<위치>`(§12), `/discord/` 설치 버튼을 `install_cta_clicked{location: discord}` 로(허용한 방문자만, §11) — `/invite`·`/together` 는 계측 없음 유지 ④ 카탈로그 `page_viewed` 는 페이지가 바뀔 때만 — 홈 안 앵커·공지 항목·로그인 왕복 로드는 세지 않는다(§6) ⑤ 로컬 호스트 미전송(디버그 표시로만)·팀 브라우저 `traffic_type=internal` 표시(§5·§7) ⑥ 옵트아웃·리플레이·배너를 첫 화면·작품 탐색으로 묶는 `fullSurface`, §3 동의 버전 표기를 코드(4)와 맞춤. 동의 버전은 그대로 4 — 조현빈 |
 | v17 | 2026-10-14 | `login_completed` 가입 정정(HP-619, §6): 새 속성 `login_kind`(`signup` · `reconsent` · `login` · `consent`) — 동의 저장 응답의 `newAccount`(Replix-be HP-619)로 가입과 재동의를 가르고, 그 BE 가 운영에 나가기 전에는 `consent`. `is_new_user` 는 뜻(동의 모달을 거쳤는가)을 바꾸지 않되 **가입 수가 아니라고** 정정. §5 `surface` 설명의 익스텐션 값을 실제 값(`EXT`, 피드백 2종·`login_completed` 만)으로 정정 — 조현빈(Claude Code) |
+| v18 | 2026-10-14 | 처리방침 정합(HP-628): ① 거부 뒤 SDK 의 묶음 전송을 관문(`gateTransport`)이 막는다 — `setOptOut` 은 새 이벤트만 막아 이미 큐에 든 묶음이 거부 0.5~0.7초 뒤 나갔다(처리방침 6항 '철회하면 미전송 기록 즉시 삭제'와 반대, §3·§7) ② 광고 클릭 식별값 11종(`CLICK_ID_PARAMS`)을 부트 때 주소에서 지운다 — Amplitude 웹 귀속이 `gclid`·`fbclid` 를 사용자 속성으로 보내고 있었다(처리방침 수집 항목 밖, §2·§4·§10). 다시 모을지는 수집 범위 조사(HP-627)가 정한다. 이벤트·동의 버전은 그대로 — 조현빈(Claude Code) |
 | v12 | 2026-10-05 | 랜딩 디스코드 섹션(HP-497) — `nav_link_clicked` 에 `location: discord` 와 `target: discord_install`(봇 추가, 새 탭) · `discord`(`/discord/` 페이지) 2곳을 더해 15곳. 봇 추가는 익스텐션 설치가 아니라 `install_cta_clicked` 에 넣지 않는다 — 조현빈 |
