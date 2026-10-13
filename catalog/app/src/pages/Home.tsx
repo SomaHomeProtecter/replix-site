@@ -11,6 +11,7 @@ import {
   type LiveShow,
   type Moment,
   type RankItem,
+  type TopMoment,
   type Window,
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
@@ -626,15 +627,25 @@ function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
 }
 const sum = (s: LiveShow) => s.segments.reduce((a, x) => a + x.viewers, 0)
 
-/* ═══ 이번 주 인기 순간 — 최근 7일 순위 작품들의 1위 순간 ═══
-   창이 '7d' 인 홈 응답을 쓴다 — 읽기 모델의 시간축 덕분에 이름 그대로 "이번 주"다(이전엔 전체 누적이었다). */
-function WeeklyMoments({ items, loading }: { items: RankItem[]; loading: boolean }) {
+/* ═══ 이번 주 인기 순간 — 최근 7일 반응이 큰 채팅과 그 회차 ═══
+   HP-610(2026-10-13 조현빈): 서버가 최근 7일 반응량(채팅 + 이모지, 절대값)으로 회차를 가로질러 줄 세운 topMoments 를 쓴다.
+   같은 작품·같은 회차가 여러 번 나올 수 있고, 번호는 섹션 안 순서다(서버 rank 는 가려진 줄이 빠지면 건너뛸 수 있다).
+   topMoments 필드가 없는 옛 서버면 예전처럼 7일 순위 작품마다 가장 센 순간 하나를 쓴다 — 사이트와 서버가 따로 배포되므로
+   서버가 운영에 나가기 전에도 섹션이 비지 않게 한다. 운영 서버에 HP-610이 나간 뒤에는 이 갈래를 지워도 된다. */
+function WeeklyMoments({ items, top, loading }: { items: RankItem[]; top: TopMoment[] | undefined; loading: boolean }) {
   const fill = useFillCount(300, 20, 1)
-  const heads = items.filter((w) => w.episodeId).slice(0, Math.max(fill.limit, 1))
-  const rows = heads.map((w) => {
-    const m = [...w.moments].sort((a, b) => b.strength - a.strength)[0]
-    return m ? { key: `${w.episodeId}`, work: w.title, episode: w.episodeTitle ?? episodeLabel({ seasonNumber: w.seasonNumber, episodeNumber: w.episodeNumber }, w.contentType), at: fmtTime(m.at), quote: m.quote ?? '', poster: w.posterUrl, contentId: w.contentId } : null
-  }).filter((x): x is NonNullable<typeof x> => x !== null)
+  const limit = Math.max(fill.limit, 1)
+  const rows = top
+    ? top.slice(0, limit).map((m) => ({
+        key: `${m.episodeId}-${m.at}`, work: m.title, episode: m.episodeTitle ?? episodeLabel(m, m.contentType),
+        at: fmtTime(m.at), quote: m.quoteText, poster: m.posterUrl, contentId: m.contentId,
+      }))
+    // 순간이 있는 작품을 먼저 거르고 나서 열 수만큼 자른다(HP-609). 자른 뒤에 거르면 순위 위쪽 작품에 순간이 없을 때
+    // 데스크톱(열 3개)에서 1개만 남았다 — 휴대폰 레일은 제한이 없어 다 보여서 폭에 따라 개수가 달랐다.
+    : items.filter((w) => w.episodeId && w.moments.length > 0).slice(0, limit).map((w) => {
+        const m = [...w.moments].sort((a, b) => b.strength - a.strength)[0]
+        return { key: `${w.episodeId}-${m.at}`, work: w.title, episode: w.episodeTitle ?? episodeLabel({ seasonNumber: w.seasonNumber, episodeNumber: w.episodeNumber }, w.contentType), at: fmtTime(m.at), quote: m.quote ?? '', poster: w.posterUrl, contentId: w.contentId }
+      })
   const busy = loading
   if (rows.length === 0) {
     return (
@@ -711,7 +722,7 @@ export default function Home() {
       <Billboard items={items} live={shows} loading={cur.loading} />
       <Ranking items={items} loading={cur.loading} window={window} onWindow={setWindow} />
       <HotMoments top={items[0] ?? null} live={shows} loading={cur.loading} />
-      <WeeklyMoments items={week.data?.ranking ?? []} loading={week.loading} />
+      <WeeklyMoments items={week.data?.ranking ?? []} top={week.data?.topMoments} loading={week.loading} />
       <LiveRail shows={shows} loading={live.loading} />
       {cur.error && (
         <p className={`text-[12.5px] text-muted ${SEC}`}>서버 응답 오류: {cur.error.message}</p>

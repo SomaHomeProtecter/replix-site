@@ -99,7 +99,24 @@ export type RankItem = {
   bars: number[]              // 빌보드(앞 billboardCount개)에만. 0~1, 120개
   durationSec: number | null  // 같은 조건. 마지막 채팅 버킷 끝 = 회차 길이 추정
 }
-export type CatalogHome = { window: Window; liveViewers: number; liveRooms: number; billboardCount: number; ranking: RankItem[] }
+/** 이번 주 인기 순간 한 줄(HP-610) — 최근 7일 반응(채팅 + 이모지)이 큰 구간과 그 대표 채팅. 같은 작품·회차가 여러 번 나올 수 있다. */
+export type TopMoment = {
+  rank: number
+  contentId: number
+  title: string
+  contentType: 'MOVIE' | 'SERIES'
+  platform: string
+  posterUrl: string | null
+  episodeId: number
+  platformEpisodeId: string | null
+  seasonNumber: number | null
+  episodeNumber: number | null
+  episodeTitle: string | null
+  at: number          // 회차 안 초(구간 시작)
+  quoteText: string
+}
+/** topMoments 는 window=7d 에만 채워진다(all 이면 빈 배열). 필드 자체가 없으면 HP-610 이전 서버다. */
+export type CatalogHome = { window: Window; liveViewers: number; liveRooms: number; billboardCount: number; ranking: RankItem[]; topMoments?: TopMoment[] }
 export type CatalogEpisode = {
   episodeId: number
   platformEpisodeId: string
