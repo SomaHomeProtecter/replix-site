@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { PlayIcon, ListPlusIcon, ArrowUpRightIcon, ClockIcon } from '@phosphor-icons/react'
+import { PlayIcon, ListPlusIcon, ArrowUpRightIcon, ClockIcon, ChatIcon, FireIcon } from '@phosphor-icons/react'
 import {
   api,
   decodeEntities,
@@ -459,12 +459,23 @@ function Ranking({ items, loading, window, onWindow }: { items: RankItem[]; load
   )
 }
 
-/* ═══ 이 회차의 하이라이트 — 포스터 + 트랙리스트 ═══════════ */
+/* ═══ 이 회차의 하이라이트 — 포스터 + 회차 막대 목록 ═══════════
+   HP-608(2026-10-13 조현빈, 디자인 시안 3차 중 1안 '행 바닥의 회차 막대').
+   · 행의 이름이던 '순간 N'은 왼쪽 번호와 같은 말이라 없앴다. 그 자리를 대표 채팅이 본문 크기로 차지한다.
+   · 시간과 채팅은 모든 행에서 왼쪽 같은 선에서 시작한다 — 시간을 회차 위치에 맞춰 흩어 놓은 안(2차 1안)은
+     읽기 불편했고, 시간을 오른쪽 칸으로 뺀 안(2차 4안)은 채팅과 시점을 번갈아 봐야 했다.
+   · 회차 안 위치는 행 바닥의 막대(행 폭 = 회차 길이)가 보여 준다. 짧은 채팅이어도 행 오른쪽이 막대로 마감된다.
+     길이는 1위 회차에 늘 실려 오는 durationSec(빌보드 대상)이고, 없으면 막대·눈금만 빼고 목록은 그대로 그린다.
+   · 개수와 실시간 인원은 같은 모양의 말풍선 한 쌍이다(검정 = 하이라이트, 연빨강 = 보는 중). 말풍선 꼬리 모서리(3px)는
+     둥근 모서리 4단 밖의 값이지만, 말풍선임을 알리는 모양이라 일부러 둔다. */
+const BUBBLE = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-[10px_10px_10px_3px] px-[11px] py-1.5 text-[12px] font-bold'
+
 function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveShow[]; loading: boolean }) {
   const episodeId = top?.episodeId ?? null
   const show = live.find((s) => s.showId === String(episodeId)) ?? null
   const list = top?.moments ?? []
   const peak = list.reduce<Moment | null>((a, m) => (!a || m.strength > a.strength ? m : a), null)
+  const dur = top?.durationSec && top.durationSec > 0 ? top.durationSec : null
   if (!top || !episodeId) {
     return (
       <section id="hot" className={`scroll-mt-[74px] border-t border-line ${SEC}`} aria-busy={loading}>
@@ -473,13 +484,14 @@ function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveSh
           <div className={`${loading ? 'skeleton' : 'bg-sink/60'} w-[96px] rounded-md md:w-full`} style={{ aspectRatio: '2 / 3' }} aria-hidden />
           <div>
             <RowsSkeleton rows={5} loading={loading} />
-            {!loading && <EmptyNote>아직 순간이 없습니다.</EmptyNote>}
+            {!loading && <EmptyNote>아직 하이라이트가 없습니다.</EmptyNote>}
           </div>
         </div>
       </section>
     )
   }
 
+  const viewers = show ? show.segments.reduce((a, s) => a + s.viewers, 0) : 0
   return (
     <section id="hot" className={`scroll-mt-[74px] border-t border-line ${SEC}`}>
       <SectionHead title="이 회차의 하이라이트" />
@@ -491,9 +503,16 @@ function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveSh
           <div className="min-w-0 md:mt-3">
             <p className="text-[15px] font-bold text-ink">{top.title}</p>
             <p className="mt-0.5 text-[12.5px] text-muted">{top.episodeTitle ?? episodeLabel({ seasonNumber: top.seasonNumber, episodeNumber: top.episodeNumber }, top.contentType)}</p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-muted">
-              <span>순간 {list.length}개</span>
-              {show && (<><Rule /><LiveCount n={show.segments.reduce((a, s) => a + s.viewers, 0)} /></>)}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {list.length > 0 && (
+                <span className={`${BUBBLE} bg-ink text-white`}><ChatIcon size={12} weight="fill" />하이라이트 {list.length}</span>
+              )}
+              {viewers > 0 && (
+                <span className={`${BUBBLE} gap-[7px] bg-accentw text-accentd`}>
+                  <span className="size-1.5 shrink-0 rounded-full bg-accent shadow-[0_0_0_3px_rgba(229,9,20,0.16)]" aria-hidden />
+                  {viewers}명 보는 중
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -501,36 +520,63 @@ function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveSh
         {list.length === 0 ? (
           <div>
             <RowsSkeleton rows={5} loading={false} />
-            <EmptyNote>아직 순간이 없습니다.</EmptyNote>
+            <EmptyNote>아직 하이라이트가 없습니다.</EmptyNote>
           </div>
         ) : (
-          <ol className="min-w-0 divide-y divide-line border-y border-line">
-            {list.map((m, i) => {
-              const on = m === peak
-              const href = watchUrl(top.platform, top.platformEpisodeId, m.at)
-              const Row = href ? 'a' : 'div'
-              return (
-                <li key={m.at}>
-                  <Row {...(href ? { href, target: '_blank', rel: 'noopener', onClick: () => trackWatch(href, 'home_hot') } : {})}
-                    className={`group grid grid-cols-[28px_1fr_auto] items-center gap-x-3 px-2 py-3 transition-colors sm:grid-cols-[28px_64px_1fr_auto] md:gap-x-4 ${on ? 'bg-accentw' : 'hover:bg-soft'}`}>
-                    <span className="relative flex h-6 items-center justify-center">
-                      <span className={`num font-mono text-[12px] ${href ? 'group-hover:opacity-0' : ''} ${on ? 'font-bold text-accent' : 'text-muted'}`}>{i + 1}</span>
-                      {href && <PlayIcon size={12} weight="fill" className={`absolute opacity-0 group-hover:opacity-100 ${on ? 'text-accent' : 'text-ink'}`} />}
-                    </span>
-                    <span className={`num hidden font-mono text-[15px] font-bold sm:block ${on ? 'text-accent' : 'text-ink'}`}>{fmtTime(m.at)}</span>
-                    <span className="min-w-0">
-                      <span className="flex items-baseline gap-2">
-                        <span className={`num font-mono text-[14px] font-bold sm:hidden ${on ? 'text-accent' : 'text-ink'}`}>{fmtTime(m.at)}</span>
-                        <span className="truncate text-[14.5px] font-bold text-ink">순간 {i + 1}</span>
+          <div className="min-w-0">
+            {/* 막대가 회차 길이라는 걸 알려 주는 눈금. 휴대폰에선 행이 좁아 눈금 없이도 막대 끝이 곧 회차 끝으로 읽힌다. */}
+            {dur && (
+              <div className="hidden grid-cols-[40px_1fr] gap-x-4 px-2 pb-1.5 sm:grid" aria-hidden>
+                <span />
+                <span className="num relative h-4 font-mono text-[10.5px] text-faint">
+                  <span className="absolute left-0">{fmtTime(0)}</span>
+                  <span className="absolute left-1/2 -translate-x-1/2">{fmtTime(dur / 2)}</span>
+                  <span className="absolute right-0">{fmtTime(dur)}</span>
+                </span>
+              </div>
+            )}
+            <ol className="divide-y divide-line border-y border-line">
+              {list.map((m, i) => {
+                const on = m === peak
+                const href = watchUrl(top.platform, top.platformEpisodeId, m.at)
+                const Row = href ? 'a' : 'div'
+                const pos = dur ? Math.min(100, Math.max(0, (m.at / dur) * 100)) : null
+                return (
+                  <li key={m.at}>
+                    <Row {...(href ? { href, target: '_blank', rel: 'noopener', onClick: () => trackWatch(href, 'home_hot') } : {})}
+                      className="group grid grid-cols-[30px_1fr] items-start gap-x-3 px-0.5 py-3.5 transition-colors hover:bg-soft sm:grid-cols-[40px_1fr] sm:items-center sm:gap-x-4 sm:px-2 sm:pb-[13px]">
+                      {/* 속이 빈 큰 번호 — 순서만 알리고 시선은 채팅에 양보한다. 최고 반응만 빨갛게 채운다. */}
+                      <span className={`num text-center text-[26px] font-extrabold leading-none tracking-[-0.02em] sm:text-[32px] ${on ? 'text-accent' : 'text-transparent [-webkit-text-stroke:1.2px_#b9b9c4]'}`}>{i + 1}</span>
+                      <span className="min-w-0">
+                        {/* 시간 칸을 76px 로 고정해 '14:00'과 '1:30:00'이 섞여도 채팅 시작선이 흔들리지 않는다.
+                            휴대폰은 시간·꼬리표가 첫 줄, 채팅이 둘째 줄. */}
+                        <span className="grid grid-cols-[auto_1fr] items-baseline gap-x-2.5 gap-y-1 sm:grid-cols-[76px_1fr_auto] sm:gap-x-3">
+                          <span className={`num inline-flex items-center whitespace-nowrap font-mono text-[14px] font-bold ${on ? 'text-accent' : 'text-ink'}`}>
+                            {href && <PlayIcon size={10} weight="fill" className="w-0 shrink-0 opacity-0 transition-[width,opacity,margin] group-hover:mr-1.5 group-hover:w-2.5 group-hover:opacity-100 motion-reduce:transition-none" />}
+                            {fmtTime(m.at)}
+                          </span>
+                          <span className={`col-span-2 row-start-2 min-w-0 text-[14.5px] leading-[1.5] sm:col-span-1 sm:row-start-auto ${m.quote ? 'text-ink2' : 'text-faint'}`}>
+                            {m.quote ? decodeEntities(m.quote) : '대표 채팅 없음'}
+                          </span>
+                          {on && (
+                            <span className="inline-flex items-center gap-1 justify-self-end whitespace-nowrap rounded-sm border-[1.5px] border-accent bg-raise px-2 py-[3px] text-[11.5px] font-bold text-accent sm:justify-self-auto">
+                              <FireIcon size={12} weight="fill" />최고 반응
+                            </span>
+                          )}
+                        </span>
+                        {pos !== null && (
+                          <span className="relative mt-2.5 block h-1 rounded-full bg-sink sm:mt-3" aria-hidden>
+                            <span className={`absolute inset-y-0 left-0 rounded-full ${on ? 'bg-accent/30' : 'bg-ink/[0.18]'}`} style={{ width: `${pos}%` }} />
+                            <span className={`absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-warm ${on ? 'bg-accent' : 'bg-ink'}`} style={{ left: `${pos}%` }} />
+                          </span>
+                        )}
                       </span>
-                      <span className="mt-0.5 block truncate text-[12.5px] text-muted">{m.quote ? `“${decodeEntities(m.quote)}”` : '대표 채팅 없음'}</span>
-                    </span>
-                    <span className={`text-[11.5px] ${on ? 'font-bold text-accent' : 'text-faint'}`}>{on ? '최고 반응' : ''}</span>
-                  </Row>
-                </li>
-              )
-            })}
-          </ol>
+                    </Row>
+                  </li>
+                )
+              })}
+            </ol>
+          </div>
         )}
       </div>
     </section>
