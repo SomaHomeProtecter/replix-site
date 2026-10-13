@@ -7,6 +7,8 @@ export type Route =
   | { page: 'me' }
 
 export function parseRoute(hash: string): Route
+export function pageKey(route: Route): string
+export function isAuthReturn(search: string): boolean
 export function titleHref(contentId: number, episodeId?: number | null): string
 export function reviewHref(contentId: number): string
 export function noticeHref(id?: number | null): string
