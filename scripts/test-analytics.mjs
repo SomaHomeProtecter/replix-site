@@ -447,7 +447,45 @@ assert.match(src, /if \(internalNow\(\)\) p\.traffic_type = 'internal';/, 'Ampli
 assert.match(src, /internalNow\(\) \? \{ traffic_type: 'internal' \} : \{\}/, 'GA config 에 팀 표시 — 수집 요청의 tt=internal');
 assert.match(src, /function boot\(\) \{\s*syncFlags\(\);/, '표시 쿼리는 부트에서 가장 먼저 읽는다(동의·SDK 보다 앞)');
 assert.match(src, /function syncFlags\(\) \{\s*var f = readFlags\(location\.search\);/, '부트의 표시 읽기는 readFlags 로(위 검사가 지키는 규칙)');
-assert.match(src, /if \(f\.found\) \{\s*try \{ history\.replaceState\(history\.state, '', location\.pathname \+ f\.rest \+ location\.hash\); \}/,
-  '표시 쿼리는 읽은 뒤 주소창에서 지운다 — 표시된 주소가 공유되면 밖의 방문자까지 팀으로 표시된다');
+assert.match(src, /var c = stripClickIds\(f\.rest\);\s*if \(f\.found \|\| c\.found\) \{\s*try \{ history\.replaceState\(history\.state, '', location\.pathname \+ c\.rest \+ location\.hash\); \}/,
+  '표시 쿼리·광고 클릭 식별값은 읽은 뒤 주소창에서 지운다 — 표시된 주소가 공유되면 밖의 방문자까지 팀으로 표시되고, 식별값은 SDK·GA·리플레이가 읽는다');
+
+// ── 광고 클릭 식별값(HP-628) — 처리방침 수집 항목에 없어 부트 때 주소에서 지운다 ──
+assert.deepEqual([...a.CLICK_ID_PARAMS].sort(),
+  ['dclid', 'fbclid', 'gbraid', 'gclid', 'ko_click_id', 'li_fat_id', 'msclkid', 'rdt_cid', 'ttclid', 'twclid', 'wbraid'],
+  'Amplitude 웹 귀속이 주소에서 읽는 11종(analytics-browser 2.45.8)과 같다');
+assert.deepEqual(a.stripClickIds('?utm_source=meta&fbclid=PAZXh0bgNhZW0&utm_content=a_all'),
+  { rest: '?utm_source=meta&utm_content=a_all', found: true }, '인스타그램 광고 착지 주소 — fbclid 만 빠지고 utm 은 남는다');
+assert.deepEqual(a.stripClickIds('?gclid=1&gbraid=2&wbraid=3&dclid=4&msclkid=5&ttclid=6&twclid=7&li_fat_id=8&rdt_cid=9&ko_click_id=10'),
+  { rest: '', found: true });
+assert.deepEqual(a.stripClickIds('?utm_campaign=fall%20sale&x=a+b'), { rest: '?utm_campaign=fall%20sale&x=a+b', found: false },
+  '식별값이 없으면 그대로 — 나머지는 원래 글자 그대로');
+assert.deepEqual(a.stripClickIds('?fbclid'), { rest: '', found: true }, '값 없는 키도 뺀다');
+assert.deepEqual(a.stripClickIds('?xfbclid=1&gclid2=1'), { rest: '?xfbclid=1&gclid2=1', found: false }, '키는 정확히 같아야 한다');
+assert.deepEqual(a.stripClickIds('?state=s&code=c&gclid=g'), { rest: '?state=s&code=c', found: true }, '로그인 왕복 값은 건드리지 않는다');
+assert.deepEqual(a.stripClickIds(''), { rest: '', found: false });
+assert.deepEqual(a.stripClickIds(undefined), { rest: '', found: false });
+
+// ── 거부 뒤 전송 관문(HP-628) — 보내는 순간 수집 상태를 다시 본다 ──
+{
+  const sent = [];
+  let allow = true;
+  const config = { transportProvider: { send: async (url, payload, compress) => { sent.push(['fetch', url, compress]); return { status: 'success' }; } } };
+  assert.equal(a.gateTransport(config, () => allow), config);
+  assert.deepEqual(await config.transportProvider.send('u1', {}, true), { status: 'success' }, '허용 중에는 그대로 보낸다');
+  allow = false;
+  assert.equal(await config.transportProvider.send('u2', {}, false), null,
+    '거부 뒤에는 보내지 않고 null — SDK 가 그 묶음을 다시 보내지 않고 버린다(처리방침 6항 "미전송 기록 즉시 삭제")');
+  config.transportProvider = { send: async (url) => { sent.push(['beacon', url]); return { status: 'success' }; } };   // setTransport('beacon')
+  assert.equal(await config.transportProvider.send('u3', {}, false), null, '떠날 때 전송 수단이 바뀌어도 관문은 남는다');
+  allow = true;
+  await config.transportProvider.send('u4', {}, false);
+  assert.deepEqual(sent, [['fetch', 'u1', true], ['beacon', 'u4']], '바뀐 전송 수단으로 보내고, 막힌 묶음은 어디로도 나가지 않았다');
+}
+const loadSdkSrc = src.slice(src.indexOf('function loadSdk()'), src.indexOf('function ensureGa()'));
+assert.ok(loadSdkSrc.indexOf('a.add(sendGatePlugin())') > 0 && loadSdkSrc.indexOf('a.add(sendGatePlugin())') < loadSdkSrc.indexOf('a.init('),
+  '관문 플러그인은 init 앞에 붙인다 — init 뒤 첫 묶음 전송부터 관문을 지난다');
+assert.match(src, /setup: function \(config\) \{ gateTransport\(config, function \(\) \{ return !config\.optOut && collecting\(\); \}\);/,
+  '관문은 SDK 거부 상태(optOut)와 우리 수집 상태(collecting)를 함께 본다');
 
 console.log('scripts/test-analytics.mjs: 통과');

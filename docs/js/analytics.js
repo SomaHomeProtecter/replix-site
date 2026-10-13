@@ -90,6 +90,13 @@ export var GA_TRAFFIC_PARAMS = ['source', 'medium', 'campaign', 'term', 'content
    · 두 쿼리는 읽은 뒤 주소창에서 지운다 — 표시된 주소가 그대로 공유되면 밖의 방문자까지 팀으로 표시된다. */
 export var INTERNAL_KEY = 'replix_internal';
 export var DEBUG_KEY = 'replix_analytics_debug';
+/* ─── 광고 클릭 식별값(HP-628) ──────────────────────────────────────
+   광고 플랫폼이 클릭마다 주소에 붙이는 값(구글 gclid·gbraid·wbraid·dclid, 메타 fbclid, 틱톡·X·링크드인·레딧·카카오·MS 의
+   것). Amplitude Browser SDK 의 웹 귀속은 이 11종을 주소에서 읽어 사용자 속성(`gclid`·`initial_gclid` …)으로 보낸다
+   (2.45.8 코드 확인, 2026-10-14 운영 수집 요청 실측). 처리방침의 수집 항목에 없어 **부트 때 주소에서 지운다** — SDK·GA·
+   리플레이 모두 이 값을 보지 못한다. 우리는 광고 플랫폼 전환 태그(픽셀)를 쓰지 않아 지워도 잃는 측정이 없다. 수집 범위
+   조사(HP-627) 결과에 따라 처리방침에 적고 다시 모을지 정한다. */
+export var CLICK_ID_PARAMS = ['dclid', 'fbclid', 'gbraid', 'gclid', 'ko_click_id', 'li_fat_id', 'msclkid', 'rdt_cid', 'ttclid', 'twclid', 'wbraid'];
 /* ─── 옵트아웃(HP-466) ───────────────────────────────────────────
    · **두 표면 모두.** 처음엔 랜딩만이었다가 같은 날 고경우 결정으로 작품 탐색도 넣었다. 작품 탐색은 로그인(Keycloak)이
      있지만 웹 이벤트에 회원 식별값을 싣지 않으므로 '식별하지 않는다'는 조건이 그대로다 — 아래 넷째 항목이 이걸 지킨다.
@@ -148,6 +155,33 @@ export function readFlags(search) {
   });
   out.rest = kept.length ? '?' + kept.join('&') : '';
   return out;
+}
+/* 주소의 광고 클릭 식별값(CLICK_ID_PARAMS)을 뺀 나머지 쿼리('?…' 또는 '')를 원래 글자 그대로 돌려준다. found 는 뺀 것이 있었는가. */
+export function stripClickIds(search) {
+  var kept = [], found = false;
+  String(search || '').replace(/^\?/, '').split('&').forEach(function (part) {
+    if (!part) return;
+    var eq = part.indexOf('='), key = eq < 0 ? part : part.slice(0, eq);
+    if (CLICK_ID_PARAMS.indexOf(key) >= 0) { found = true; return; }
+    kept.push(part);
+  });
+  return { rest: kept.length ? '?' + kept.join('&') : '', found: found };
+}
+/* 거부 뒤 전송 관문(HP-628). SDK 의 수집 거부(setOptOut)는 새 이벤트만 막고, 이미 메모리 큐에 든 묶음은 1초 묶음 전송으로 그대로
+   보낸다 — 처리방침 6항 "철회하면 아직 전송되지 않은 기록과 분석용 식별값이 즉시 삭제됩니다"와 반대다(2026-10-14 실측: 거부 0.5~0.7초
+   뒤 1건). 그래서 **보내는 순간** allowed() 를 다시 보고, 아니면 보내지 않고 null 을 돌려준다 — SDK 는 전송 결과 null 을 '예상 못 한
+   오류'로 처리해 그 묶음을 다시 보내지 않고 버린다(analytics-browser 2.45.8 Destination.send). config 는 플러그인 setup 이 받는 설정
+   객체로, 전송 단계가 보낼 때마다 이 객체의 transportProvider 를 읽는다. 접근자로 바꿔 두므로 setTransport('beacon')(떠날 때)로
+   전송 수단이 바뀌어도 안쪽만 바뀌고 관문은 남는다. */
+export function gateTransport(config, allowed) {
+  var inner = config.transportProvider;
+  var gate = { send: function (url, payload, compress) { return allowed() && inner ? inner.send(url, payload, compress) : Promise.resolve(null); } };
+  Object.defineProperty(config, 'transportProvider', {
+    configurable: true, enumerable: true,
+    get: function () { return gate; },
+    set: function (v) { inner = v; },
+  });
+  return config;
 }
 /* GA page_location 에 남길 쿼리 — 광고 캠페인 값만, 처음 나온 순서·첫 값으로. 없으면 빈 문자열.
    값은 원래 주소의 글자 그대로 옮긴다 — 풀었다 다시 싸면 공백(%20)이 '+' 로 바뀌어 GA 의 캠페인 이름이 원래와 달라진다. */
@@ -331,8 +365,10 @@ function syncFlags() {
     if (localStorage.getItem(INTERNAL_KEY) === '1') _internal = true;
     if (localStorage.getItem(DEBUG_KEY) === '1') _debug = true;
   } catch (_) { /* 저장소를 못 읽으면 쿼리로 받은 값만 */ }
-  if (f.found) {
-    try { history.replaceState(history.state, '', location.pathname + f.rest + location.hash); } catch (_) { /* 주소창은 그대로 둔다 */ }
+  /* 광고 클릭 식별값도 여기서 지운다 — SDK·GA·리플레이가 붙기 전(부트 첫 줄)이라 어느 것도 이 값을 보지 못한다(HP-628). */
+  var c = stripClickIds(f.rest);
+  if (f.found || c.found) {
+    try { history.replaceState(history.state, '', location.pathname + c.rest + location.hash); } catch (_) { /* 주소창은 그대로 둔다 */ }
   }
 }
 function replayOptOutNow() { return replayOptOutOn(location.hostname, Date.now()); }
@@ -381,6 +417,14 @@ function detachReplay(a) {
   try { a.remove(_replay.name); } catch (_) { /* 이미 떨어졌거나 SDK 내부 오류 */ }
   _replay = null;
 }
+/* 거부 뒤 전송 관문 플러그인(HP-628) — 보내는 순간 SDK 거부 상태(optOut)와 우리 수집 상태(collecting)를 함께 본다. */
+function sendGatePlugin() {
+  return {
+    name: 'replix-send-gate', type: 'before',
+    setup: function (config) { gateTransport(config, function () { return !config.optOut && collecting(); }); return Promise.resolve(); },
+    execute: function (event) { return Promise.resolve(event); },
+  };
+}
 function loadSdk() {
   /* 수집 게이트를 여기서도 본다 — 허용 버튼(setConsent)은 send 를 거치지 않고 바로 부르는데, SDK 는 init 만으로 세션 이벤트를 보낸다. */
   if (_sdk !== 'idle' || !collecting()) return;
@@ -390,6 +434,9 @@ function loadSdk() {
   s.onload = function () {
     var a = amp();
     if (!a) { _sdk = 'idle'; return; }
+    /* 거부 뒤 전송 관문(gateTransport) — init 앞에 붙이면 SDK 가 init 뒤 설정 객체로 setup 을 부른다. 관문을 못 붙이면(SDK 오류)
+       계측은 그대로 가고 거부 직후의 묶음만 막지 못한다(종전과 같다). */
+    try { a.add(sendGatePlugin()); } catch (_) { /* fail-open */ }
     /* localhost(http)에서도 기기 쿠키가 남아야 검증이 된다 — secure 는 프로토콜을 따른다. */
     var cfg = Object.assign({}, SDK_CONFIG, {
       cookieOptions: Object.assign({}, SDK_CONFIG.cookieOptions, { secure: location.protocol === 'https:' }),
@@ -594,7 +641,8 @@ function boot() {
      SDK 는 그것을 localStorage 큐에 남겨 다음 SDK 페이지가 보내게 하지만, /privacy·/terms 처럼 SDK 가 없는 곳으로 가면
      다음 방문까지 밀린다(2026-09-21 실측: /terms 이동 뒤 AMP_unsent 에 그대로 남음) — pagehide 에서 beacon 으로 비운다.
      beacon 은 응답을 못 받아 재시도가 없으므로 떠날 때만 쓰고, bfcache 로 되돌아오면 fetch 로 복귀한다.
-     철회 상태면 optOut 이 걸려 있어 flush 가 아무것도 보내지 않는다. */
+     철회 상태면 collecting() 이 거짓이라 여기서 flush 하지 않고, SDK 의 1초 묶음 전송도 관문(gateTransport)이 막는다 —
+     optOut 만으로는 이미 큐에 든 묶음이 나간다(HP-628). */
   window.addEventListener('pagehide', function () {
     var a = amp();
     if (_sdk === 'ready' && a && collecting()) { try { a.setTransport('beacon'); a.flush(); } catch (_) { /* fail-open */ } }
