@@ -131,6 +131,24 @@ export function sendAllowed(hostname, debug) { return !isLocalHost(hostname) || 
 export function internalTraffic(hostname, flag) { return envOf(hostname) !== 'prod' || flag === true; }
 /* 표시 쿼리 값 → true(켜기) · false(끄기) · null(그대로). */
 export function flagParam(value) { return value === '1' ? true : value === '0' ? false : null; }
+/* 주소의 표시 쿼리를 읽는다 — internal·debug 는 그 키의 첫 값(flagParam), rest 는 두 표시를 뺀 나머지 쿼리('?…' 또는 '')를
+   원래 글자 그대로(풀었다 다시 싸면 %20 이 + 로 바뀐다 — campaignQuery 주석), found 는 표시 키가 있었는가.
+   표시 키는 값이 틀려도 주소에서 뺀다 — 표시된 주소가 그대로 공유되면 밖의 방문자까지 팀으로 표시된다. */
+export function readFlags(search) {
+  var out = { internal: null, debug: null, rest: '', found: false }, kept = [], seen = [];
+  String(search || '').replace(/^\?/, '').split('&').forEach(function (part) {
+    if (!part) return;
+    var eq = part.indexOf('='), key = eq < 0 ? part : part.slice(0, eq);
+    var name = key === INTERNAL_KEY ? 'internal' : key === DEBUG_KEY ? 'debug' : null;
+    if (!name) { kept.push(part); return; }
+    out.found = true;
+    if (seen.indexOf(name) >= 0) return;
+    seen.push(name);
+    out[name] = flagParam(eq < 0 ? null : part.slice(eq + 1));
+  });
+  out.rest = kept.length ? '?' + kept.join('&') : '';
+  return out;
+}
 /* GA page_location 에 남길 쿼리 — 광고 캠페인 값만, 처음 나온 순서·첫 값으로. 없으면 빈 문자열.
    값은 원래 주소의 글자 그대로 옮긴다 — 풀었다 다시 싸면 공백(%20)이 '+' 로 바뀌어 GA 의 캠페인 이름이 원래와 달라진다. */
 export function campaignQuery(search) {
@@ -302,22 +320,19 @@ function collecting() { return sendAllowed(location.hostname, _debug) && collect
 function internalNow() { return internalTraffic(location.hostname, _internal); }
 /* 표시 쿼리(?replix_internal=1|0, ?replix_analytics_debug=1|0)를 이 브라우저에 반영하고 주소창에서 지운 뒤, 저장된 표시를 읽는다. */
 function syncFlags() {
-  var params = null, changed = false;
-  try { params = new URLSearchParams(location.search); } catch (_) { /* 주소를 못 읽으면 저장된 표시만 본다 */ }
-  [INTERNAL_KEY, DEBUG_KEY].forEach(function (k) {
-    var on = params ? flagParam(params.get(k)) : null;
-    if (on === null) return;
-    try { if (on) localStorage.setItem(k, '1'); else localStorage.removeItem(k); } catch (_) { /* 저장 불가 — 이번 로드에만 */ }
-    params.delete(k); changed = true;
-    if (k === INTERNAL_KEY) _internal = on; else _debug = on;
+  var f = readFlags(location.search);
+  [[INTERNAL_KEY, f.internal], [DEBUG_KEY, f.debug]].forEach(function (e) {
+    if (e[1] === null) return;
+    try { if (e[1]) localStorage.setItem(e[0], '1'); else localStorage.removeItem(e[0]); } catch (_) { /* 저장 불가 — 이번 로드에만 */ }
   });
+  if (f.internal !== null) _internal = f.internal;
+  if (f.debug !== null) _debug = f.debug;
   try {
     if (localStorage.getItem(INTERNAL_KEY) === '1') _internal = true;
     if (localStorage.getItem(DEBUG_KEY) === '1') _debug = true;
   } catch (_) { /* 저장소를 못 읽으면 쿼리로 받은 값만 */ }
-  if (changed) {
-    var q = params.toString();
-    try { history.replaceState(history.state, '', location.pathname + (q ? '?' + q : '') + location.hash); } catch (_) { /* 주소창은 그대로 둔다 */ }
+  if (f.found) {
+    try { history.replaceState(history.state, '', location.pathname + f.rest + location.hash); } catch (_) { /* 주소창은 그대로 둔다 */ }
   }
 }
 function replayOptOutNow() { return replayOptOutOn(location.hostname, Date.now()); }

@@ -419,6 +419,21 @@ assert.equal(a.flagParam('1'), true);
 assert.equal(a.flagParam('0'), false);
 assert.equal(a.flagParam(null), null, '쿼리가 없으면 저장된 표시 그대로');
 assert.equal(a.flagParam('yes'), null);
+// 표시 쿼리 읽기 — 켜기·끄기·그대로와, 주소창에 남길 나머지 쿼리(원래 글자 그대로). 표시 키는 값이 틀려도 주소에서 뺀다
+// (표시된 주소가 공유되면 밖의 방문자까지 팀으로 표시된다).
+const NO_FLAGS = { internal: null, debug: null, rest: '', found: false };
+assert.deepEqual(a.readFlags('?replix_internal=1'), { internal: true, debug: null, rest: '', found: true });
+assert.deepEqual(a.readFlags('?utm_campaign=fall%20sale&replix_internal=0&replix_analytics_debug=1&x=a+b'),
+  { internal: false, debug: true, rest: '?utm_campaign=fall%20sale&x=a+b', found: true }, '표시만 빼고 나머지는 원래 글자 그대로(%20·+ 그대로)');
+assert.deepEqual(a.readFlags('?replix_internal=yes&replix_internal=1&utm_source=a'), { internal: null, debug: null, rest: '?utm_source=a', found: true },
+  '첫 값만 본다(URLSearchParams.get 과 같다) — 값이 틀려도 표시 키는 모두 주소에서 뺀다');
+assert.deepEqual(a.readFlags('?replix_analytics_debug'), { internal: null, debug: null, rest: '', found: true }, '값 없는 표시 키도 뺀다');
+assert.deepEqual(a.readFlags('?utm_source=a&xreplix_internal=1&replix_internal2=1'),
+  { internal: null, debug: null, rest: '?utm_source=a&xreplix_internal=1&replix_internal2=1', found: false }, '키는 정확히 같아야 한다');
+assert.deepEqual(a.readFlags('?state=s&code=c&iss=https%3A%2F%2Fauth.replix.tv&replix_internal=1'),
+  { internal: true, debug: null, rest: '?state=s&code=c&iss=https%3A%2F%2Fauth.replix.tv', found: true }, '로그인 왕복 값은 건드리지 않는다');
+assert.deepEqual(a.readFlags(''), NO_FLAGS);
+assert.deepEqual(a.readFlags(undefined), NO_FLAGS);
 assert.equal(a.INTERNAL_KEY, 'replix_internal');
 assert.equal(a.DEBUG_KEY, 'replix_analytics_debug');
 assert.equal(a.internalTraffic('replix.tv', false), false, '운영 + 표시 없음 = 실사용자');
@@ -431,7 +446,8 @@ assert.match(src, /function loadSdk\(\) \{[\s\S]{0,200}if \(_sdk !== 'idle' \|\|
 assert.match(src, /if \(internalNow\(\)\) p\.traffic_type = 'internal';/, 'Amplitude 공통 속성에 팀 표시(값은 상수 — 사람을 가리키지 않는다)');
 assert.match(src, /internalNow\(\) \? \{ traffic_type: 'internal' \} : \{\}/, 'GA config 에 팀 표시 — 수집 요청의 tt=internal');
 assert.match(src, /function boot\(\) \{\s*syncFlags\(\);/, '표시 쿼리는 부트에서 가장 먼저 읽는다(동의·SDK 보다 앞)');
-assert.match(src, /history\.replaceState\(history\.state, '', location\.pathname \+ \(q \? '\?' \+ q : ''\) \+ location\.hash\)/,
+assert.match(src, /function syncFlags\(\) \{\s*var f = readFlags\(location\.search\);/, '부트의 표시 읽기는 readFlags 로(위 검사가 지키는 규칙)');
+assert.match(src, /if \(f\.found\) \{\s*try \{ history\.replaceState\(history\.state, '', location\.pathname \+ f\.rest \+ location\.hash\); \}/,
   '표시 쿼리는 읽은 뒤 주소창에서 지운다 — 표시된 주소가 공유되면 밖의 방문자까지 팀으로 표시된다');
 
 console.log('scripts/test-analytics.mjs: 통과');
