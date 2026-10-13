@@ -10,7 +10,9 @@ const read = (p) => readFileSync(resolve(root, p), 'utf8');
 
 const invite = read('docs/invite/index.html');
 const together = read('docs/together/index.html');
-const STORE = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp';
+// 웹 스토어 링크 — 스토어 대시보드가 어느 페이지에서 왔는지 가르게 utm 을 붙인다(HP-615). 페이지는 계측하지 않는다(아래 공통 규칙).
+const store = (medium) => ('https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=' + medium)
+  .replace(/[.?]/g, '\\$&');
 
 // 화면 글자 — HTML 주석·<style>을 빼고, <script> 안에서는 주석을 뺀 문자열 리터럴만, 나머지는 태그를 뺀 본문.
 function screenText(html) {
@@ -62,7 +64,7 @@ assert.match(invite, /credentials: 'omit'/, '공개 GET — 쿠키를 싣지 않
 assert.match(invite, /var PREVIEW_TIMEOUT_MS = \d+;/, '요약이 늦으면 요약 없이 안내한다');
 assert.match(invite, /title\.textContent = copy\.title;/, '작품명은 textContent 로만 넣는다(HTML 주입 방지)');
 assert.match(invite, /getElementById\('desc'\)\.textContent = copy\.desc;/);
-assert.match(invite, new RegExp(`<a class="btn cta" href="${STORE}" target="_blank"`),
+assert.match(invite, new RegExp(`<a class="btn cta" href="${store('invite')}" target="_blank"`),
   '[크롬에 추가]는 웹 스토어를 새 탭으로 — 이 탭이 남아 있어야 설치 뒤 익스텐션이 이어 간다');
 assert.match(invite, /<p class="sub">설치가 끝나면 이 페이지에서 자동으로 이어져요\.<\/p>/);
 assert.match(invite, /openLink\.textContent = '이미 설치했어요\. ' \+ NAV\[pk\]\.name \+ '에서 열기';\s*openLink\.href = url;/,
@@ -76,7 +78,7 @@ assert.match(together, /<main id="bad" hidden>/, 'p 가 없으면 잘못된 링�
 assert.match(together, /if \(isMobileDevice\(/, '휴대폰 판정으로 갈린다');
 assert.match(together, /<main id="mobile" hidden>[\s\S]*?id="copy"/, '휴대폰은 PC 안내 + 링크 복사');
 assert.match(together, /<h1 class="title" id="title" tabindex="-1">리플릭스 익스텐션이 설치된 PC 크롬에서 열어 주세요<\/h1>/);
-assert.match(together, new RegExp(`<a class="btn cta" href="${STORE}" target="_blank"`));
+assert.match(together, new RegExp(`<a class="btn cta" href="${store('together')}" target="_blank"`));
 assert.match(together, /<p class="sub">설치가 끝나면 이 페이지에서 자동으로 이어져요\.<\/p>/);
 assert.doesNotMatch(together, /fetch\(|XMLHttpRequest|sendBeacon/, '연결 토큰을 어디로도 보내지 않는다(익스텐션만 읽는다)');
 

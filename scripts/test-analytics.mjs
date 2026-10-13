@@ -1,7 +1,7 @@
 // scripts/test-analytics.mjs — 계측 모듈의 순수 함수 + 소스 규칙 검사. 랜딩은 빌드가 없어 이 검사가 회귀망이다.
 // 실행: node scripts/test-analytics.mjs
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -361,6 +361,47 @@ assert.match(discordPage, /<a class="btn btn--ghost btn--sm" href="https:\/\/chr
 assert.match(discordPage, /<script type="module" src="\/js\/analytics\.js"><\/script>/, '/discord/ 는 analytics.js 로 센다(허용한 방문자만)');
 assert.doesNotMatch(discordPage, /data-analytics-settings|googletagmanager|cdn\.amplitude/, '/discord/ 에 배너 입구·정적 태그를 두지 않는다');
 assert.doesNotMatch(read('docs/together/index.html'), /analytics\.js|amplitude|gtag/i, '/together 도 계측하지 않는다(연결 토큰, README 계약)');
+
+// ③ 웹 스토어 링크 — 전부 utm_source=replix.tv 와 위치(utm_medium)를 단다. 값은 그 버튼의 install_cta_clicked location 과 같은 낱말.
+const STORE_BASE = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp';
+const storeHrefs = (html) => [...html.matchAll(/href="(https:\/\/chromewebstore\.google\.com\/[^"]*)"/g)].map((m) => m[1].replace(/&amp;/g, '&'));
+const htmlFiles = (dir) => readdirSync(resolve(root, dir), { withFileTypes: true }).flatMap((d) =>
+  d.isDirectory() ? htmlFiles(`${dir}/${d.name}`) : d.name.endsWith('.html') ? [`${dir}/${d.name}`] : []);
+const EXPECTED_MEDIUMS = {
+  'docs/index.html': ['nav', 'hero', 'close'],
+  'docs/invite/index.html': ['invite'],
+  'docs/together/index.html': ['together'],
+  'docs/discord/index.html': ['discord'],
+  'docs/bye/index.html': ['bye'],
+};
+for (const file of htmlFiles('docs').filter((f) => f !== 'docs/catalog/index.html')) {
+  const hrefs = storeHrefs(read(file));
+  assert.deepEqual(hrefs.map((h) => new URL(h).searchParams.get('utm_medium')), EXPECTED_MEDIUMS[file] || [],
+    `${file}: 스토어 링크의 utm_medium — 새 링크를 붙이면 이 표와 트래킹 플랜 §12 를 같이`);
+  for (const h of hrefs) {
+    const u = new URL(h);
+    assert.equal(u.origin + u.pathname, STORE_BASE, `${file}: Replix 스토어 페이지`);
+    assert.equal(u.searchParams.get('utm_source'), 'replix.tv', `${file}: utm_source`);
+  }
+}
+for (const tag of [index, discordPage].flatMap((html) => html.match(/<a\s[^>]*chromewebstore[^>]*>/g))) {
+  assert.match(tag, new RegExp(`utm_medium=${/data-cta="([^"]+)"/.exec(tag)[1]}"`), `utm_medium 이 data-cta 와 같다 — ${tag}`);
+}
+const { storeUrl, STORE_BASE: CATALOG_STORE } = await import('../catalog/app/src/store-pure.js');
+assert.equal(CATALOG_STORE, STORE_BASE);
+assert.equal(storeUrl('catalog_nav'), `${STORE_BASE}?utm_source=replix.tv&utm_medium=catalog_nav`);
+assert.equal(storeUrl('catalog_feedback', '/reviews'), `${STORE_BASE}/reviews?utm_source=replix.tv&utm_medium=catalog_feedback`);
+const catalogStoreUses = [];
+for (const f of ['catalog/app/src/components/Chrome.tsx', 'catalog/app/src/pages/Title.tsx']) {
+  const s = read(f);
+  assert.doesNotMatch(s, /chromewebstore\.google\.com/, `${f}: 스토어 주소는 storeUrl 로만(위치 utm 이 빠지지 않게)`);
+  for (const m of s.matchAll(/href=\{storeUrl\('(\w+)'\)\}[^>]*data-cta="(\w+)"/g)) {
+    assert.equal(m[1], m[2], `${f}: utm_medium 이 data-cta 와 같다`);
+    catalogStoreUses.push(m[1]);
+  }
+}
+assert.deepEqual(catalogStoreUses.sort(), ['catalog_footer', 'catalog_nav', 'catalog_title'], '작품 탐색 설치 링크 세 곳');
+assert.ok(read('docs/catalog/index.html').includes('utm_source=replix.tv&utm_medium='), '작품 탐색 산출물을 다시 빌드했다(커밋된 산출물이 곧 배포물)');
 
 // ⑤ 로컬·팀 트래픽 — 로컬은 디버그 표시 없이는 보내지 않고, 팀 브라우저는 버리지 않고 traffic_type=internal 로 표시만 한다.
 for (const h of ['localhost', '127.0.0.1', '127.1.2.3', '[::1]', '::1', '0.0.0.0', '192.168.0.10', '10.0.0.5', '172.16.0.1', '172.31.255.255', 'mac.local', 'site.localhost', '']) {

@@ -32,7 +32,7 @@ assert.doesNotMatch(css.replace(/@layer components \{[\s\S]*?\n\}/, ''), /^\.btn
 
 // ① 헤더 — 휴대폰(760px 이하) = 로고·작품·돋보기·로그인(닉네임 메뉴). 설치 버튼·홈으로는 761px 부터.
 const tag = (re) => (chrome.match(re) || [''])[0];
-const install = tag(/<a href=\{STORE\}[^>]*data-cta="catalog_nav"[^>]*>/);
+const install = tag(/<a href=\{storeUrl\('catalog_nav'\)\}[^>]*data-cta="catalog_nav"[^>]*>/);
 assert.match(install, /\bhidden\b/, '헤더 설치 버튼은 휴대폰에서 숨긴다');
 assert.match(install, /min-\[761px\]:inline-flex/, '헤더 설치 버튼은 761px 부터 보인다');
 const home761 = tag(/<a href="\/" className="btn btn--ghost[^"]*">/);

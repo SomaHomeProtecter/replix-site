@@ -55,7 +55,8 @@ assert.equal(errorMessage(400), '보내지 못했어요. 잠시 뒤 다시 시�
 
 // 상수 — 별점 라벨(인덱스 0은 미선택이라 빈 문자열)·스토어 리뷰 링크.
 assert.deepEqual(STAR_LABELS, ['', '별로예요', '아쉬워요', '괜찮아요', '좋아요', '최고예요']);
-assert.equal(STORE_URL, 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp/reviews');
+assert.equal(STORE_URL, 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp/reviews?utm_source=replix.tv&utm_medium=catalog_feedback',
+  '스토어 평가 화면 + 어디서 왔는지(HP-615)');
 
 // 화면 고정 문구 — 글자 그대로(세트 A). 화면(FeedbackModal.tsx)은 이 상수만 쓰므로 여기서 어긋나면 바로 걸린다.
 assert.deepEqual(CHIPS, [

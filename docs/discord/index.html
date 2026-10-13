@@ -6,7 +6,7 @@
      맞춰 본다). 스타일 = css/discord.css(디스코드·크롬 창 공통) + css/discord-page.css(이 페이지).
      계측(HP-615): 위 띠의 설치 버튼만 install_cta_clicked{location: discord} 로 센다 — js/analytics.js 를 싣지만 이 페이지는
      처리방침의 미선택 수집 범위(첫 화면·작품 탐색) 밖이라, 이미 [허용]한 방문자의 클릭만 보내고 배너·리플레이·페이지뷰는 없다
-     (analytics.js fullSurface). -->
+     (analytics.js fullSurface). 스토어 링크의 utm_medium=discord 는 동의와 무관하게 스토어 대시보드가 센다. -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -40,7 +40,7 @@
 <header class="dp-top">
   <div class="wrap">
     <a href="/" aria-label="Replix 첫 화면으로"><img src="/assets/logo/replix-horizontal-light.png" alt="Replix" height="30"></a>
-    <a class="btn btn--ghost btn--sm" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" data-cta="discord">크롬 익스텐션 설치하기</a>
+    <a class="btn btn--ghost btn--sm" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=discord" target="_blank" rel="noopener" data-cta="discord">크롬 익스텐션 설치하기</a>
   </div>
 </header>
 
