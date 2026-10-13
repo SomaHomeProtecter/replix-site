@@ -13,7 +13,10 @@ import Keycloak, { type KeycloakInitOptions } from 'keycloak-js'
 import { useEffect, useState } from 'react'
 import { track } from './analytics'
 import { API_BASE } from './config'
-import { consentBody, nicknameOf, versionsFrom, type ConsentCurrent, type ConsentVersions } from './consent-pure.js'
+import {
+  consentBody, loginKindOf, nicknameOf, versionsFrom,
+  type ConsentCurrent, type ConsentSaved, type ConsentVersions, type LoginKind,
+} from './consent-pure.js'
 
 const FLAG = 'replix_catalog_signed_in'
 
@@ -129,18 +132,22 @@ async function resolveAccount(justLoggedIn: boolean) {
   let current: ConsentCurrent | null = null
   try { current = await getJson<ConsentCurrent>(`${CONSENT_PATH}/current`, token) } catch { /* 미동의로 본다 */ }
   if (gen !== accountGen) return
-  if (current?.accepted) await becomeMember(gen, token, justLoggedIn ? false : null)
+  if (current?.accepted) await becomeMember(gen, token, justLoggedIn ? { isNewUser: false, loginKind: 'login' } : null)
   else setAccount({ kind: 'consent', versions: versionsFrom(current) })
 }
 
+/* 로그인 완료 계측(트래킹 플랜 §6 login_completed). isNewUser 는 '동의 창을 거쳤는가'라 재동의한 기존 회원도 true 다 — 쌓인 차트가
+   깨지지 않게 뜻은 그대로 두고, 가입은 loginKind 'signup' 으로 가른다(HP-619). null 이면 새로고침으로 세션을 되살린 것이라 세지 않는다. */
+type Completion = { isNewUser: boolean; loginKind: LoginKind } | null
+
 /** 동의한 회원이 됐다 — 닉네임(/users/me displayName)을 읽는다. 이 API 는 계정을 만들므로 동의 뒤에만 부른다.
- *  닉네임을 못 읽어도 회원이다(이름 자리엔 '내 계정'). isNewUser 가 null 이면 새로고침으로 세션을 되살린 것이라 세지 않는다. */
-async function becomeMember(gen: number, token: string, isNewUser: boolean | null) {
+ *  닉네임을 못 읽어도 회원이다(이름 자리엔 '내 계정'). completion 이 null 이면 로그인 완료로 세지 않는다. */
+async function becomeMember(gen: number, token: string, completion: Completion) {
   let name: string | null = null
   try { name = nicknameOf(await getJson<{ displayName?: string | null }>('/api/v1/users/me', token)) } catch { /* 이름 없이 회원 */ }
   if (gen !== accountGen) return
   setAccount({ kind: 'member', name })
-  if (isNewUser !== null) track('login_completed', { is_new_user: isNewUser }) // 트래킹 플랜 v4
+  if (completion) track('login_completed', { is_new_user: completion.isNewUser, login_kind: completion.loginKind }) // 트래킹 플랜 v4·v17
 }
 
 /* 동의로 회원이 된 직후 한 번, 헤더의 계정 메뉴가 나타나며 포커스를 받는다 — 동의 모달이 사라지면 포커스가 body 로
@@ -152,8 +159,8 @@ export function takeAccountFocus(): boolean {
   return take
 }
 
-/** 동의 저장 = 계정 생성. 실패하면 서버 오류 코드를 돌려준다 — 문서가 갱신됐으면(OUTDATED_LEGAL_DOCUMENTS) 서버의
- *  새 버전을 다시 읽어 두므로, 화면은 체크를 풀고 새 문서에 다시 동의받는다(익스텐션과 같다). */
+/** 동의 저장 = 계정 생성(계정이 없을 때 — 이미 있는 회원이면 재동의). 실패하면 서버 오류 코드를 돌려준다 — 문서가
+ *  갱신됐으면(OUTDATED_LEGAL_DOCUMENTS) 서버의 새 버전을 다시 읽어 두므로, 화면은 체크를 풀고 새 문서에 다시 동의받는다(익스텐션과 같다). */
 export async function acceptConsent(): Promise<{ ok: boolean; code?: string }> {
   if (account.kind !== 'consent') return { ok: false }
   const { versions } = account
@@ -170,7 +177,15 @@ export async function acceptConsent(): Promise<{ ok: boolean; code?: string }> {
     })
   } catch { return { ok: false } }
   if (gen !== accountGen) return { ok: false }
-  if (res.ok) { focusAccountOnce = true; await becomeMember(gen, token, true); return { ok: true } }
+  if (res.ok) {
+    /* 응답의 newAccount(이번 저장이 계정을 만들었는가, HP-619)로 가입과 재동의를 가른다. 본문을 못 읽어도 동의는 저장됐다 —
+       계측만 consent(모름)로 센다. */
+    let saved: ConsentSaved | null = null
+    try { saved = (await res.json()) as ConsentSaved } catch { /* 본문 없음·비JSON */ }
+    focusAccountOnce = true
+    await becomeMember(gen, token, { isNewUser: true, loginKind: loginKindOf(saved) })
+    return { ok: true }
+  }
   let code: string | undefined
   try { code = ((await res.json()) as { code?: string }).code } catch { /* 본문 없음 */ }
   if (code === 'OUTDATED_LEGAL_DOCUMENTS') {
