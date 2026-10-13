@@ -145,7 +145,7 @@
      이미지가 특정 영역으로 확대됐다. */
   grid-template-rows: 100%;
   aspect-ratio: 16/8.6; min-height: 330px;
-  /* 전환 값은 스크롤에 바로 붙어야 하므로 transition 을 걸지 않는다 — .reveal 의 등장만 남긴다. */
+  /* 전환 애니메이션은 #intro 의 --rx 가 맡는다(아래 @property) — 여기는 .reveal 의 등장만 남긴다. */
   transition: opacity .52s var(--ease), transform .52s var(--ease);
   /* Replix 쪽으로 갈수록 화면이 붉게 발광한다 - 상태 전환이 카드의 기운으로도
      읽히는 시각 장치. 원본(0)이면 .screen 의 기본 그림자만 남는다. */
@@ -184,11 +184,20 @@
 @media (max-width: 620px) { .ctrl-ics--r { display: none; } }
 
 /* 진행도(--rx) 0 = 원래 화면. 우리가 얹은 것(패널·탄막·이모지·히트맵·'반응 몰림')만
-   그 비율만큼 펴지고 걷힌다. 스크롤에 바로 붙어야 하므로 transition 은 없다. */
+   그 비율만큼 펴지고 걷힌다.
+   전환은 스크롤 위치에 비례하지 않고 경계를 넘는 순간 0↔1 로 한 번에 넘어간다(HP-602,
+   js/hero.js). 그 사이를 이어 주는 것이 --rx 의 transition 인데, 사용자 정의 속성은 @property 로
+   숫자라고 등록해야 중간값이 생긴다(등록하지 않으면 0 과 1 사이를 뛰어넘는다). 이를 못 읽는
+   브라우저에서는 애니메이션 없이 바로 바뀐다. .rx-anim 은 hero.js 가 첫 값을 넣은 뒤에 붙인다 —
+   처음부터 걸려 있으면 원본 위치에서 열린 페이지가 Replix(초깃값 1)에서 원본으로 되감기는
+   모습을 보여 준다. */
+@property --rx { syntax: "<number>"; inherits: true; initial-value: 1; }
+#intro.rx-anim { transition: --rx .6s var(--ease); }
+@media (prefers-reduced-motion: reduce) { #intro.rx-anim { transition: none; } }
 .hero-screen .panel { opacity: var(--rx, 1); }
 /* 패널이 좁게 열려 있는 동안 채팅이 한두 글자씩 세로로 줄바꿈되지 않게, 속 내용은 제 폭을
    지키고 왼쪽 가장자리에 붙는다 — 열릴수록 아바타·이름(말의 앞부분)부터 밀려 들어온다.
-   (버튼 전환은 0.4초라 이 중간 상태가 안 보였지만, 스크롤에 맞추면 오래 머문다.)
+   (0.6초 전환 동안 잠깐 지나가는 중간 상태다.)
    1px 은 패널 왼쪽 경계선 몫. */
 .hero-screen .panel > * { width: calc(var(--pw) - 1px); max-width: none; align-self: flex-start; }
 .hero-screen .floaters, .hero-screen .dm-layer { opacity: var(--rx, 1); }

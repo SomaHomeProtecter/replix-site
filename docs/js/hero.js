@@ -262,35 +262,46 @@ function simulateType() {
   }, 90);
 }
 
-/* ── 원본↔Replix 스크롤 전환 (HP-467) ─────────────────────
+/* ── 원본↔Replix 스크롤 전환 (HP-467 → HP-602) ─────────────────────
    2026-09-12 김찬수 기획 멘토링 반영(2026-09-23 김지호 반영안): 토글을 누르는 대신,
-   페이지가 평소대로 흐르는 동안 제품 화면의 가운데가 뷰포트 높이 78% → 36% 지점으로
-   올라오는 구간을 진행도로 삼는다 — 아래에서 들어올 땐 넷플릭스 원본, 읽기 좋은 높이에
-   오면 Replix, 되올리면 거꾸로. 값은 #intro 의 --rx(0 = 원본, 1 = Replix) 하나로 흘리고
-   모양은 css/hero.css 가 그린다. 토글 알약은 누르는 버튼이 아니라 진행 표시다.
+   페이지가 평소대로 흐르는 동안 제품 화면이 아래에서 올라와 경계를 넘으면 Replix 로,
+   되올려 경계 아래로 내려가면 넷플릭스 원본으로 바뀐다. 값은 #intro 의 --rx(0 = 원본,
+   1 = Replix) 하나로 흘리고, 0↔1 사이의 0.6초 애니메이션과 모양은 css/hero.css 가 맡는다.
+   토글 알약은 누르는 버튼이 아니라 지금 어느 쪽인지 보여 주는 표시다.
+   경계 방식은 HP-602(2026-10-13 조현빈 결정)다. 그 전엔 스크롤 위치에 비례해 조금씩 바꿨는데
+   ('화면 가운데가 뷰포트 78% → 36%'), 다 바뀐 모습을 보려면 제목·알약이 화면 위로 사라질
+   만큼 내려가야 했고 화면을 가운데 둔 채로는 74% 에서 멈춰 있었다.
    ⚠ 화면을 sticky 로 붙잡아 두고 바꾸는 방식은 쓰지 않는다 — 2026-09-23 "스크롤이
    거기서 멈추는 느낌" 피드백으로 기각됐다. */
 var intro = document.getElementById("intro");
 var heroToggle = document.getElementById("heroToggle");
-var RX_FROM = 0.78, RX_TO = 0.36;
-var rxNow = -1, rxSawOrig = false, rxTracked = false;
+var siteNav = document.getElementById("nav");
+/* RX_EDGE = 경계에서 화면이 보이는 영역 가장자리와 띄울 여백(px). RX_BACK = 원본으로 되돌아가는
+   경계를 그만큼 아래에 둔다(px) — 경계 하나로 오가면 그 근처에서 손을 멈춘 사람에게 한두 px
+   흔들림마다 전환이 되풀이된다. */
+var RX_EDGE = 24, RX_BACK = 80;
+var rxOn = null, rxSawOrig = false, rxTracked = false;
 
-/* 스크롤 이벤트는 브라우저가 이미 프레임당 한 번으로 묶어 보낸다. 읽기 한 번 → 값이
-   바뀔 때만 쓰기 한 번이라, 구간 밖에서는 아무것도 다시 그리지 않는다. */
+/* 스크롤 이벤트는 브라우저가 이미 프레임당 한 번으로 묶어 보낸다. 읽기 → 경계를 넘었을 때만
+   쓰기 한 번이라, 그 밖에서는 아무것도 다시 그리지 않는다. */
 function scrub() {
   var r = heroScreen.getBoundingClientRect();
-  var c = (r.top + r.height / 2) / innerHeight;
-  var t = Math.min(1, Math.max(0, (RX_FROM - c) / (RX_FROM - RX_TO)));
-  /* smoothstep — 시작·끝이 부드럽게. 모션을 끈 사용자에게는 연속 변화 대신 중간에서 한 번에 넘긴다. */
-  var rx = reduce ? (t >= 0.5 ? 1 : 0) : Math.round(t * t * (3 - 2 * t) * 1000) / 1000;
-  if (rx === rxNow) return;
-  rxNow = rx;
-  intro.style.setProperty("--rx", rx);
-  if (heroToggle) heroToggle.classList.toggle("is-orig", rx < 0.5);
-  /* 계측(W4) — 원본에서 시작해 Replix 까지 다 넘겨 본 페이지뷰당 1회. 앵커 이동·새로고침으로
-     이미 지나친 위치에서 열린 경우(처음부터 1)는 전환을 본 게 아니므로 세지 않는다. */
-  if (rx === 0) rxSawOrig = true;
-  if (rx === 1 && rxSawOrig && !rxTracked) {
+  /* 경계 = 화면 아래 끝까지 다 들어온 위치 — 전환 0.6초 동안 화면 전체가 보인다. 뷰포트가 낮아
+     화면이 보이는 영역(위에 붙은 메뉴 막대 .nav 아래)보다 크면, 위 끝이 메뉴 막대 아래에 닿는 위치.
+     화면이 75% 보일 때 넘기는 안도 시험했으나 다 들어온 뒤 넘기는 쪽으로 정했다(2026-10-13 조현빈). */
+  var line = Math.max(innerHeight - RX_EDGE - r.height, (siteNav ? siteNav.offsetHeight : 0) + RX_EDGE);
+  var on = rxOn ? r.top < line + RX_BACK : r.top <= line;
+  if (on === rxOn) return;
+  var first = rxOn === null;
+  rxOn = on;
+  intro.style.setProperty("--rx", on ? 1 : 0);
+  if (heroToggle) heroToggle.classList.toggle("is-orig", !on);
+  /* 첫 값은 애니메이션 없이 넣는다 — 값을 계산된 스타일로 한 번 확정한 뒤 transition 을 켠다. */
+  if (first) { getComputedStyle(intro).getPropertyValue("--rx"); intro.classList.add("rx-anim"); }
+  /* 계측(W4) — 원본에서 시작해 Replix 로 넘어가는 것을 본 페이지뷰당 1회. 앵커 이동·새로고침으로
+     이미 지나친 위치에서 열린 경우(처음부터 Replix)는 전환을 본 게 아니므로 세지 않는다. */
+  if (!on) rxSawOrig = true;
+  if (on && rxSawOrig && !rxTracked) {
     rxTracked = true;
     track('demo_interacted', { demo: 'hero_toggle', action: 'scroll_complete' });
   }
