@@ -12,6 +12,9 @@
       (replayFor). 아래 REPLAY_FROM·REPLAY_OPTOUT_FROM 참조.
    ⑥ Google Analytics(HP-465)도 **같은 동의 뒤에만**, 처리방침 시행일부터 붙인다 — 아래 GA_FROM 참조. 자동 수집 값
       (전체 URL·문서 제목·전체 리퍼러)을 정리된 값으로 덮어 Amplitude 와 같은 금지 목록(트래킹 플랜 §2)을 지킨다.
+   ⑦ 수집 범위(HP-615): 옵트아웃·리플레이·배너는 처리방침이 이름을 들어 밝힌 두 표면(첫 화면 `/`·작품 탐색)에서만이다
+      (fullSurface). 그 밖의 페이지(/discord/)는 이 파일을 실어도 이미 [허용]한 방문자의 클릭만 보낸다. 로컬 호스트는
+      디버그 표시 없이는 보내지 않고(sendAllowed), 팀 브라우저는 버리지 않고 traffic_type=internal 로 표시만 한다.
    카탈로그(React)는 이 파일을 /js/analytics.js 로 따로 로드해 window.ReplixAnalytics 로만 부른다.
    node 에서 import 하면 부트하지 않는다(scripts/test-analytics.mjs 가 순수 함수를 검사한다). */
 export var CONSENT_KEY = 'replix_web_analytics_consent_v1';
@@ -30,7 +33,7 @@ export var API_KEYS = { prod: '6f7bcf8fc37e9f93d442f943c23b6861', dev: 'fa98652a
      순간 채팅 목록 `amp-mask`(Title.tsx), 계정 메뉴 `amp-mask`(Chrome.tsx). 검색창·입력란은 아래 medium 이 가린다.
      ⚠️ 작품 탐색에 남의 글·이름을 보여 주는 새 화면을 붙이면 그 요소에 `amp-mask` 를 단다(테스트가 위 셋을 고정).
    · **시행일부터.** 2026-10-01 공고와 동시에 시행한다 — 법정 사전 공지 기간은 없고 개인정보위 작성지침도 "개정 전 또는
-     개정 즉시 공지"다(고경우 결정, 처리방침 11항도 같이 고침). 운영(replix.tv)만 날짜를 본다. 로컬·미리보기는 검증할 수 있어야 하므로 항상 켠다(dev 프로젝트로 간다).
+     개정 즉시 공지"다(고경우 결정, 처리방침 11항도 같이 고침). 운영(replix.tv)만 날짜를 본다. 그 밖은 날짜와 무관하게 켜되(dev 프로젝트로 간다), 로컬은 디버그 표시가 있을 때만 보낸다(HP-615).
      ⚠️ 공고(=이 변경의 배포·공지 게시)가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
    · **입력값은 가린다**(medium). 랜딩에는 입력 필드·이용자 생성 콘텐츠가 없지만, 생겨도 새 나가지 않게.
    · **랜딩·한국 시간대는 옵트아웃**(2026-10-10 고경우 결정, REPLAY_OPTOUT_FROM). 국내 주요 사이트를 2026-10-10 실측한 결과
@@ -52,16 +55,40 @@ export var SR_URL = 'https://cdn.amplitude.com/libs/plugin-session-replay-browse
 export var SR_CONFIG = { sampleRate: 1, storeType: 'memory', privacyConfig: { defaultMaskLevel: 'medium' } };
 /* ─── Google Analytics(HP-465) ────────────────────────────────────
    · **같은 동의 뒤에만.** 처리방침 6항이 "동의한 경우에만 분석 도구로 보낸다"고 약속한다 — 배너 세부(bannerDetail 버전 3)가 Google 을 밝힌다.
-   · **시행일부터.** 2026-10-01 공고와 동시에 시행(리플레이와 같은 개정, 위 주석 참조). 운영만 날짜를 본다. 로컬·미리보기는 검증할 수 있게 항상 켜되 traffic_type=internal 로 표시해 GA 의
-     'Internal Traffic' 데이터 필터로 걸러 낸다. ⚠️ 공고가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
+   · **시행일부터.** 2026-10-01 공고와 동시에 시행(리플레이와 같은 개정, 위 주석 참조). 운영만 날짜를 본다. 로컬은 디버그 표시가 있을 때만
+     보내고(sendAllowed), 운영이 아닌 곳의 수집은 traffic_type=internal 로 표시해 GA 의 'Internal Traffic' 데이터 필터로 걸러 낸다.
+     ⚠️ 공고가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
    · **자동 수집 값을 덮어쓴다.** gtag 는 기본으로 전체 URL(카탈로그 해시의 작품 번호)·문서 제목·전체 리퍼러(검색어·
      초대 토큰)를 싣는다 — gaPage() 가 정리한 값만 보낸다. 자동 page_view 는 끄고 page() 가 직접 보낸다.
+     주소의 쿼리는 광고 캠페인 값(GA_CAMPAIGN_PARAMS)만 남긴다 — GA 는 세션 첫 page_view 의 주소에서 캠페인을 읽어서, 쿼리를
+     통째로 지우던 때(HP-615 전)는 유료 광고 세션이 리퍼러(instagram.com 등)만 보고 'Organic Social' 로 잡혔다.
+   · **이벤트 속성 이름 중 유입 경로 예약어는 GA 로 보낼 때 바꾼다**(gaParams). 작품 탐색의 catalog_engaged{source: 'nav'} 가
+     세션 소스 'nav' 로 잡혔다(2026-10-13 GA 리포트 22세션) — gtag 는 ep.source 로 그대로 보내고 GA 서버가 유입 경로로 해석한다.
+     같은 계열(medium·campaign·term·content)도 GA 쪽 이름을 정하기 전에는 싣지 않는다. Amplitude 는 기존 차트를 깨지 않게 그대로 둔다.
    · ⚠️ GA 관리 화면의 **향상된 측정은 꺼 둔다**(이탈 클릭이 넷플릭스 재생 주소를, 사이트 검색이 검색어를 싣는다).
      이건 코드로 막을 수 없는 원격 설정이다(트래킹 플랜 §7). */
 export var GA_ID = 'G-MVDJ0Z60LJ';
 export var GA_FROM = Date.parse('2026-10-01T00:00:00+09:00');
 export var GA_URL = 'https://www.googletagmanager.com/gtag/js?id=';
 export var GA_CONFIG = { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false };
+/* page_location 에 남기는 쿼리 — UTM 다섯과 Google Ads 자동 태깅 값 셋(다음 광고가 유튜브라서). UTM 은 캠페인 단위 값이고
+   자동 태깅 값은 Google 이 광고 클릭마다 붙이는 값이라 우리 쪽에서는 작품·회원과 이어지지 않는다(Amplitude 어트리뷰션도 같은 값을
+   받아 왔다). 그 밖(작품·회차 번호, 초대·로그인 왕복 값, 팀 표시)은 지금처럼 지운다(§2). */
+export var GA_CAMPAIGN_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'gbraid', 'wbraid'];
+/* GA 쪽 이름을 따로 정한 이벤트 속성. 유입 경로 예약어 중 여기 없는 것은 GA 에 아예 싣지 않는다(gaParams). */
+export var GA_PARAM_RENAME = { source: 'click_source' };
+export var GA_TRAFFIC_PARAMS = ['source', 'medium', 'campaign', 'term', 'content'];
+/* ─── 로컬·팀 트래픽(HP-615) ──────────────────────────────────────
+   팀·개발 트래픽이 실데이터에 섞였다(2026-10-13: 작품 탐색 조회 268회 중 245회가 팀으로 보이는 18명, GA 에 localhost 14세션).
+   · **로컬 호스트는 보내지 않는다** — 개발 중 확인이 필요하면 ?replix_analytics_debug=1 로 이 브라우저에 표시를 남긴다(=0 이면 해제).
+     표시가 있으면 지금까지처럼 dev 프로젝트·traffic_type=internal 로 보낸다.
+   · **팀 브라우저는 표시만 한다** — ?replix_internal=1 로 들어오면 이 브라우저에 표시를 남기고(=0 이면 해제), 표시가 있으면 GA 에
+     traffic_type=internal(GA 'Internal Traffic' 데이터 필터가 보는 값), Amplitude 에 같은 이름의 이벤트 속성을 싣는다. 버리지 않는다 —
+     거르는 것은 GA 관리 화면의 필터와 Amplitude 차트 조건이 한다. 모든 팀 브라우저가 같은 상수라 사람을 가리키지 않는다
+     (회원 식별값·이메일·IP 와 무관 — 옵트아웃 근거 그대로). 동의 규칙도 그대로 따른다.
+   · 두 쿼리는 읽은 뒤 주소창에서 지운다 — 표시된 주소가 그대로 공유되면 밖의 방문자까지 팀으로 표시된다. */
+export var INTERNAL_KEY = 'replix_internal';
+export var DEBUG_KEY = 'replix_analytics_debug';
 /* ─── 옵트아웃(HP-466) ───────────────────────────────────────────
    · **두 표면 모두.** 처음엔 랜딩만이었다가 같은 날 고경우 결정으로 작품 탐색도 넣었다. 작품 탐색은 로그인(Keycloak)이
      있지만 웹 이벤트에 회원 식별값을 싣지 않으므로 '식별하지 않는다'는 조건이 그대로다 — 아래 넷째 항목이 이걸 지킨다.
@@ -88,6 +115,41 @@ export var SDK_CONFIG = {
 /* ═══ 순수 함수 (node 테스트 대상) ═══════════════════════════════ */
 export function envOf(hostname) { return hostname === 'replix.tv' || hostname === 'www.replix.tv' ? 'prod' : 'dev'; }
 export function surfaceOf(pathname) { return /^\/catalog(\/|$)/.test(pathname || '') ? 'web_catalog' : 'web_landing'; }
+/* 처리방침이 이름을 들어 밝힌 두 표면(첫 화면·작품 탐색)인가. 옵트아웃·리플레이·배너·첫 로드의 SDK 는 여기서만 —
+   그 밖의 페이지(/discord/)는 처리방침의 미선택 수집 범위 밖이라 이미 [허용]한 방문자의 클릭만 보낸다(HP-615). */
+export function fullSurface(pathname) { return /^\/(index\.html)?$/.test(pathname || '/') || surfaceOf(pathname) === 'web_catalog'; }
+/* 로컬 개발 호스트인가 — 루프백·사설망·.local/.localhost·file://(빈 호스트). 휴대폰으로 같은 망의 개발 서버를 여는 경우까지. */
+export function isLocalHost(hostname) {
+  var h = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+  return h === '' || h === 'localhost' || h === '0.0.0.0' || h === '::1' || /\.(localhost|local)$/.test(h) ||
+    /^(127|10)\.\d+\.\d+\.\d+$/.test(h) || /^192\.168\.\d+\.\d+$/.test(h) || /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/.test(h);
+}
+/* 이 호스트에서 분석 도구로 보내도 되는가 — 로컬은 디버그 표시가 있을 때만. */
+export function sendAllowed(hostname, debug) { return !isLocalHost(hostname) || debug === true; }
+/* 팀·개발 트래픽 표시를 붙이는가 — 운영이 아닌 곳(디버그로 보낸 로컬)이거나 팀 브라우저 표시가 있을 때. */
+export function internalTraffic(hostname, flag) { return envOf(hostname) !== 'prod' || flag === true; }
+/* 표시 쿼리 값 → true(켜기) · false(끄기) · null(그대로). */
+export function flagParam(value) { return value === '1' ? true : value === '0' ? false : null; }
+/* GA page_location 에 남길 쿼리 — 광고 캠페인 값만, 처음 나온 순서·첫 값으로. 없으면 빈 문자열.
+   값은 원래 주소의 글자 그대로 옮긴다 — 풀었다 다시 싸면 공백(%20)이 '+' 로 바뀌어 GA 의 캠페인 이름이 원래와 달라진다. */
+export function campaignQuery(search) {
+  var kept = [], seen = [];
+  String(search || '').replace(/^\?/, '').split('&').forEach(function (part) {
+    var eq = part.indexOf('='), key = eq < 0 ? part : part.slice(0, eq);
+    if (eq < 0 || eq === part.length - 1 || GA_CAMPAIGN_PARAMS.indexOf(key) < 0 || seen.indexOf(key) >= 0) return;
+    seen.push(key); kept.push(part);
+  });
+  return kept.length ? '?' + kept.join('&') : '';
+}
+/* GA 로 보내는 이벤트 속성 — 유입 경로 예약어는 GA_PARAM_RENAME 의 이름으로 바꾸고, 이름을 정하지 않은 예약어는 뺀다. */
+export function gaParams(props) {
+  var out = {};
+  Object.keys(props || {}).forEach(function (k) {
+    var name = GA_PARAM_RENAME[k] || k;
+    if (GA_TRAFFIC_PARAMS.indexOf(name) < 0) out[name] = props[k];
+  });
+  return out;
+}
 /* 쿼리는 받지도 않고, 카탈로그 해시는 라우트 이름까지만 남긴다 — '#/title/123/ep/4' → '#/title'. */
 export function cleanPath(pathname, hash) {
   var path = (pathname || '/').replace(/\/index\.html$/, '/') || '/';
@@ -98,9 +160,9 @@ export function cleanPath(pathname, hash) {
 export function deviceClass(width) { return width < 768 ? 'mobile' : (width < 1024 ? 'tablet' : 'desktop'); }
 /* 리플레이 조항이 시행 중인가 — 운영은 시행일부터, 그 밖은 항상. */
 export function replayInForce(hostname, nowMs) { return envOf(hostname) !== 'prod' || nowMs >= REPLAY_FROM; }
-/* 표면(랜딩·작품 탐색)은 가리지 않는다 — pathname 은 표면을 다시 좁힐 때를 위해 남겨 둔 인자다. */
+/* 랜딩·작품 탐색은 가리지 않는다. 그 밖의 페이지는 녹화 범위(처리방침 1항 '첫 화면과 작품 탐색') 밖이라 허용해도 찍지 않는다. */
 export function replayOn(hostname, pathname, nowMs) {
-  return replayInForce(hostname, nowMs);
+  return fullSurface(pathname) && replayInForce(hostname, nowMs);
 }
 /* 랜딩·한국 시간대의 리플레이 옵트아웃 조항이 시행 중인가 — 운영은 시행일부터, 그 밖은 항상. */
 export function replayOptOutOn(hostname, nowMs) { return envOf(hostname) !== 'prod' || nowMs >= REPLAY_OPTOUT_FROM; }
@@ -119,11 +181,12 @@ export function consentVersion(hostname, nowMs) {
   if (envOf(hostname) !== 'prod' || nowMs >= GA_FROM) return CONSENT_VERSION;
   return replayInForce(hostname, nowMs) ? 2 : 1;
 }
-/* GA 에 싣는 페이지 값 — 주소는 cleanPath(작품·회차 번호 없음), 제목은 표면 이름으로 고정(문서 제목에 작품명이
-   들어가도 새지 않게), 리퍼러는 외부면 출처만·같은 출처면 정리된 경로(검색어·초대 토큰이 실리지 않게). */
-export function gaPage(origin, pathname, hash, referrer) {
+/* GA 에 싣는 페이지 값 — 주소는 cleanPath(작품·회차 번호 없음) + 광고 캠페인 쿼리(campaignQuery), 제목은 표면 이름으로
+   고정(문서 제목에 작품명이 들어가도 새지 않게), 리퍼러는 외부면 출처만·같은 출처면 정리된 경로(검색어·초대 토큰이 실리지 않게). */
+export function gaPage(origin, pathname, hash, referrer, search) {
+  var path = cleanPath(pathname, hash), cut = path.indexOf('#');
   var out = {
-    page_location: origin + cleanPath(pathname, hash),
+    page_location: origin + (cut < 0 ? path : path.slice(0, cut)) + campaignQuery(search) + (cut < 0 ? '' : path.slice(cut)),
     page_title: surfaceOf(pathname) === 'web_catalog' ? 'Replix 작품 탐색' : 'Replix 랜딩',
   };
   if (referrer) {
@@ -144,10 +207,10 @@ export function parseConsent(raw, version) {
     return v.decision === 'granted' && v.version === (version || CONSENT_VERSION) ? 'granted' : null;
   } catch (_) { return null; }
 }
-/* 옵트아웃이 적용되는가 — 한국 시간대 + (운영은) 시행일 이후. 표면(랜딩·작품 탐색)은 가리지 않는다.
+/* 옵트아웃이 적용되는가 — 한국 시간대 + 첫 화면·작품 탐색(fullSurface — 처리방침이 밝힌 미선택 수집 범위) + (운영은) 시행일 이후.
    시간대를 모르면 보수적으로 옵트인. */
-export function optOutOn(hostname, nowMs, timeZone) {
-  return timeZone === KR_TZ && (envOf(hostname) !== 'prod' || nowMs >= OPTOUT_FROM);
+export function optOutOn(hostname, nowMs, timeZone, pathname) {
+  return timeZone === KR_TZ && fullSurface(pathname) && (envOf(hostname) !== 'prod' || nowMs >= OPTOUT_FROM);
 }
 /* 이벤트(Amplitude·GA)를 보내는가. 리플레이는 이것과 별개로 replayFor 가 가른다. */
 export function collectingFor(consent, optOut) {
@@ -227,11 +290,35 @@ var _ga = 'idle';         /* 'idle' | 'loading' — gtag 는 dataLayer 가 큐�
 var _gaBlocked = false;   /* 이 페이지에서 철회한 뒤면 true — gtag 가 메모리에 쥔 옛 client id 가 재허용 뒤 이어지지 않게
                              이 페이지에서는 다시 켜지 않는다. 다음 로드부터 새 쿠키로 시작한다. */
 var _revoked = false;     /* 이 페이지에서 거부(철회)했는가 — 재허용 때만 새 device_id 를 받는다(옵트아웃 수집 → 허용은 그대로) */
+var _debug = false;       /* 로컬 호스트에서도 보내는 디버그 표시(DEBUG_KEY) — 부트 때 읽는다 */
+var _internal = false;    /* 팀 브라우저 표시(INTERNAL_KEY) — 부트 때 읽는다 */
 
 function nowVersion() { return consentVersion(location.hostname, Date.now()); }
 function timeZone() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) { return ''; } }
-function optOutNow() { return optOutOn(location.hostname, Date.now(), timeZone()); }
-function collecting() { return collectingFor(_consent, optOutNow()); }
+function optOutNow() { return optOutOn(location.hostname, Date.now(), timeZone(), location.pathname); }
+/* 보내는 상태인가 — 호스트(로컬은 디버그 표시가 있을 때만)와 동의. SDK·GA·리플레이는 모두 이 게이트 뒤에 있다. */
+function collecting() { return sendAllowed(location.hostname, _debug) && collectingFor(_consent, optOutNow()); }
+function internalNow() { return internalTraffic(location.hostname, _internal); }
+/* 표시 쿼리(?replix_internal=1|0, ?replix_analytics_debug=1|0)를 이 브라우저에 반영하고 주소창에서 지운 뒤, 저장된 표시를 읽는다. */
+function syncFlags() {
+  var params = null, changed = false;
+  try { params = new URLSearchParams(location.search); } catch (_) { /* 주소를 못 읽으면 저장된 표시만 본다 */ }
+  [INTERNAL_KEY, DEBUG_KEY].forEach(function (k) {
+    var on = params ? flagParam(params.get(k)) : null;
+    if (on === null) return;
+    try { if (on) localStorage.setItem(k, '1'); else localStorage.removeItem(k); } catch (_) { /* 저장 불가 — 이번 로드에만 */ }
+    params.delete(k); changed = true;
+    if (k === INTERNAL_KEY) _internal = on; else _debug = on;
+  });
+  try {
+    if (localStorage.getItem(INTERNAL_KEY) === '1') _internal = true;
+    if (localStorage.getItem(DEBUG_KEY) === '1') _debug = true;
+  } catch (_) { /* 저장소를 못 읽으면 쿼리로 받은 값만 */ }
+  if (changed) {
+    var q = params.toString();
+    try { history.replaceState(history.state, '', location.pathname + (q ? '?' + q : '') + location.hash); } catch (_) { /* 주소창은 그대로 둔다 */ }
+  }
+}
 function replayOptOutNow() { return replayOptOutOn(location.hostname, Date.now()); }
 /* 리플레이를 붙일 상태인가 — 조항 시행 중이고, replayFor(허용 / 랜딩·한국 시간대 미선택)가 허락할 때. */
 function replaying() {
@@ -245,13 +332,15 @@ function writeConsent(d) {
 }
 function amp() { return window.amplitude; }
 function commonProps() {
-  return {
+  var p = {
     env: envOf(location.hostname),
     surface: surfaceOf(location.pathname),
     locale: navigator.language || 'unknown',
     page_path: cleanPath(location.pathname, location.hash),
     device_class: deviceClass(window.innerWidth),
   };
+  if (internalNow()) p.traffic_type = 'internal';   /* 팀·개발 트래픽 표시 — 버리지 않고 차트 조건으로 거른다 */
+  return p;
 }
 /* 리플레이 플러그인을 SDK 에 붙인다. 스크립트가 안 실렸으면(차단·랜딩 아님) 아무 일도 하지 않는다. */
 function attachReplay(a) {
@@ -277,7 +366,8 @@ function detachReplay(a) {
   _replay = null;
 }
 function loadSdk() {
-  if (_sdk !== 'idle') return;
+  /* 수집 게이트를 여기서도 본다 — 허용 버튼(setConsent)은 send 를 거치지 않고 바로 부르는데, SDK 는 init 만으로 세션 이벤트를 보낸다. */
+  if (_sdk !== 'idle' || !collecting()) return;
   _sdk = 'loading';
   var s = document.createElement('script');
   s.src = SDK_URL; s.async = true;
@@ -320,10 +410,12 @@ function ensureGa() {
   window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
   window['ga-disable-' + GA_ID] = false;
   var dev = envOf(location.hostname) !== 'prod';
+  /* traffic_type 은 config 에 실어 이 페이지의 모든 수집 요청에 붙는다(수집 요청의 tt=internal — 2026-10-13 확인). */
   var cfg = Object.assign({}, GA_CONFIG,
-    gaPage(location.origin, location.pathname, location.hash, document.referrer),
+    gaPage(location.origin, location.pathname, location.hash, document.referrer, location.search),
     { cookie_flags: 'SameSite=Lax' + (location.protocol === 'https:' ? ';Secure' : '') },
-    dev ? { traffic_type: 'internal', debug_mode: true } : {});
+    internalNow() ? { traffic_type: 'internal' } : {},
+    dev ? { debug_mode: true } : {});
   window.gtag('js', new Date());
   window.gtag('config', GA_ID, cfg);
   var s = document.createElement('script');
@@ -332,12 +424,13 @@ function ensureGa() {
   document.head.appendChild(s);
 }
 function gaOk() { return _ga !== 'idle' && !_gaBlocked && collecting() && typeof window.gtag === 'function'; }
-/* GA 에도 같은 이름·속성으로 보낸다. page_viewed 는 GA 의 표준 page_view 로 — 페이지 값을 갱신한 뒤 보낸다(카탈로그 라우트 이동). */
+/* GA 에도 같은 이름·속성으로 보낸다(유입 경로 예약어만 gaParams 가 바꾼다). page_viewed 는 GA 의 표준 page_view 로 —
+   페이지 값을 갱신한 뒤 보낸다(카탈로그 라우트 이동). */
 function gaTrack(name, props) {
   if (!gaOk()) return;
-  var p = Object.assign({ surface: surfaceOf(location.pathname) }, props || {});
+  var p = Object.assign({ surface: surfaceOf(location.pathname) }, gaParams(props));
   if (name === 'page_viewed') {
-    var pg = gaPage(location.origin, location.pathname, location.hash, '');
+    var pg = gaPage(location.origin, location.pathname, location.hash, '', location.search);
     window.gtag('set', { page_location: pg.page_location, page_title: pg.page_title });
     window.gtag('event', 'page_view', p);
   } else {
@@ -347,6 +440,7 @@ function gaTrack(name, props) {
 /** 이벤트 1건. 이름·속성은 트래킹 플랜 §6 에 있는 것만 — 작품·회차 ID·검색어는 어떤 속성에도 싣지 않는다(§2). */
 export function track(name, props) {
   send(function (a) { a.track(name, Object.assign(commonProps(), props || {})); });
+  ensureGa();   /* 첫 화면·작품 탐색은 부트 때 이미 붙어 no-op 이다. 그 밖의 페이지(/discord/)는 허용한 방문자의 첫 클릭에서야 붙인다 */
   gaTrack(name, props);
 }
 /** page_viewed. 동의 전이면 기억만 해 두고 허용 직후 1회 보낸다. */
@@ -461,9 +555,13 @@ function hideBanner() { if (_banner) _banner.style.display = 'none'; }
 
 /* ═══ 부트 ═══════════════════════════════════════════════════════ */
 function boot() {
+  syncFlags();
   _consent = readConsent();
-  if (collecting()) { loadSdk(); ensureGa(); }   /* 허용했거나, 옵트아웃 지역의 미선택 */
-  if (_consent === null) showBanner();
+  /* 첫 화면·작품 탐색만 로드하자마자 붙이고 배너를 띄운다. 그 밖의 페이지(/discord/)는 동의를 묻지 않고, 이미 허용한
+     방문자의 클릭이 생겨야 send·track 이 SDK·GA 를 붙인다 — 미선택 수집(옵트아웃)은 처리방침의 범위 밖이다(fullSurface). */
+  var full = fullSurface(location.pathname);
+  if (full && collecting()) { loadSdk(); ensureGa(); }   /* 허용했거나, 옵트아웃 지역의 미선택 */
+  if (full && _consent === null) showBanner();
   /* 설치 CTA·랜딩 링크·분석 설정은 data 속성으로 전 표면 공통 계측 — 각 모듈이 버튼 위치를 알 필요가 없고,
      카탈로그(React)도 마크업에 속성만 붙이면 된다. capture 단계라 새 탭 이동 전에 잡힌다. */
   document.addEventListener('click', function (ev) {

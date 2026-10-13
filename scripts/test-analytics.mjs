@@ -307,4 +307,89 @@ assert.ok(index.indexOf('id="intro"') < index.indexOf('id="rooms"') && index.ind
 assert.match(read('docs/js/reveal.js'), /track\('section_viewed', \{ section: e\.target\.id \}\)/);
 assert.match(read('docs/js/reveal.js'), /rootMargin: '0px 0px -40% 0px'/, '뷰포트보다 큰 섹션도 발화하게 threshold 0 + rootMargin');
 
+// ═══ HP-615 계측 정확도 (2026-10-13 광고 성과 분석) ═══════════════════════════════
+// ① GA page_location 은 광고 캠페인 쿼리만 남긴다. GA 는 세션 첫 page_view 의 주소에서 캠페인을 읽는데, 쿼리를 통째로 지우던
+//    때는 유료 광고 세션(약 3,130)이 리퍼러만 보고 'Organic Social'(instagram.com·m.facebook.com)로 잡혔다.
+const AD = '?utm_source=meta&utm_medium=paid_social&utm_campaign=test&utm_content=a&gclid=TEST&foo=bar';
+const AD_KEPT = '?utm_source=meta&utm_medium=paid_social&utm_campaign=test&utm_content=a&gclid=TEST';
+assert.deepEqual(a.GA_CAMPAIGN_PARAMS, ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'gbraid', 'wbraid'],
+  'UTM 다섯 + Google Ads 자동 태깅 셋(다음 광고가 유튜브) — 늘리면 트래킹 플랜 §10 도');
+assert.equal(a.campaignQuery(AD), AD_KEPT, '캠페인 값은 남기고 그 밖(foo)은 지운다');
+assert.equal(a.gaPage('https://replix.tv', '/', '', '', AD).page_location, 'https://replix.tv/' + AD_KEPT);
+assert.equal(a.gaPage('https://replix.tv', '/catalog/', '#/title/123/ep/4', '', '?utm_source=youtube&gbraid=G1&wbraid=W1&utm_term=k').page_location,
+  'https://replix.tv/catalog/?utm_source=youtube&gbraid=G1&wbraid=W1&utm_term=k#/title', '쿼리는 해시 앞에 붙고, 작품·회차 번호는 그대로 빠진다');
+assert.equal(a.gaPage('https://replix.tv', '/', '', '').page_location, 'https://replix.tv/', '쿼리를 주지 않으면 종전과 같다');
+assert.equal(a.campaignQuery('?w=81234567&t=SECRET&p=netflix'), '', '초대 토큰·회차 번호는 남지 않는다');
+assert.equal(a.campaignQuery('?state=s&session_state=x&code=c&iss=https%3A%2F%2Fauth.replix.tv'), '', '로그인 왕복 값은 남지 않는다');
+assert.equal(a.campaignQuery('?replix_internal=1&replix_analytics_debug=1'), '', '팀·디버그 표시 쿼리는 남지 않는다');
+assert.equal(a.campaignQuery('?utm_source=a&utm_source=b&utm_medium='), '?utm_source=a', '같은 키는 첫 값만, 빈 값은 뺀다');
+assert.equal(a.campaignQuery('?utm_campaign=fall%20sale&fbclid=F'), '?utm_campaign=fall%20sale', 'fbclid 는 GA 가 쓰지 않아 목록 밖 — 값은 원래 글자 그대로(%20 이 + 로 바뀌지 않게)');
+assert.equal(a.campaignQuery('?utm_campaign=%EA%B0%80%EC%9D%84+%ED%8A%B9%EA%B0%80&utm_source'), '?utm_campaign=%EA%B0%80%EC%9D%84+%ED%8A%B9%EA%B0%80', '한글·+ 도 그대로, 값 없는 키는 뺀다');
+assert.equal(a.campaignQuery('?xutm_source=a&utm_source2=b'), '', '키는 정확히 같아야 한다');
+assert.equal(a.campaignQuery(''), '');
+assert.equal(a.campaignQuery(undefined), '');
+assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, document\.referrer, location\.search\)/,
+  '로드 때 config 의 page_location 에 캠페인 쿼리 — 세션 첫 hit 부터 실린다');
+assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, '', location\.search\)/, 'page_view 마다 같은 주소');
+
+// ② GA 는 이벤트 파라미터 source·medium·campaign·term·content 를 세션 유입 경로로 해석한다 — catalog_engaged{source: 'nav'} 가
+//    세션 소스 'nav' 로 잡혔다(실측 22세션). GA 로 보낼 때만 이름을 바꾸고, Amplitude 는 기존 차트를 깨지 않게 그대로 둔다.
+assert.deepEqual(a.gaParams({ feature: 'notice', action: 'opened', source: 'nav' }), { feature: 'notice', action: 'opened', click_source: 'nav' });
+assert.deepEqual(a.gaParams({ medium: 'x', campaign: 'y', term: 'z', content: 'w', kind: 'NOTICE' }), { kind: 'NOTICE' },
+  'GA 쪽 이름을 정하지 않은 예약어는 GA 에 싣지 않는다 — 새 이벤트가 실수로 써도 세션이 끊기지 않게');
+assert.deepEqual(a.gaParams(undefined), {});
+assert.match(src, /var p = Object\.assign\(\{ surface: surfaceOf\(location\.pathname\) \}, gaParams\(props\)\);/, 'GA 로 가는 속성은 gaParams 를 거친다');
+assert.match(read('catalog/app/src/components/Chrome.tsx'), /engaged\('notice', 'opened', \{ source: 'nav' \}\)/, 'Amplitude 쪽 이름(source)은 그대로');
+
+// ③ 수집 범위 — 옵트아웃·리플레이·배너는 처리방침이 밝힌 두 표면(첫 화면·작품 탐색)에서만. 그 밖(/discord/)은 허용한 방문자의 클릭만.
+for (const p of ['/', '/index.html', '/catalog/', '/catalog', '']) assert.equal(a.fullSurface(p), true, `${p}: 처리방침이 밝힌 표면`);
+for (const p of ['/discord/', '/discord/index.html', '/invite/', '/together/', '/bye/', '/privacy', '/terms.html']) {
+  assert.equal(a.fullSurface(p), false, `${p}: 미선택 수집 범위 밖`);
+}
+assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Asia/Seoul', '/discord/'), false, '/discord/ 는 한국 시간대여도 옵트아웃이 아니다 — 허용한 방문자만');
+assert.equal(a.replayOn('replix.tv', '/discord/', AFTER), false, '/discord/ 는 녹화 범위 밖 — 허용해도 찍지 않는다');
+assert.equal(a.replayOn('localhost', '/discord/', 0), false);
+assert.match(src, /var full = fullSurface\(location\.pathname\);\s*if \(full && collecting\(\)\) \{ loadSdk\(\); ensureGa\(\); \}[^\n]*\n\s*if \(full && _consent === null\) showBanner\(\);/,
+  '그 밖의 페이지는 로드 때 SDK·GA·배너가 없다');
+assert.match(src, /function optOutNow\(\) \{ return optOutOn\(location\.hostname, Date\.now\(\), timeZone\(\), location\.pathname\); \}/, '옵트아웃 판정에 경로를 넘긴다');
+assert.match(src, /export function track\(name, props\) \{[\s\S]{0,200}ensureGa\(\);[\s\S]{0,260}gaTrack\(name, props\);/,
+  '그 밖의 페이지는 허용한 방문자의 첫 클릭에서 GA 를 붙인다(첫 화면·작품 탐색은 no-op)');
+
+const discordPage = read('docs/discord/index.html');
+assert.match(discordPage, /<a class="btn btn--ghost btn--sm" href="https:\/\/chromewebstore\.google\.com\/[^"]*" target="_blank" rel="noopener" data-cta="discord">/,
+  '/discord/ 위 띠의 설치 버튼 = install_cta_clicked{location: discord}');
+assert.match(discordPage, /<script type="module" src="\/js\/analytics\.js"><\/script>/, '/discord/ 는 analytics.js 로 센다(허용한 방문자만)');
+assert.doesNotMatch(discordPage, /data-analytics-settings|googletagmanager|cdn\.amplitude/, '/discord/ 에 배너 입구·정적 태그를 두지 않는다');
+assert.doesNotMatch(read('docs/together/index.html'), /analytics\.js|amplitude|gtag/i, '/together 도 계측하지 않는다(연결 토큰, README 계약)');
+
+// ⑤ 로컬·팀 트래픽 — 로컬은 디버그 표시 없이는 보내지 않고, 팀 브라우저는 버리지 않고 traffic_type=internal 로 표시만 한다.
+for (const h of ['localhost', '127.0.0.1', '127.1.2.3', '[::1]', '::1', '0.0.0.0', '192.168.0.10', '10.0.0.5', '172.16.0.1', '172.31.255.255', 'mac.local', 'site.localhost', '']) {
+  assert.equal(a.isLocalHost(h), true, `${h || '(빈 호스트 = file://)'}: 로컬`);
+}
+for (const h of ['replix.tv', 'www.replix.tv', '172.32.0.1', '8.8.8.8', 'example.com', 'localhost.example.com']) {
+  assert.equal(a.isLocalHost(h), false, `${h}: 로컬이 아니다`);
+}
+assert.equal(a.sendAllowed('localhost', false), false, 'localhost 에서는 GA·Amplitude 로 보내지 않는다(GA 에 localhost 14세션이 섞였다)');
+assert.equal(a.sendAllowed('127.0.0.1', false), false);
+assert.equal(a.sendAllowed('localhost', true), true, '명시적 디버그 표시가 있을 때만');
+assert.equal(a.sendAllowed('replix.tv', false), true);
+assert.equal(a.flagParam('1'), true);
+assert.equal(a.flagParam('0'), false);
+assert.equal(a.flagParam(null), null, '쿼리가 없으면 저장된 표시 그대로');
+assert.equal(a.flagParam('yes'), null);
+assert.equal(a.INTERNAL_KEY, 'replix_internal');
+assert.equal(a.DEBUG_KEY, 'replix_analytics_debug');
+assert.equal(a.internalTraffic('replix.tv', false), false, '운영 + 표시 없음 = 실사용자');
+assert.equal(a.internalTraffic('replix.tv', true), true, '팀 브라우저 표시');
+assert.equal(a.internalTraffic('localhost', false), true, '운영이 아닌 곳(디버그로 보낸 로컬)은 늘 내부');
+assert.match(src, /function collecting\(\) \{ return sendAllowed\(location\.hostname, _debug\) && collectingFor\(_consent, optOutNow\(\)\); \}/,
+  '수집 게이트가 호스트를 본다 — SDK·GA·리플레이가 모두 이 뒤에 있다');
+assert.match(src, /function loadSdk\(\) \{[\s\S]{0,200}if \(_sdk !== 'idle' \|\| !collecting\(\)\) return;/,
+  '허용 버튼이 바로 부르는 loadSdk 도 같은 게이트 — SDK 는 init 만으로 세션 이벤트를 보낸다');
+assert.match(src, /if \(internalNow\(\)\) p\.traffic_type = 'internal';/, 'Amplitude 공통 속성에 팀 표시(값은 상수 — 사람을 가리키지 않는다)');
+assert.match(src, /internalNow\(\) \? \{ traffic_type: 'internal' \} : \{\}/, 'GA config 에 팀 표시 — 수집 요청의 tt=internal');
+assert.match(src, /function boot\(\) \{\s*syncFlags\(\);/, '표시 쿼리는 부트에서 가장 먼저 읽는다(동의·SDK 보다 앞)');
+assert.match(src, /history\.replaceState\(history\.state, '', location\.pathname \+ \(q \? '\?' \+ q : ''\) \+ location\.hash\)/,
+  '표시 쿼리는 읽은 뒤 주소창에서 지운다 — 표시된 주소가 공유되면 밖의 방문자까지 팀으로 표시된다');
+
 console.log('scripts/test-analytics.mjs: 통과');
