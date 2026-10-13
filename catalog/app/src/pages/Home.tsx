@@ -546,8 +546,10 @@ function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveSh
                   <li key={m.at}>
                     <Row {...(href ? { href, target: '_blank', rel: 'noopener', onClick: () => trackWatch(href, 'home_hot') } : {})}
                       className="group grid grid-cols-[30px_1fr] items-start gap-x-3 px-0.5 py-3.5 transition-colors hover:bg-soft sm:grid-cols-[40px_1fr] sm:items-center sm:gap-x-4 sm:px-2 sm:pb-[13px]">
-                      {/* 속이 빈 큰 번호 — 순서만 알리고 시선은 채팅에 양보한다. 최고 반응만 빨갛게 채운다. */}
-                      <span className={`num text-center text-[26px] font-extrabold leading-none tracking-[-0.02em] sm:text-[32px] ${on ? 'text-accent' : 'text-transparent [-webkit-text-stroke:1.2px_#b9b9c4]'}`}>{i + 1}</span>
+                      {/* 속이 빈 큰 번호 — 순서만 알리고 시선은 채팅에 양보한다. 최고 반응만 빨갛게 채운다.
+                          가변 폰트(SF Pro 등)의 '2'는 획 윤곽이 겹쳐 그려져, 투명 글자에 테두리만 두르면 겹친 안쪽 선까지 보인다.
+                          그래서 두 배 굵기 테두리를 먼저 칠하고 배경색 글자로 덮어(paint-order) 바깥 절반만 남긴다 — 행 배경(hover 포함)과 색을 맞춘다. */}
+                      <span className={`num text-center text-[26px] font-extrabold leading-none tracking-[-0.02em] sm:text-[32px] ${on ? 'text-accent' : 'text-warm transition-colors [paint-order:stroke_fill] [-webkit-text-stroke:2.4px_#b9b9c4] group-hover:text-soft motion-reduce:transition-none'}`}>{i + 1}</span>
                       <span className="min-w-0">
                         {/* 시간 칸을 76px 로 고정해 '14:00'과 '1:30:00'이 섞여도 채팅 시작선이 흔들리지 않는다.
                             휴대폰은 시간·꼬리표가 첫 줄, 채팅이 둘째 줄. */}
