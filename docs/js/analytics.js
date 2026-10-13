@@ -71,10 +71,11 @@ export var GA_ID = 'G-MVDJ0Z60LJ';
 export var GA_FROM = Date.parse('2026-10-01T00:00:00+09:00');
 export var GA_URL = 'https://www.googletagmanager.com/gtag/js?id=';
 export var GA_CONFIG = { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false };
-/* page_location 에 남기는 쿼리 — UTM 다섯과 Google Ads 자동 태깅 값 셋(다음 광고가 유튜브라서). UTM 은 캠페인 단위 값이고
-   자동 태깅 값은 Google 이 광고 클릭마다 붙이는 값이라 우리 쪽에서는 작품·회원과 이어지지 않는다(Amplitude 어트리뷰션도 같은 값을
-   받아 왔다). 그 밖(작품·회차 번호, 초대·로그인 왕복 값, 팀 표시)은 지금처럼 지운다(§2). */
-export var GA_CAMPAIGN_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'gbraid', 'wbraid'];
+/* page_location 에 남기는 쿼리 — UTM 다섯. 우리가 광고 주소에 붙이는 캠페인 단위 값이라 방문자를 가리키지 않는다.
+   광고 클릭 식별값(gclid·gbraid·wbraid·fbclid — 광고 플랫폼이 클릭마다 붙이는 값)은 남기지 않는다. 처리방침이 밝힌 GA 수집 항목은
+   '방문한 페이지(작품·회차 번호를 뺀 경로)'라 클릭 단위 식별값까지 덮지 않는다(HP-615 리뷰). 그래서 유튜브(Google Ads) 광고도
+   최종 주소에 utm 을 직접 붙여야 GA 가 캠페인으로 가른다. 그 밖(작품·회차 번호, 초대·로그인 왕복 값, 팀 표시)은 지금처럼 지운다(§2). */
+export var GA_CAMPAIGN_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
 /* GA 쪽 이름을 따로 정한 이벤트 속성. 유입 경로 예약어 중 여기 없는 것은 GA 에 아예 싣지 않는다(gaParams). */
 export var GA_PARAM_RENAME = { source: 'click_source' };
 export var GA_TRAFFIC_PARAMS = ['source', 'medium', 'campaign', 'term', 'content'];

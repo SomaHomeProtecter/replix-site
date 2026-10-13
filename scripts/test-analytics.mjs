@@ -308,22 +308,23 @@ assert.match(read('docs/js/reveal.js'), /track\('section_viewed', \{ section: e\
 assert.match(read('docs/js/reveal.js'), /rootMargin: '0px 0px -40% 0px'/, '뷰포트보다 큰 섹션도 발화하게 threshold 0 + rootMargin');
 
 // ═══ HP-615 계측 정확도 (2026-10-13 광고 성과 분석) ═══════════════════════════════
-// ① GA page_location 은 광고 캠페인 쿼리만 남긴다. GA 는 세션 첫 page_view 의 주소에서 캠페인을 읽는데, 쿼리를 통째로 지우던
+// ① GA page_location 은 광고 캠페인 쿼리(UTM)만 남긴다. GA 는 세션 첫 page_view 의 주소에서 캠페인을 읽는데, 쿼리를 통째로 지우던
 //    때는 유료 광고 세션(약 3,130)이 리퍼러만 보고 'Organic Social'(instagram.com·m.facebook.com)로 잡혔다.
+//    광고 클릭 식별값(gclid·gbraid·wbraid·fbclid)은 처리방침의 GA 수집 항목('방문한 페이지') 밖이라 남기지 않는다.
 const AD = '?utm_source=meta&utm_medium=paid_social&utm_campaign=test&utm_content=a&gclid=TEST&foo=bar';
-const AD_KEPT = '?utm_source=meta&utm_medium=paid_social&utm_campaign=test&utm_content=a&gclid=TEST';
-assert.deepEqual(a.GA_CAMPAIGN_PARAMS, ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'gbraid', 'wbraid'],
-  'UTM 다섯 + Google Ads 자동 태깅 셋(다음 광고가 유튜브) — 늘리면 트래킹 플랜 §10 도');
-assert.equal(a.campaignQuery(AD), AD_KEPT, '캠페인 값은 남기고 그 밖(foo)은 지운다');
+const AD_KEPT = '?utm_source=meta&utm_medium=paid_social&utm_campaign=test&utm_content=a';
+assert.deepEqual(a.GA_CAMPAIGN_PARAMS, ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'],
+  'UTM 다섯만 — 늘리면 처리방침의 GA 수집 항목과 트래킹 플랜 §10 도');
+assert.equal(a.campaignQuery(AD), AD_KEPT, '캠페인 값은 남기고 그 밖(광고 클릭 식별값 gclid, foo)은 지운다');
 assert.equal(a.gaPage('https://replix.tv', '/', '', '', AD).page_location, 'https://replix.tv/' + AD_KEPT);
 assert.equal(a.gaPage('https://replix.tv', '/catalog/', '#/title/123/ep/4', '', '?utm_source=youtube&gbraid=G1&wbraid=W1&utm_term=k').page_location,
-  'https://replix.tv/catalog/?utm_source=youtube&gbraid=G1&wbraid=W1&utm_term=k#/title', '쿼리는 해시 앞에 붙고, 작품·회차 번호는 그대로 빠진다');
+  'https://replix.tv/catalog/?utm_source=youtube&utm_term=k#/title', '쿼리는 해시 앞에 붙고, 광고 클릭 식별값·작품·회차 번호는 빠진다');
 assert.equal(a.gaPage('https://replix.tv', '/', '', '').page_location, 'https://replix.tv/', '쿼리를 주지 않으면 종전과 같다');
 assert.equal(a.campaignQuery('?w=81234567&t=SECRET&p=netflix'), '', '초대 토큰·회차 번호는 남지 않는다');
 assert.equal(a.campaignQuery('?state=s&session_state=x&code=c&iss=https%3A%2F%2Fauth.replix.tv'), '', '로그인 왕복 값은 남지 않는다');
 assert.equal(a.campaignQuery('?replix_internal=1&replix_analytics_debug=1'), '', '팀·디버그 표시 쿼리는 남지 않는다');
 assert.equal(a.campaignQuery('?utm_source=a&utm_source=b&utm_medium='), '?utm_source=a', '같은 키는 첫 값만, 빈 값은 뺀다');
-assert.equal(a.campaignQuery('?utm_campaign=fall%20sale&fbclid=F'), '?utm_campaign=fall%20sale', 'fbclid 는 GA 가 쓰지 않아 목록 밖 — 값은 원래 글자 그대로(%20 이 + 로 바뀌지 않게)');
+assert.equal(a.campaignQuery('?utm_campaign=fall%20sale&fbclid=F&gclid=G'), '?utm_campaign=fall%20sale', '광고 클릭 식별값은 목록 밖 — 값은 원래 글자 그대로(%20 이 + 로 바뀌지 않게)');
 assert.equal(a.campaignQuery('?utm_campaign=%EA%B0%80%EC%9D%84+%ED%8A%B9%EA%B0%80&utm_source'), '?utm_campaign=%EA%B0%80%EC%9D%84+%ED%8A%B9%EA%B0%80', '한글·+ 도 그대로, 값 없는 키는 뺀다');
 assert.equal(a.campaignQuery('?xutm_source=a&utm_source2=b'), '', '키는 정확히 같아야 한다');
 assert.equal(a.campaignQuery(''), '');
