@@ -70,7 +70,11 @@ python3 -m http.server 8000     # http://localhost:8000
   HTML 에 넣지 않는다(동의 전 수집이 된다). 시행일은 `GA_FROM` 과 `privacy.html` 을 같이 고친다. GA 관리의 **향상된 측정은 꺼 둔다**.
   **한국 시간대는 랜딩·작품 탐색 모두 2026-10-01 부터 옵트아웃**(HP-466, 트래킹 플랜 §11) — 미선택이어도 이벤트를 보내고 배너는 '안내 + 거부'.
   해외는 허용 뒤에만(리플레이는 위). ⚠️ 웹 이벤트에 회원 식별값·IP 를 싣지 않는다 — 싣는 순간 옵트아웃 근거가 무너진다.
-  검사: `node scripts/test-analytics.mjs`. `/invite` 는 계측하지 않는다(토큰).
+  검사: `node scripts/test-analytics.mjs`. `/invite`·`/together` 는 계측하지 않는다(토큰).
+  **로컬(`localhost`·`127.0.0.1`·사설망)에서는 GA·Amplitude 로 보내지 않는다**(HP-615) — 실제 전송을 봐야 하면
+  `?replix_analytics_debug=1` 로 그 브라우저에 표시를 남긴다(`=0` 해제). 팀원 브라우저는 운영에서 `?replix_internal=1` 로 한 번 들어가
+  `traffic_type=internal` 표시를 남긴다(버리지 않고 표시만, 트래킹 플랜 §5). **웹 스토어 링크에는 `utm_source=replix.tv&utm_medium=<위치>`**
+  를 붙인다(트래킹 플랜 §12 — 빠지면 검사가 깨진다).
 - **화면 안 UI 는 익스텐션의 실제 구조·색을 옮긴 것**이다. `--accent: #e50914` 등
   토큰이 `Replix-extension/styles.css` 와 짝이므로 임의로 바꾸면 설치 전후가
   다른 제품으로 보인다.

@@ -1,5 +1,6 @@
 // 피드백 순수 규칙(HP-426) — React·DOM 없이 node 로 검사한다(scripts/test-feedback.mjs).
 // 서버 계약(POST /api/v1/feedback)·문구는 웹 쪽 것만 다룬다 — 익스텐션 쪽 안내 문구·저장소 키는 다른 레포(Replix-extension).
+import { storeUrl } from './store-pure.js'
 
 const WEB_NOTE = '이메일은 받지 않고 답장은 따로 안 드려요. 답을 받고 싶으면 replix.contact@gmail.com으로 보내 주세요.'
 
@@ -54,4 +55,4 @@ export const PLACEHOLDER = '좋았던 점이나 아쉬운 점을 적어 주세�
 export const THANKS = '의견 감사합니다. 리플릭스를 더 낫게 고쳐 볼게요.'
 export const STORE_TEXT = '스토어에도 평가를 남겨 주세요 ↗'
 
-export const STORE_URL = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp/reviews'
+export const STORE_URL = storeUrl('catalog_feedback', '/reviews') // 스토어 평가 화면 — 어디서 넘어왔는지 utm 을 붙인다(HP-615)

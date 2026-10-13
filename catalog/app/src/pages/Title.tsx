@@ -17,6 +17,7 @@ import {
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../route-pure.js'
+import { storeUrl } from '../store-pure.js'
 import { engaged, trackWatch } from '../analytics'
 import { Avatar, Chip, MomentDots, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { CardGridSkeleton, EmptyNote, RailSkeleton, RowsSkeleton } from '../components/skeleton'
@@ -348,7 +349,7 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
                   {!chats.loading && log.length === 0 && <li className="px-5 py-6 text-center text-[12.5px] text-muted">채팅이 없습니다.</li>}
                 </ol>
                 <div className="flex items-center justify-end border-t border-line bg-soft px-5 py-3">
-                  <a href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp" target="_blank" rel="noopener" data-cta="catalog_title" className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-ink hover:text-accent"><PuzzlePieceIcon size={14} />크롬 익스텐션 설치하기</a>
+                  <a href={storeUrl('catalog_title')} target="_blank" rel="noopener" data-cta="catalog_title" className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-ink hover:text-accent"><PuzzlePieceIcon size={14} />크롬 익스텐션 설치하기</a>
                 </div>
               </motion.div>
             )}

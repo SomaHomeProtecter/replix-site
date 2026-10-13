@@ -5,6 +5,7 @@ import logo from '../../../../docs/assets/logo/replix-horizontal-light.png'
 // TMDB 로고 — 랜딩 푸터와 같은 원본 파일(HP-386). vite-plugin-singlefile 이 Replix 로고처럼 번들 안에 싣는다.
 import tmdbLogo from '../../../../docs/assets/logo/tmdb-primary-short-blue.svg'
 import { ME_HREF, noticeHref, titleHref, type Route } from '../route-pure.js'
+import { storeUrl } from '../store-pure.js'
 import { engaged } from '../analytics'
 import { login, logout, takeAccountFocus, useAuth } from '../auth'
 import { dismissBand, pickBand, unreadCount, useNotices } from '../notices'
@@ -12,7 +13,6 @@ import { FeedbackModal } from './FeedbackModal'
 
 /* 공개 카탈로그의 실제 목적지만 둔다. 같은 곳으로 가는 메뉴 두 개나 알림 같은 빈 약속은 두지 않는다.
    로그인은 2026-09-14부터 있다(작품 댓글·별점, HP-124) — 개인화가 아니라 쓰기 권한이다. 화면은 여전히 누구에게나 같다. */
-const STORE = 'https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp'
 /* 헤더 전체 배치(섹션 링크·늘 열린 검색창)가 들어가는 폭 — 클래스의 min-[1240px] 와 같은 값이어야 한다(HP-474). */
 const WIDE_QUERY = '(min-width: 1240px)'
 
@@ -65,7 +65,7 @@ export function Nav({ current }: { current: Route['page'] }) {
         </a>
         <NoticeLink current={current === 'notice'} />
         <AuthButton />
-        <a href={STORE} target="_blank" rel="noopener" className="btn btn--primary btn--sm hidden shrink-0 min-[761px]:inline-flex" data-cta="catalog_nav">
+        <a href={storeUrl('catalog_nav')} target="_blank" rel="noopener" className="btn btn--primary btn--sm hidden shrink-0 min-[761px]:inline-flex" data-cta="catalog_nav">
           크롬 익스텐션 설치하기
         </a>
       </div>
@@ -373,7 +373,7 @@ export function Footer() {
               {/* 처리방침은 다른 링크와 굵기·색으로 구분한다 — 표준 개인정보 보호지침 제20조 ①(HP-585, 랜딩 .foot-privacy 와 같은 규칙). */}
               <li><a href="/privacy" className="font-bold text-ink">개인정보처리방침</a></li>
               <li><a href="/terms" className="hover:text-ink">이용약관</a></li>
-              <li><a href={STORE} target="_blank" rel="noopener" className="hover:text-ink" data-cta="catalog_footer">크롬 익스텐션 설치</a></li>
+              <li><a href={storeUrl('catalog_footer')} target="_blank" rel="noopener" className="hover:text-ink" data-cta="catalog_footer">크롬 익스텐션 설치</a></li>
               {/* 방문 통계 동의를 다시 묻는다 — /js/analytics.js 가 위임 처리. 처리방침 §6 이 약속한 철회 경로. */}
               <li><a href="#" data-analytics-settings className="hover:text-ink">분석 설정</a></li>
             </ul>

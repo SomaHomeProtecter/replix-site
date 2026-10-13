@@ -8,7 +8,11 @@ import Notice from './pages/Notice'
 import Title from './pages/Title'
 import { page } from './analytics'
 import { fetchNotices } from './notices'
-import { parseRoute } from './route-pure.js'
+import { isAuthReturn, pageKey, parseRoute } from './route-pure.js'
+
+/* 로그인 왕복으로 돌아온 로드인지는 모듈을 읽는 순간에 본다 — keycloak-js 가 init 에서 응답 쿼리를 주소창에서 지우기 전이다.
+   이 로드의 첫 page_viewed 하나만 건너뛴다(route-pure.js isAuthReturn). */
+let authReturnLoad = isAuthReturn(window.location.search)
 
 /* 해시 라우터. 규칙 본체·링크 생성은 route-pure.js(노드로 검사, scripts/test-route.mjs) — 여기는 해시 구독과 화면 교체만.
    #/                                              홈
@@ -29,7 +33,7 @@ export default function App() {
   const route = useHashRoute()
   /* key 는 라우트가 바뀔 때 화면을 갈아 끼우고 아래 스크롤·계측 effect 를 다시 돌리는 용도다.
      공지·내 활동은 id 별로 나눌 필요가 없다 — 페이지 이름이 곧 key 다(공지의 id 는 anchor 가 담는다). */
-  const key = route.page === 'title' ? `title-${route.contentId}` : route.page
+  const key = pageKey(route)
   /* 공지 항목(#/notice/<id>)도 앵커로 다룬다 — 그러지 않으면 아래 effect 의 scrollTo(0,0) 가
      Notice 안에서 한 scrollIntoView 를 (자식 effect 가 먼저 돌므로) 곧바로 되돌린다. */
   const anchor = route.page === 'home' ? route.anchor : route.page === 'notice' && route.noticeId ? `n-${route.noticeId}` : null
@@ -44,8 +48,13 @@ export default function App() {
      라우트가 바뀌어도 재마운트되지 않아 그 '다음 호출'이 세션 내내 오지 않는다. 그래서 라우트 전환마다
      여기서 한 번 부른다(성공해 캐시가 있으면 no-op 이다). */
   useEffect(() => { void fetchNotices() }, [route.page, anchor])
-  // 계측: 라우트마다 page_viewed. page_path 는 analytics.js 가 해시에서 라우트 이름까지만 남긴다(작품·회차 ID 제거).
-  useEffect(() => { page({ route: route.page }) }, [key, anchor, route.page])
+  /* 계측: 페이지(key)가 바뀔 때만 page_viewed — 홈 안 앵커·공지 항목은 스크롤 이동이라 세지 않는다(HP-615 전에는 누를 때마다
+     하나씩 더 나갔다). 로그인 왕복으로 다시 열린 로드도 건너뛴다(위 authReturnLoad). page_path 는 analytics.js 가 해시에서
+     라우트 이름까지만 남긴다(작품·회차 ID 제거). */
+  useEffect(() => {
+    if (authReturnLoad) { authReturnLoad = false; return }
+    page({ route: route.page })
+  }, [key, route.page])
 
   return (
     <>

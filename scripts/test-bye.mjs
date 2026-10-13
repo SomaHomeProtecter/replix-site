@@ -118,7 +118,8 @@ assert.match(html, /<meta name="robots" content="noindex">/, '검색에 잡힐 �
 // 운영 DB로 보낸다 — 운영 콘솔(PROD)이 읽는 곳. 개발 서버로 보내면 실제 사용자의 삭제 사유가 시험 데이터에 섞인다.
 assert.match(html, /<meta name="api-base" content="https:\/\/api\.replix\.tv">/);
 assert.doesNotMatch(html, /analytics\.js|amplitude/i, '계측은 분석 동의 방식이 정해질 때까지 싣지 않는다');
-assert.match(html, /https:\/\/chromewebstore\.google\.com\/detail\/replix\/lgfllmbombkdbebcepigebnbmeaacikp"/);
+assert.match(html, /https:\/\/chromewebstore\.google\.com\/detail\/replix\/lgfllmbombkdbebcepigebnbmeaacikp\?utm_source=replix\.tv&amp;utm_medium=bye"/,
+  '다시 설치하기 — 스토어 대시보드가 삭제 설문에서 온 방문을 가르게 utm 을 붙인다(HP-615)');
 assert.doesNotMatch(html, /\/reviews/, '스토어 평가 링크는 두지 않는다(다시 설치하기만)');
 assert.match(html, /<script type="module" src="\/js\/bye\.js"><\/script>/);
 // 보낸 뒤 제목은 두 줄로 나눠 그리지만 글자는 HP-426 감사 문구 그대로여야 한다

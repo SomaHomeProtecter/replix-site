@@ -19,6 +19,20 @@ export function parseRoute(hash) {
   return { page: 'home', anchor: a ? a[1] : null };
 }
 
+/** 화면을 갈아 끼우고 page_viewed 를 세는 단위 — 페이지 이름, 작품은 작품마다. 홈 안 앵커(#/ranking·#/hot·#/live)·
+ *  공지 항목(#/notice/{id})·회차 선택(/ep/{id})·평가 칸(/review)은 같은 페이지 안 이동이라 키가 같다 — 누를 때마다
+ *  페이지뷰가 하나씩 더 나가던 것을 막는다(HP-615). */
+export function pageKey(route) {
+  return route.page === 'title' ? `title-${route.contentId}` : route.page;
+}
+
+/** 로그인 왕복으로 돌아온 로드인가 — Keycloak 이 응답을 쿼리로 붙인다(responseMode 'query': state + code 또는 error).
+ *  IdP 로그인, 그리고 제3자 쿠키가 막힌 브라우저에서 조용한 세션 확인이 전체 리디렉트로 바뀐 경우(재방문 로그인 사용자의
+ *  매 방문)가 여기 온다. 사용자가 페이지를 옮긴 게 아니므로 이 로드의 page_viewed 는 세지 않는다(HP-615). */
+export function isAuthReturn(search) {
+  return /[?&]state=/.test(search || '') && /[?&](code|error)=/.test(search || '');
+}
+
 export function titleHref(contentId, episodeId) {
   return `#/title/${contentId}${episodeId ? `/ep/${episodeId}` : ''}`;
 }
