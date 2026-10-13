@@ -121,7 +121,8 @@
 > ⚠️ 작품 탐색은 운영 API(`api.replix.tv`)를 부르므로 **Replix-be HP-619 가 운영에 나가기 전에는 동의 모달을 거친 완료가 모두 `consent`** 다.
 > 그 기간과 이 수정 전(`login_kind` 없음)은 가입과 재동의를 가를 수 없다 — 날짜로 거른다.
 > 익스텐션의 `login_completed` 도 같은 이름·같은 `login_kind` 값을 싣고 `surface: EXT` 로 구분된다(익스텐션 트래킹 플랜 §5.5). 두 표면의 가입을 합칠 때는
-> `login_kind = signup` 을 `surface` 구분 없이 더한다. 같은 사람의 첫 저장 둘이 거의 같은 순간 서버에 닿으면 둘 다 `signup` 일 수 있다(드문 경합 — BE 가 받아들인 한계).
+> `login_kind = signup` 을 `surface` 구분 없이 더한다. `reconsent` 는 범위가 다르다 — 웹은 새로고침으로 되살린 세션의 재동의도 세지만, 익스텐션은
+> 로그인하면서 재동의한 경우만 센다(이미 로그인된 채팅창의 재동의는 `login_completed` 가 없다). 같은 사람의 첫 저장 둘이 거의 같은 순간 서버에 닿으면 둘 다 `signup` 일 수 있다(드문 경합 — BE 가 받아들인 한계).
 
 `nav_link_clicked` 발화 지점 — 랜딩(`docs/index.html`) 15곳. 마크업의 `data-link`(=`target`) · `data-link-loc`(=`location`):
 
