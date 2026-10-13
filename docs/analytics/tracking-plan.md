@@ -94,7 +94,7 @@
 | `install_guide_action` | 둘 다 | `install-guide.js` — 휴대폰 기기에서 설치 버튼으로 열린 'PC 크롬에서 써요' 시트 안의 행동. 열 때 1회(`opened`)와 버튼마다. 시트의 웹 스토어 링크에는 `data-cta` 가 없어 `install_cta_clicked` 와 겹쳐 세지 않는다. 복사·공유하는 주소는 싣지 않는다 | `action`: `opened` \| `copy_link` \| `share` \| `open_store` | **W1**(휴대폰 갈래) |
 | `nav_link_clicked` | landing | `[data-link]` 요소 클릭(`analytics.js` 문서 위임, capture) — 설치 CTA 가 **아닌** 랜딩의 모든 `<a>`. 아래 표 | `target`(어디로) · `location`: `nav` \| `footer` \| `discord` | **W6** |
 | `section_viewed` | landing | `reveal.js` — 섹션 상단이 뷰포트 위 60% 안에 들어올 때 페이지뷰당 1회 | `section`: `intro` \| `how` \| `scenes` \| `works` \| `rooms` \| `faq` \| `install` | W3 |
-| `demo_interacted` | landing | `hero.js` 제품 화면 원본→Replix 스크롤 전환을 **원본(0)에서 시작해 Replix(1)까지 다 넘겼을 때** 페이지뷰당 1회. 이미 지나친 위치에서 열린 경우(앵커·새로고침)는 세지 않는다 | `demo`: `hero_toggle` · `action`: `scroll_complete` | W4 |
+| `demo_interacted` | landing | `hero.js` 제품 화면이 원본으로 보인 뒤 **스크롤로 전환 경계(화면 전체가 뷰포트에 들어온 위치)를 넘어 Replix 로 바뀌었을 때** 페이지뷰당 1회(2026-10-13 HP-602 부터 — 그 전엔 스크롤 비례 진행도가 1에 닿을 때). 이미 지나친 위치에서 열린 경우(앵커·새로고침)는 세지 않는다 | `demo`: `hero_toggle` · `action`: `scroll_complete` | W4 |
 | `faq_opened` | landing | `faq.js` 아코디언을 **열 때만** | `question_index`(0~7) | W4 |
 | `catalog_engaged` | catalog | 아래 표 | `feature`, `action`(+`has_results`·`sort`·`source`·`kind`·`score`·`category`) | W5 |
 | `watch_link_clicked` | catalog | 재생 딥링크 `<a>` 클릭(`analytics.ts` `trackWatch`) | `platform`(`netflix`), `from`: `title_hero` \| `moment` \| `home_billboard` \| `home_hot` \| `home_live` \| `my_activity`, `has_timestamp`(bool — `?t=` 유무) | **W5** |
@@ -148,6 +148,9 @@
 
 > ⚠️ `demo_interacted{action: toggle}`(토글 클릭)은 HP-467 배포(2026-10-01)로 **발화 지점이 사라졌다** — 토글이 버튼이 아니라
 > 스크롤 진행 표시가 됐다. 그 날짜 이후 값은 `scroll_complete` 뿐이고, 두 값은 뜻이 달라(클릭 vs 스크롤로 끝까지 봄) 한 추이로 잇지 않는다.
+>
+> ⚠️ `scroll_complete` 는 HP-602 배포(2026-10-13)로 **발화 지점이 앞당겨졌다** — 스크롤 비례 전환이 경계 방식으로 바뀌어,
+> 제목·알약이 화면 위로 사라질 만큼 내려가야 잡히던 것이 화면 전체가 보이는 순간 잡힌다. 그날을 경계로 수치가 오를 수 있으니 전후를 한 추이로 비교하지 않는다.
 >
 > ⚠️ `demo_interacted` 는 `hero_toggle` 하나다. 인터랙티브 히트맵 플레이어(`hm*`)는 `#scenes-legacy` 에 `display:none` 으로
 > 숨겨져 있어 발화 지점이 없다 — 되살리면 `scenes_player`(`play`/`pause`/`jump`)를 여기 먼저 추가한다.
@@ -282,4 +285,5 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v11 | 2026-10-02 | 휴대폰 설치 안내(HP-477) — 휴대폰 기기에서 설치 버튼은 웹 스토어 대신 'PC 크롬에서 써요' 시트를 연다. 새 이벤트 `install_guide_action{action: opened \| copy_link \| share \| open_store}`, `install_cta_clicked` 는 그대로(클릭 시점 계측). 랜딩 헤더는 760px 이하에서 설치 버튼 대신 '작품 탐색'(`nav_link_clicked{target: catalog, location: nav}` 이 휴대폰에서도 생긴다). `/invite` 는 여전히 계측하지 않는다 — 김지호 |
 | v13 | 2026-10-10 | 랜딩·한국 시간대 세션 리플레이 옵트아웃(§9·§11) — `replayFor()` 가 가른다: 허용이면 어디서나, 한국 시간대 랜딩 미선택은 `REPLAY_OPTOUT_FROM`(2026-10-10) 부터, 작품 탐색·해외 미선택·거부는 안 찍음. 안내 배너 `noticeText(true)`, 처리방침 1·6항 공고=시행 2026-10-10, 동의 버전은 4 유지. 근거 = 국내 주요 사이트 실측(29CM·당근·무신사·티빙·인프런·클래스101 이 첫 화면에서 동의 없이 녹화)(HP-457 확대) — 고경우 |
 | v14 | 2026-10-12 | 동의 배너를 두 층으로(§3 UI 행, HP-585) — 요약(70자 이하, 스크롤·클릭·미국·허용이 더하는 것) + 배너 안에서 펼치는 세부와 처리방침 링크, [거부]·[허용] 같은 크기. 휴대폰 첫 화면 가림 30% → 11%, PC 1366×640 에서 히어로 설치 버튼을 더는 가리지 않는다. 수집·옵트아웃·리플레이 범위와 동의 버전(4)은 그대로. 근거 = 수집 시점 화면 고지 의무를 찾지 못했고 법정 투명성 수단은 처리방침(법 제30조), 개인정보위 작성지침(2026.4.) p.93 의 "간결하게 + '더 알아보기'", 국내 서비스 18곳 배너 없음(2026-10-12 실측) — 조사 결과이며 법률 검토는 HP-282. 2026-10-02 HP-478 의 '문구를 줄이거나 접지 않는다'를 대체 — 조현빈 |
+| v15 | 2026-10-13 | 랜딩 제품 화면 전환이 스크롤 비례 → 경계 방식으로 바뀌어 `demo_interacted{scroll_complete}` 의 발화 시점이 '진행도 1 도달'에서 '화면 전체가 들어와 전환 경계를 넘음'으로 앞당겨졌다. 이벤트 이름·속성은 그대로(HP-602) — 조현빈 |
 | v12 | 2026-10-05 | 랜딩 디스코드 섹션(HP-497) — `nav_link_clicked` 에 `location: discord` 와 `target: discord_install`(봇 추가, 새 탭) · `discord`(`/discord/` 페이지) 2곳을 더해 15곳. 봇 추가는 익스텐션 설치가 아니라 `install_cta_clicked` 에 넣지 않는다 — 조현빈 |
