@@ -584,11 +584,13 @@ const sum = (s: LiveShow) => s.segments.reduce((a, x) => a + x.viewers, 0)
    창이 '7d' 인 홈 응답을 쓴다 — 읽기 모델의 시간축 덕분에 이름 그대로 "이번 주"다(이전엔 전체 누적이었다). */
 function WeeklyMoments({ items, loading }: { items: RankItem[]; loading: boolean }) {
   const fill = useFillCount(300, 20, 1)
-  const heads = items.filter((w) => w.episodeId).slice(0, Math.max(fill.limit, 1))
+  // 순간이 있는 작품을 먼저 거르고 나서 열 수만큼 자른다(HP-609). 자른 뒤에 거르면 순위 위쪽 작품에 순간이 없을 때
+  // 데스크톱(열 3개)에서 1개만 남았다 — 휴대폰 레일은 제한이 없어 다 보여서 폭에 따라 개수가 달랐다.
+  const heads = items.filter((w) => w.episodeId && w.moments.length > 0).slice(0, Math.max(fill.limit, 1))
   const rows = heads.map((w) => {
     const m = [...w.moments].sort((a, b) => b.strength - a.strength)[0]
-    return m ? { key: `${w.episodeId}`, work: w.title, episode: w.episodeTitle ?? episodeLabel({ seasonNumber: w.seasonNumber, episodeNumber: w.episodeNumber }, w.contentType), at: fmtTime(m.at), quote: m.quote ?? '', poster: w.posterUrl, contentId: w.contentId } : null
-  }).filter((x): x is NonNullable<typeof x> => x !== null)
+    return { key: `${w.episodeId}`, work: w.title, episode: w.episodeTitle ?? episodeLabel({ seasonNumber: w.seasonNumber, episodeNumber: w.episodeNumber }, w.contentType), at: fmtTime(m.at), quote: m.quote ?? '', poster: w.posterUrl, contentId: w.contentId }
+  })
   const busy = loading
   if (rows.length === 0) {
     return (
