@@ -3,19 +3,64 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="같은 장면을 보는 사람들과 반응을 나누며 넷플릭스를 즐기세요. 혼자서도 같이 보는 즐거움, Replix에서.">
+<!-- 검색 노출(HP-645): 제목·설명·og 는 같은 글을 쓴다. 키워드(리플릭스·같이 보기·워치파티)는 문장 속에 한 번씩만 넣는다 —
+     네이버 웹마스터 가이드는 제목·설명에서 같은 키워드를 두 번 이상 쓰거나 노출만을 위해 자주 바꾸면 불이익을 준다고 적는다.
+     넷플릭스는 쓰는 곳을 밝히는 사실 설명으로만 쓴다(제휴 아님 고지는 바닥 줄). -->
+<meta name="description" content="친구와 그룹방에서 재생을 맞춰 같은 장면을 보며 채팅하는 크롬 익스텐션입니다. 혼자 볼 때도 먼저 본 사람들의 반응이 함께 흐르는 워치파티(watch party)를 즐겨 보세요.">
 <!-- 실데이터를 읽어 오는 운영 BE. 로컬·검증 환경에서 다른 API를 볼 때는
      이 한 줄만 바꾼다(js/stats.js·js/chart.js가 함께 읽는다) — HP-358. -->
 <meta name="api-base" content="https://api.replix.tv">
-<title>Replix - 혼자서도 같이 보는 즐거움, Replix에서</title>
+<title>Replix(리플릭스) - 넷플릭스에서 친구와 같이 보기</title>
+<link rel="canonical" href="https://replix.tv/">
+<!-- 구조화 데이터(HP-645). WebSite 의 alternateName 은 구글이 사이트 이름을 고를 때 쓰는 한글 표기다(구글 '사이트 이름' 문서).
+     SoftwareApplication 은 네이버 '소프트웨어' 마크업(name·applicationCategory 필수)과 schema.org 를 따른다. 평점(aggregateRating)은
+     넣지 않는다 — 평점은 이 페이지가 아니라 웹스토어에 있고, 페이지에 없는 평점을 표시하는 것은 구조화 데이터 지침 위반이다.
+     installUrl 은 utm 을 붙이지 않는다 — 사람이 누르는 링크가 아니라 검색 로봇이 읽는 값이다.
+     Organization 의 sameAs 는 네이버 '사이트 연관채널' 마크업(name·url·sameAs 필수)이다 — 공식 채널이 늘면 여기에 더한다. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://replix.tv/#website",
+      "name": "Replix",
+      "alternateName": ["리플릭스"],
+      "url": "https://replix.tv/",
+      "inLanguage": "ko"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://replix.tv/#app",
+      "name": "Replix",
+      "alternateName": "리플릭스",
+      "description": "친구와 그룹방에서 재생을 맞춰 같은 장면을 보며 채팅하는 크롬 익스텐션입니다.",
+      "applicationCategory": "BrowserApplication",
+      "operatingSystem": "Chrome",
+      "url": "https://replix.tv/",
+      "installUrl": "https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp",
+      "inLanguage": "ko",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://replix.tv/#organization",
+      "name": "Replix",
+      "alternateName": "리플릭스",
+      "url": "https://replix.tv/",
+      "sameAs": ["https://www.instagram.com/replixcontact/"]
+    }
+  ]
+}
+</script>
 <!-- 링크 미리보기(카카오톡·슬랙 등)·아이콘(HP-478). 이미지는 Replix 로고로 만든 것만 쓴다 — 작품 포스터·스틸은
      공개 웹에 올리지 않는다(CLAUDE.md §7). 이미지 출처·다시 만드는 법 = assets/og/README.md. 주소는 절대 주소여야 한다. -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Replix">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:url" content="https://replix.tv/">
-<meta property="og:title" content="Replix - 혼자서도 같이 보는 즐거움, Replix에서">
-<meta property="og:description" content="같은 장면을 보는 사람들과 반응을 나누며 넷플릭스를 즐기세요. 혼자서도 같이 보는 즐거움, Replix에서.">
+<meta property="og:title" content="Replix(리플릭스) - 넷플릭스에서 친구와 같이 보기">
+<meta property="og:description" content="친구와 그룹방에서 재생을 맞춰 같은 장면을 보며 채팅하는 크롬 익스텐션입니다. 혼자 볼 때도 먼저 본 사람들의 반응이 함께 흐르는 워치파티(watch party)를 즐겨 보세요.">
 <meta property="og:image" content="https://replix.tv/assets/og/replix-og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">

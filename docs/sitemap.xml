@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- replix.tv 사이트맵 (HP-645). 검색 결과에 보이고 싶은 공개 페이지만 절대 주소로 적는다.
+     noindex 페이지(/invite·/together·/bye)는 넣지 않는다. 주소는 각 페이지의 canonical 과 같게 쓴다
+     (GitHub Pages 는 /privacy 와 /privacy.html 을 모두 서빙한다). lastmod 는 적지 않는다 — 빌드 단계가 없어
+     손으로 맞춰야 하고, 구글은 lastmod 가 실제 수정과 어긋나면 그 값을 무시한다. 페이지를 새로 만들면 여기에 한 줄 더한다. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://replix.tv/</loc></url>
+  <url><loc>https://replix.tv/catalog/</loc></url>
+  <url><loc>https://replix.tv/discord/</loc></url>
+  <url><loc>https://replix.tv/privacy</loc></url>
+  <url><loc>https://replix.tv/terms</loc></url>
+</urlset>
