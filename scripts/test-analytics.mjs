@@ -392,16 +392,28 @@ const { storeUrl, STORE_BASE: CATALOG_STORE } = await import('../catalog/app/src
 assert.equal(CATALOG_STORE, STORE_BASE);
 assert.equal(storeUrl('catalog_nav'), `${STORE_BASE}?utm_source=replix.tv&utm_medium=catalog_nav`);
 assert.equal(storeUrl('catalog_feedback', '/reviews'), `${STORE_BASE}/reviews?utm_source=replix.tv&utm_medium=catalog_feedback`);
+// 작품 탐색 소스 전체를 훑는다 — 설치 링크가 다른 화면에 새로 생겨도 같은 검사를 받는다.
+const catalogSources = readdirSync(resolve(root, 'catalog/app/src'), { recursive: true })
+  .filter((f) => /\.(tsx?|jsx?)$/.test(f) && !/\.test\./.test(f))
+  .map((f) => `catalog/app/src/${f}`);
 const catalogStoreUses = [];
-for (const f of ['catalog/app/src/components/Chrome.tsx', 'catalog/app/src/pages/Title.tsx']) {
+for (const f of catalogSources) {
   const s = read(f);
-  assert.doesNotMatch(s, /chromewebstore\.google\.com/, `${f}: 스토어 주소는 storeUrl 로만(위치 utm 이 빠지지 않게)`);
-  for (const m of s.matchAll(/href=\{storeUrl\('(\w+)'\)\}[^>]*data-cta="(\w+)"/g)) {
-    assert.equal(m[1], m[2], `${f}: utm_medium 이 data-cta 와 같다`);
-    catalogStoreUses.push(m[1]);
+  // store-pure.js 는 스토어 주소의 정본이라 뺀다.
+  if (!/\/store-pure\./.test(f)) assert.doesNotMatch(s, /chromewebstore\.google\.com/, `${f}: 스토어 주소는 storeUrl 로만(위치 utm 이 빠지지 않게)`);
+  // 스토어 링크와 설치 문구를 단 링크는 모두 href={storeUrl(…)} 와 같은 이름의 data-cta 를 함께 단다 — 작품 화면 첫 화면 버튼이
+  // '#/'(작품 탐색 홈)로 가고 data-cta 가 없어 계측·휴대폰 안내 시트를 타지 않던 결함(HP-636)이 다시 생기지 않게.
+  // 속성 순서·onClick 화살표와 무관하게 <a …>…</a> 한 덩어리 안에서 본다.
+  for (const [link] of s.matchAll(/<a\b(?:(?!<\/a>)[\s\S])*?<\/a>/g)) {
+    const medium = /href=\{storeUrl\('(\w+)'\)\}/.exec(link);
+    if (!medium && !/익스텐션 설치/.test(link)) continue;
+    const cta = /data-cta="(\w+)"/.exec(link);
+    assert.ok(medium && cta, `${f}: 설치 링크는 href={storeUrl(…)} 와 data-cta 를 함께 단다 — ${link.slice(0, 90)}`);
+    assert.equal(medium[1], cta[1], `${f}: utm_medium 이 data-cta 와 같다`);
+    catalogStoreUses.push(medium[1]);
   }
 }
-assert.deepEqual(catalogStoreUses.sort(), ['catalog_footer', 'catalog_nav', 'catalog_title'], '작품 탐색 설치 링크 세 곳');
+assert.deepEqual(catalogStoreUses.sort(), ['catalog_footer', 'catalog_nav', 'catalog_title', 'catalog_title_hero'], '작품 탐색 설치 링크 네 곳');
 assert.ok(read('docs/catalog/index.html').includes('utm_source=replix.tv&utm_medium='), '작품 탐색 산출물을 다시 빌드했다(커밋된 산출물이 곧 배포물)');
 
 // ⑤ 로컬·팀 트래픽 — 로컬은 디버그 표시 없이는 보내지 않고, 팀 브라우저는 버리지 않고 traffic_type=internal 로 표시만 한다.
