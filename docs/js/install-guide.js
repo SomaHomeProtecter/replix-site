@@ -30,8 +30,23 @@ export function isMobileDevice(env) {
   if (/Linux/.test(ua) && !/CrOS/.test(ua) && (e.maxTouchPoints || 0) > 0) return true;
   return e.uaMobile === true;
 }
+/* 앱 안 브라우저 — 인스타그램·페이스북·카카오톡·네이버·라인 같은 앱이 띄운 웹뷰(HP-638). 광고 방문의 대부분이 여기서 온다
+   (2026-10 2차 광고 방문 99.4%가 휴대폰, 거의 인스타그램 앱 안). 여기엔 크롬 로그인이 없어 '웹 스토어에서 PC로 보내기'(휴대폰
+   크롬에 구글 계정으로 로그인해 있어야 동작)가 막히고, 안드로이드 웹뷰엔 공유 기능(Web Share)도 없다. 값은 그 링크를 가르고
+   계측(in_app)에 싣는 데만 쓴다. 모르면 null(앱 밖 브라우저로 본다 — 지금 동작 그대로). */
+export var IN_APP = ['instagram', 'facebook', 'kakaotalk', 'naver', 'line', 'webview'];
+export function inAppBrowser(ua) {
+  var s = ua || '';
+  if (/Instagram/i.test(s)) return 'instagram';
+  if (/FBAN|FBAV|FB_IAB|FBIOS/.test(s)) return 'facebook';
+  if (/KAKAOTALK/i.test(s)) return 'kakaotalk';
+  if (/NAVER\(inapp/.test(s)) return 'naver';
+  if (/\bLine\//.test(s)) return 'line';
+  if (/; wv\)/.test(s)) return 'webview';   /* 그 밖의 안드로이드 웹뷰 */
+  return null;
+}
 /* install_guide_action 의 action 열거값 — 트래킹 플랜 §6 과 같다. */
-export var GUIDE_ACTIONS = ['opened', 'copy_link', 'share', 'open_store'];
+export var GUIDE_ACTIONS = ['opened', 'copy_link', 'share', 'mail', 'open_store', 'open_catalog'];
 
 /* ═══ 런타임 ═════════════════════════════════════════════════════ */
 var CSS = '#rx-install-guide{position:fixed;inset:0;z-index:10000;display:none;align-items:flex-end;justify-content:center;' +
@@ -41,22 +56,28 @@ var CSS = '#rx-install-guide{position:fixed;inset:0;z-index:10000;display:none;a
   'border-radius:18px 18px 0 0;padding:26px 20px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(16,16,24,.18)}' +
   '#rx-install-guide h2{margin:0 44px 6px 0;font-size:19px;line-height:1.35;font-weight:800;letter-spacing:-.02em;color:#101016}' +
   '#rx-install-guide p{margin:0}#rx-install-guide .rxg-desc{color:#40404c;font-size:14.5px}' +
-  '#rx-install-guide .rxg-actions{display:flex;gap:8px;margin-top:18px}' +
-  '#rx-install-guide .rxg-actions button{flex:1 1 0;min-height:48px;font:inherit;font-weight:700;border-radius:12px;padding:12px 14px;cursor:pointer}' +
+  '#rx-install-guide .rxg-addr{margin-top:12px;padding:12px 14px;border-radius:12px;background:#f6f6f8;color:#101016;' +
+  'font:700 26px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:-.01em;text-align:center;user-select:all;-webkit-user-select:all}' +
+  '#rx-install-guide .rxg-sub{margin-top:14px;color:#40404c;font-size:14px}' +
+  '#rx-install-guide .rxg-actions{display:flex;gap:8px;margin-top:10px}' +
+  '#rx-install-guide .rxg-actions button,#rx-install-guide .rxg-actions a{box-sizing:border-box;flex:1 1 0;min-height:48px;display:flex;' +
+  'align-items:center;justify-content:center;font:inherit;font-weight:700;border-radius:12px;padding:12px 14px;cursor:pointer;text-decoration:none}' +
   '#rx-install-guide .rxg-copy{background:#e50914;color:#fff;border:0}' +
-  '#rx-install-guide .rxg-share{background:#fff;color:#101016;border:1px solid rgba(16,16,24,.16)}' +
+  '#rx-install-guide .rxg-share,#rx-install-guide .rxg-mail{background:#fff;color:#101016;border:1px solid rgba(16,16,24,.16)}' +
   '#rx-install-guide .rxg-close{position:absolute;top:10px;right:10px;width:44px;height:44px;padding:0;border:0;border-radius:22px;' +
   'background:transparent;color:#6b6b78;font:400 26px/1 system-ui,sans-serif;cursor:pointer}' +
   '#rx-install-guide .rxg-url{display:none;box-sizing:border-box;width:100%;margin-top:12px;padding:10px 12px;border:1px solid rgba(16,16,24,.16);' +
   'border-radius:10px;background:#f6f6f8;color:#40404c;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}' +
   '#rx-install-guide .rxg-status{min-height:20px;margin-top:10px;font-size:13px;color:#40404c}' +
-  '#rx-install-guide .rxg-store{display:inline-block;padding:10px 0 4px;font-size:14px;color:#6b6b78;text-decoration:underline;text-underline-offset:3px}' +
+  '#rx-install-guide .rxg-links{display:flex;flex-direction:column;align-items:flex-start}' +
+  '#rx-install-guide .rxg-store,#rx-install-guide .rxg-catalog{display:inline-block;padding:10px 0 4px;font-size:14px;color:#6b6b78;text-decoration:underline;text-underline-offset:3px}' +
   '@media (min-width:600px){#rx-install-guide{align-items:center}#rx-install-guide .rxg-panel{border-radius:18px;padding-bottom:20px}}';
 
 var _sheet = null;
 var _trigger = null;       /* 시트를 연 설치 버튼 — 닫으면 포커스를 돌려준다 */
 var _copiedTimer = 0;
 var _historyPushed = false; /* 열 때 히스토리 한 칸을 쌓았는가 — 직접 닫을 때 되돌린다 */
+var _inApp = null;          /* 앱 안 브라우저 이름(inAppBrowser) — 부트 때 한 번 정한다 */
 
 function deviceEnv() {
   var n = navigator;
@@ -65,7 +86,7 @@ function deviceEnv() {
     uaPlatform: n.userAgentData ? n.userAgentData.platform : undefined };
 }
 function track(action) {
-  try { if (window.ReplixAnalytics) window.ReplixAnalytics.track('install_guide_action', { action: action }); }
+  try { if (window.ReplixAnalytics) window.ReplixAnalytics.track('install_guide_action', { action: action, in_app: _inApp || 'none' }); }
   catch (_) { /* 계측은 화면을 막지 않는다 */ }
 }
 function $(sel) { return _sheet.querySelector(sel); }
@@ -93,6 +114,21 @@ function copyLink() {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, fallback);
   else fallback();
 }
+/* 메일로 나에게 보내기 — 공유 기능이 없는 브라우저(안드로이드 앱 안 등)의 두 번째 길. 받는 사람은 비워 두고 사용자가 고른다.
+   우리 쪽으로 나가는 요청은 없다(메일 앱이 연다). */
+function mailHref() {
+  return 'mailto:?subject=' + encodeURIComponent('Replix PC에서 열기') +
+    '&body=' + encodeURIComponent('PC 크롬에서 열어 Replix를 설치해 보세요.\n' + location.href);
+}
+/* 휴대폰에서는 작품 탐색으로 먼저 둘러보게 한다(랜딩에서 연 시트만 — 작품 탐색 안에서는 이미 거기 있다). 열 때 쌓은 히스토리 칸은
+   그 자리를 바꿔 들어가 되돌린다 — 그냥 이동하면 뒤로 가기가 같은 랜딩을 한 번 더 지난다. */
+function openCatalog(ev) {
+  track('open_catalog');
+  if (!_historyPushed) return;   /* 칸을 쌓지 못했으면 평소 링크 이동 */
+  ev.preventDefault();
+  _historyPushed = false;
+  location.replace(ev.currentTarget.getAttribute('href'));
+}
 function shareLink() {
   track('share');
   navigator.share({ title: 'Replix', text: 'PC 크롬에서 Replix를 설치해 보세요.', url: location.href })
@@ -107,21 +143,35 @@ function build() {
     '<div class="rxg-panel" role="dialog" aria-modal="true" aria-labelledby="rxg-title" aria-describedby="rxg-desc">' +
       '<button type="button" class="rxg-close" aria-label="닫기">×</button>' +
       '<h2 id="rxg-title">Replix는 PC 크롬에서 써요</h2>' +
-      '<p class="rxg-desc" id="rxg-desc">PC에서 replix.tv를 열거나 이 링크를 PC로 보내 주세요.</p>' +
+      '<p class="rxg-desc" id="rxg-desc">PC 크롬 주소창에 이렇게 입력하면 돼요.</p>' +
+      '<p class="rxg-addr">replix.tv</p>' +
+      '<p class="rxg-sub">또는 이 링크를 PC로 보내 두세요.</p>' +
       '<div class="rxg-actions">' +
         '<button type="button" class="rxg-copy">링크 복사</button>' +
         '<button type="button" class="rxg-share">공유하기</button>' +
+        '<a class="rxg-mail">메일로 보내기</a>' +
       '</div>' +
       '<input class="rxg-url" type="text" readonly aria-label="이 페이지 주소">' +
       '<p class="rxg-status" role="status" aria-live="polite"></p>' +
-      '<a class="rxg-store" target="_blank" rel="noopener">웹 스토어에서 PC로 보내기 →</a>' +
+      '<div class="rxg-links">' +
+        '<a class="rxg-catalog" href="/catalog/">휴대폰에서는 작품 탐색으로 먼저 둘러보기 →</a>' +
+        '<a class="rxg-store" target="_blank" rel="noopener">웹 스토어에서 PC로 보내기 →</a>' +
+      '</div>' +
     '</div>';
   document.body.appendChild(el);
   _sheet = el;
-  /* [hidden] 은 CSS display 에 진다(docs/README '고칠 때 알아 둘 것') — 공유가 없는 브라우저면 style 로 끈다. */
-  if (typeof navigator.share !== 'function') $('.rxg-share').style.display = 'none';
+  /* [hidden] 은 CSS display 에 진다(docs/README '고칠 때 알아 둘 것') — 보이지 않을 것은 style 로 끈다.
+     두 번째 버튼은 하나만: 공유 기능이 있으면 [공유하기](메일 앱도 그 안에 있다), 없으면 [메일로 보내기]. */
+  var canShare = typeof navigator.share === 'function';
+  if (!canShare) $('.rxg-share').style.display = 'none';
+  if (canShare) $('.rxg-mail').style.display = 'none';
+  /* 앱 안 브라우저엔 크롬 로그인이 없어 웹 스토어의 'PC로 보내기'가 막힌다 — 막히는 길은 보이지 않는다(inAppBrowser 주석). */
+  if (_inApp) $('.rxg-store').style.display = 'none';
+  if (location.pathname.indexOf('/catalog') === 0) $('.rxg-catalog').style.display = 'none';
   $('.rxg-copy').addEventListener('click', copyLink);
   $('.rxg-share').addEventListener('click', shareLink);
+  $('.rxg-mail').addEventListener('click', function () { track('mail'); });
+  $('.rxg-catalog').addEventListener('click', openCatalog);
   $('.rxg-close').addEventListener('click', close);
   $('.rxg-store').addEventListener('click', function () { track('open_store'); });
   el.addEventListener('click', function (ev) { if (ev.target === el) close(); });   /* 바깥(어두운 곳)을 누르면 닫힌다 */
@@ -141,6 +191,7 @@ function open(trigger) {
   if (!_sheet) build();
   _trigger = trigger;
   $('.rxg-store').setAttribute('href', trigger.getAttribute('href') || '');
+  $('.rxg-mail').setAttribute('href', mailHref());   /* 작품 탐색은 해시 라우트라 열 때마다 지금 주소로 */
   $('.rxg-copy').textContent = '링크 복사';
   $('.rxg-url').style.display = 'none';
   status('');
@@ -172,6 +223,7 @@ function onNavigate() { close(true); }
 /* ═══ 부트 ═══════════════════════════════════════════════════════ */
 function boot() {
   if (!isMobileDevice(deviceEnv())) return;   /* PC 는 그대로 — 설치 버튼은 웹 스토어로 */
+  _inApp = inAppBrowser(navigator.userAgent);
   /* 'PC 크롬에서 설치할 수 있어요' 같은 휴대폰 전용 문구를 CSS 로 바꿔 끼우는 표식(css/tokens.css .rx-mobile-only). */
   document.documentElement.classList.add('rx-mobile-device');
   /* 버블 단계 — analytics.js 의 capture 단계 계측(install_cta_clicked)이 먼저 지나간 뒤 이동을 막는다. */
