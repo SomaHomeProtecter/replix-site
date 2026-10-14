@@ -1,0 +1,13 @@
+# replix.tv 검색 로봇 안내 (HP-645)
+#
+# 모든 공개 페이지는 수집을 허용한다. 초대(/invite)·디스코드 연결(/together)·삭제 설문(/bye)은
+# 여기서 막지 않는다 — 그 페이지들은 <meta name="robots" content="noindex"> 로 색인에서 빠지는데,
+# robots.txt 로 막으면 로봇이 그 태그를 읽지 못해, 밖에서 공유된 초대 주소가 오히려 주소만 색인될 수 있다.
+# 아래 셋은 어디서도 링크하지 않지만 GitHub Pages 가 docs/ 를 그대로 서빙해 열리는 파일이라 수집만 막는다.
+User-agent: *
+Allow: /
+Disallow: /README.md
+Disallow: /analytics/
+Disallow: /catalog/silent-check-sso.html
+
+Sitemap: https://replix.tv/sitemap.xml
