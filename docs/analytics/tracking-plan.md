@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v16 (Amplitude + Google Analytics)
+# replix.tv 웹 — 트래킹 플랜 v19 (Amplitude + Google Analytics)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -95,7 +95,7 @@
 | 이벤트 | surface | 발화 시점 | 속성 | 질문 |
 | --- | --- | --- | --- | --- |
 | `page_viewed` | 둘 다 | 랜딩: `main.js` 끝 `page()` 1회 · 카탈로그: `App.tsx` 계측 effect — **페이지가 바뀔 때만**(`route-pure.js` `pageKey`: 홈 · 작품(작품마다) · 공지 · 내 활동). 홈 안 앵커(`#/ranking`·`#/hot`·`#/live`)·공지 항목·회차 선택·평가 칸 이동은 세지 않고, 로그인 왕복(IdP 로그인, 제3자 쿠키가 막힌 브라우저의 조용한 세션 확인 전체 리디렉트)으로 다시 열린 로드도 세지 않는다(`isAuthReturn`, HP-615). 동의 전 호출은 기억만 하고 허용 직후 1회 | `route`(카탈로그: `home` \| `title` \| `notice` \| `me`) | W1 분모 |
-| `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture). 휴대폰 기기(익스텐션 설치 불가)에서는 웹 스토어 대신 설치 안내 시트가 열리지만 클릭은 그대로 센다(HP-477). `/discord/` 는 이미 허용한 방문자의 클릭만(§11, HP-615) | `location`: `nav` \| `hero` \| `close`(랜딩) · `catalog_nav` \| `catalog_title` \| `catalog_footer` · `discord`(`/discord/` 위 띠). 스토어 링크의 `utm_medium` 과 같은 낱말(§12) | **W1** |
+| `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture). 휴대폰 기기(익스텐션 설치 불가)에서는 웹 스토어 대신 설치 안내 시트가 열리지만 클릭은 그대로 센다(HP-477). `/discord/` 는 이미 허용한 방문자의 클릭만(§11, HP-615) | `location`: `nav` \| `hero` \| `close`(랜딩) · `catalog_nav` \| `catalog_title_hero` \| `catalog_title` \| `catalog_footer` · `discord`(`/discord/` 위 띠). 스토어 링크의 `utm_medium` 과 같은 낱말(§12) | **W1** |
 | `install_guide_action` | 둘 다 | `install-guide.js` — 휴대폰 기기에서 설치 버튼으로 열린 'PC 크롬에서 써요' 시트 안의 행동. 열 때 1회(`opened`)와 버튼마다. 시트의 웹 스토어 링크에는 `data-cta` 가 없어 `install_cta_clicked` 와 겹쳐 세지 않는다. 복사·공유하는 주소는 싣지 않는다 | `action`: `opened` \| `copy_link` \| `share` \| `open_store` | **W1**(휴대폰 갈래) |
 | `nav_link_clicked` | landing | `[data-link]` 요소 클릭(`analytics.js` 문서 위임, capture) — 설치 CTA 가 **아닌** 랜딩의 모든 `<a>`. 아래 표 | `target`(어디로) · `location`: `nav` \| `footer` \| `discord` | **W6** |
 | `section_viewed` | landing | `reveal.js` — 섹션 상단이 뷰포트 위 60% 안에 들어올 때 페이지뷰당 1회 | `section`: `intro` \| `how` \| `scenes` \| `works` \| `rooms` \| `faq` \| `install` | W3 |
@@ -320,6 +320,7 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | 랜딩 히어로 | `hero` | `docs/index.html` |
 | 랜딩 하단(마지막 설치 구획) | `close` | `docs/index.html` |
 | 작품 탐색 헤더 | `catalog_nav` | `catalog/app/src/components/Chrome.tsx` |
+| 작품 탐색 작품 화면 첫 화면('넷플릭스에서 N화 보기' 옆) | `catalog_title_hero` | `catalog/app/src/pages/Title.tsx` |
 | 작품 탐색 작품 화면(순간 채팅 아래) | `catalog_title` | `catalog/app/src/pages/Title.tsx` |
 | 작품 탐색 푸터 | `catalog_footer` | `catalog/app/src/components/Chrome.tsx` |
 | 작품 탐색 피드백 감사 화면(스토어 평가, `/reviews`) | `catalog_feedback` | `catalog/app/src/feedback-pure.js` |
@@ -355,4 +356,5 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v16 | 2026-10-13 | 계측 정확도(HP-615, 2026-10-13 광고 성과 분석): ① GA `page_location` 에 광고 캠페인 쿼리(utm 다섯)를 남긴다 — 광고 클릭 식별값(`gclid` 등)은 처리방침의 GA 수집 항목 밖이라 남기지 않는다(§2·§10) ② GA 로 보낼 때만 `source` → `click_source`, 이름을 정하지 않은 유입 경로 예약어는 GA 에 싣지 않는다(§10) ③ 모든 웹 스토어 링크에 `utm_source=replix.tv&utm_medium=<위치>`(§12), `/discord/` 설치 버튼을 `install_cta_clicked{location: discord}` 로(허용한 방문자만, §11) — `/invite`·`/together` 는 계측 없음 유지 ④ 카탈로그 `page_viewed` 는 페이지가 바뀔 때만 — 홈 안 앵커·공지 항목·로그인 왕복 로드는 세지 않는다(§6) ⑤ 로컬 호스트 미전송(디버그 표시로만)·팀 브라우저 `traffic_type=internal` 표시(§5·§7) ⑥ 옵트아웃·리플레이·배너를 첫 화면·작품 탐색으로 묶는 `fullSurface`, §3 동의 버전 표기를 코드(4)와 맞춤. 동의 버전은 그대로 4 — 조현빈 |
 | v17 | 2026-10-14 | `login_completed` 가입 정정(HP-619, §6): 새 속성 `login_kind`(`signup` · `reconsent` · `login` · `consent`) — 동의 저장 응답의 `newAccount`(Replix-be HP-619)로 가입과 재동의를 가르고, 그 BE 가 운영에 나가기 전에는 `consent`. `is_new_user` 는 뜻(동의 모달을 거쳤는가)을 바꾸지 않되 **가입 수가 아니라고** 정정. §5 `surface` 설명의 익스텐션 값을 실제 값(`EXT`, 피드백 2종·`login_completed` 만)으로 정정 — 조현빈(Claude Code) |
 | v18 | 2026-10-14 | 처리방침 정합(HP-628): ① 거부 뒤 SDK 의 묶음 전송을 관문(`gateTransport`)이 막는다 — `setOptOut` 은 새 이벤트만 막아 이미 큐에 든 묶음이 거부 0.5~0.7초 뒤 나갔다(처리방침 6항 '철회하면 미전송 기록 즉시 삭제'와 반대, §3·§7) ② 광고 클릭 식별값 11종(`CLICK_ID_PARAMS`)을 부트 때 주소에서 지운다 — Amplitude 웹 귀속이 `gclid`·`fbclid` 를 사용자 속성으로 보내고 있었다(처리방침 수집 항목 밖, §2·§4·§10). 다시 모을지는 수집 범위 조사(HP-627)가 정한다. 이벤트·동의 버전은 그대로 — 조현빈(Claude Code) |
+| v19 | 2026-10-14 | 작품 화면 첫 화면 설치 버튼(HP-636, §6·§12): '넷플릭스에서 N화 보기' 옆 '크롬 익스텐션 설치하기'가 2026-09-05부터 작품 탐색 홈(`#/`)으로 가고 `data-cta` 가 없어 설치 계측·휴대폰 안내 시트를 타지 않았다 — 웹 스토어(`utm_medium=catalog_title_hero`)로 고치고 `install_cta_clicked.location` 에 `catalog_title_hero` 를 더한다. 그 전의 `catalog_title` 은 순간 채팅 아래 링크만 센 값이다. 머리 제목의 판 번호를 v16 에서 v19 로 맞춤. 이벤트 이름·동의 버전은 그대로 — 김지호(Claude Code) |
 | v12 | 2026-10-05 | 랜딩 디스코드 섹션(HP-497) — `nav_link_clicked` 에 `location: discord` 와 `target: discord_install`(봇 추가, 새 탭) · `discord`(`/discord/` 페이지) 2곳을 더해 15곳. 봇 추가는 익스텐션 설치가 아니라 `install_cta_clicked` 에 넣지 않는다 — 조현빈 |
