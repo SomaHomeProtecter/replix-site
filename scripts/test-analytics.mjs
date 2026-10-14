@@ -401,7 +401,13 @@ for (const f of ['catalog/app/src/components/Chrome.tsx', 'catalog/app/src/pages
     catalogStoreUses.push(m[1]);
   }
 }
-assert.deepEqual(catalogStoreUses.sort(), ['catalog_footer', 'catalog_nav', 'catalog_title'], '작품 탐색 설치 링크 세 곳');
+assert.deepEqual(catalogStoreUses.sort(), ['catalog_footer', 'catalog_nav', 'catalog_title', 'catalog_title_hero'], '작품 탐색 설치 링크 네 곳');
+// 설치 문구를 단 링크는 모두 스토어로 간다 — 작품 화면 첫 화면 버튼이 '#/'(작품 탐색 홈)로 가던 결함(HP-636)이 다시 생기지 않게.
+for (const f of ['catalog/app/src/components/Chrome.tsx', 'catalog/app/src/pages/Title.tsx']) {
+  for (const m of read(f).matchAll(/<a\s[^>]*>(?:(?!<\/a>)[\s\S])*?익스텐션 설치(?:(?!<\/a>)[\s\S])*?<\/a>/g)) {
+    assert.match(m[0], /^<a href=\{storeUrl\('\w+'\)\}/, `${f}: 설치 문구 링크는 storeUrl 로 — ${m[0].slice(0, 80)}`);
+  }
+}
 assert.ok(read('docs/catalog/index.html').includes('utm_source=replix.tv&utm_medium='), '작품 탐색 산출물을 다시 빌드했다(커밋된 산출물이 곧 배포물)');
 
 // ⑤ 로컬·팀 트래픽 — 로컬은 디버그 표시 없이는 보내지 않고, 팀 브라우저는 버리지 않고 traffic_type=internal 로 표시만 한다.
