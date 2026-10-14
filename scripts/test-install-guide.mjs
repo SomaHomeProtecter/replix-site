@@ -89,24 +89,38 @@ const IN_APP_UA = [
   ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 NAVER(inapp; search; 2000; 12.6.6; 15PRO)', 'naver'],
   ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Safari Line/14.16.0', 'line'],
   ['Mozilla/5.0 (Linux; Android 14; SM-S918N Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.0.0 Mobile Safari/537.36', 'webview'],
+  // 이름 모르는 iOS 앱 안 웹뷰(스레드 'Barcelona' 등) — 'Safari/' 가 없다
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Barcelona 289.0.0.77.109 (iPhone15,2; iOS 18_0; ko_KR; ko)', 'webview'],
   [UA.androidPhone, null],
   [UA.iphone, null],
+  ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/129.0.6668.69 Mobile/15E148 Safari/604.1', null],
+  [UA.ipadDesktopMode, null],
   ['Mozilla/5.0 (Linux; Android 14; SM-S918N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36 Whale/3.28.266.14', null],
   ['', null],
   [undefined, null],
 ];
 for (const [ua, want] of IN_APP_UA) assert.equal(g.inAppBrowser(ua), want, `앱 안 판정: ${String(ua).slice(-40)}`);
 assert.ok(IN_APP_UA.every(([, want]) => want === null || g.IN_APP.includes(want)), 'IN_APP 열거값 안에서만');
-// 시트 — 행동마다 앱 안 종류를 싣고(in_app), 앱 안에선 막히는 '웹 스토어에서 PC로 보내기'를 빼며, 두 번째 버튼은 공유 기능이
-// 있으면 [공유하기] 없으면 [메일로 보내기] 하나만. 작품 탐색 링크는 랜딩에서 연 시트에만, 쌓은 히스토리 칸을 바꿔 들어간다.
+// 시트에 무엇을 보일지 — sheetPlan 의 동작으로 본다(HP-638).
+const planOf = (canShare, inApp, path) => g.sheetPlan({ canShare, inApp, path });
+assert.deepEqual(planOf(true, null, '/'), { share: true, mail: false, store: true, catalog: true }, '앱 밖·공유 있음(아이폰 사파리 랜딩)');
+assert.deepEqual(planOf(false, null, '/'), { share: false, mail: true, store: true, catalog: true }, '앱 밖·공유 없음 → 메일');
+assert.deepEqual(planOf(false, 'instagram', '/'), { share: false, mail: false, store: false, catalog: true },
+  '안드로이드 앱 안·공유 없음 → 링크 복사 하나(mailto 가 열리지 않을 수 있다), 웹 스토어 보내기 없음');
+assert.deepEqual(planOf(true, 'instagram', '/catalog/'), { share: true, mail: false, store: false, catalog: false },
+  'iOS 앱 안에서 연 작품 탐색 → 공유, 웹 스토어·작품 탐색 줄 없음');
+assert.deepEqual(planOf(true, 'webview', '/catalog/'), planOf(true, 'kakaotalk', '/catalog/'), '앱 안이면 종류와 무관');
+assert.deepEqual(g.sheetPlan(undefined), { share: false, mail: true, store: true, catalog: true }, '모르면 앱 밖·공유 없음으로');
+// 화면에 붙이는 쪽 — 판정은 sheetPlan 한 곳에서, 행동마다 앱 안 종류(in_app)를 싣는다
+assert.match(src, /var plan = sheetPlan\(\{ canShare: typeof navigator\.share === 'function', inApp: _inApp, path: location\.pathname \}\);/, '보이기 규칙은 sheetPlan 으로');
+for (const k of ['share', 'mail', 'store', 'catalog']) assert.match(src, new RegExp(`if \\(!plan\\.${k}\\) \\$\\('\\.rxg-${k}'\\)\\.style\\.display = 'none';`), `plan.${k} 를 화면에 붙인다`);
 assert.match(src, /track\('install_guide_action', \{ action: action, in_app: _inApp \|\| 'none' \}\)/, '시트 행동에 in_app');
-assert.match(src, /if \(_inApp\) \$\('\.rxg-store'\)\.style\.display = 'none';/, '앱 안에선 웹 스토어 보내기를 뺀다');
-assert.match(src, /if \(!canShare\) \$\('\.rxg-share'\)\.style\.display = 'none';\s*if \(canShare\) \$\('\.rxg-mail'\)\.style\.display = 'none';/,
-  '두 번째 버튼은 공유 또는 메일 하나만');
-assert.match(src, /if \(location\.pathname\.indexOf\('\/catalog'\) === 0\) \$\('\.rxg-catalog'\)\.style\.display = 'none';/, '작품 탐색 안에선 작품 탐색 링크를 뺀다');
-assert.match(src, /<span class="rxg-omni-url">replix\.tv<\/span>/, 'PC 주소창에 넣을 주소를 주소창 모양으로');
-assert.match(src, /href = 'mailto:\?subject=|'mailto:\?subject='/, '메일은 받는 사람 없이 mailto 로(우리 쪽 요청 없음)');
-assert.match(src, /location\.replace\(ev\.currentTarget\.getAttribute\('href'\)\)/, '작품 탐색으로 갈 때 쌓은 히스토리 칸을 바꿔 들어간다');
+assert.match(src, /<span class="rxg-omni-url" id="rxg-addr">replix\.tv<\/span>/, 'PC 주소창에 넣을 주소를 주소창 모양으로');
+assert.match(src, /aria-describedby="rxg-desc rxg-addr"/, '화면낭독기 설명에 주소도 읽힌다');
+assert.match(src, /'mailto:\?subject='/, '메일은 받는 사람 없이 mailto 로(우리 쪽 요청 없음)');
+assert.match(src, /close\(true\);\s*if \(!pushed\) return;[\s\S]*?location\.replace\(ev\.currentTarget\.getAttribute\('href'\)\)/,
+  '작품 탐색으로 가기 전에 시트를 닫고, 쌓은 히스토리 칸을 바꿔 들어간다');
+assert.match(src, /addEventListener\('pageshow', function \(ev\) \{ if \(ev\.persisted\) onNavigate\(\); \}\)/, 'bfcache 로 되살아나면 시트를 닫는다');
 assert.match(plan, /`in_app`/, '트래킹 플랜에 in_app');
 for (const name of [...g.IN_APP, 'none']) assert.match(plan, new RegExp('`' + name + '`'), `트래킹 플랜에 in_app 값 ${name}`);
 

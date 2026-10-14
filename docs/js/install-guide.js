@@ -43,7 +43,26 @@ export function inAppBrowser(ua) {
   if (/NAVER\(inapp/.test(s)) return 'naver';
   if (/\bLine\//.test(s)) return 'line';
   if (/; wv\)/.test(s)) return 'webview';   /* 그 밖의 안드로이드 웹뷰 */
+  /* iOS 앱 안 웹뷰(WKWebView)는 사파리와 달리 UA 에 'Safari/' 가 없다 — 이름을 모르는 앱(스레드·X·밴드 등)도 여기서 잡는다.
+     iOS 크롬(CriOS)·파이어폭스(FxiOS)는 'Safari/' 가 붙어 앱 밖으로 본다. */
+  if (/iPhone|iPad|iPod/.test(s) && !/Safari\//.test(s)) return 'webview';
   return null;
+}
+/* 시트에 무엇을 보일지 — 순수 판정(scripts/test-install-guide.mjs). env = { canShare, inApp, path }.
+   · 두 번째 버튼: 공유 기능이 있으면 [공유하기](메일 앱도 그 안에 있다). 없으면 앱 밖 브라우저에서만 [메일로 보내기] — 안드로이드
+     앱 안 웹뷰는 앱이 가로채 주지 않으면 mailto: 를 열지 못하고 오류 화면을 띄울 수 있다(실기기 미확인이라 막히는 쪽을 피한다).
+     그러면 [링크 복사] 하나만 남는다(이 시트가 생긴 뒤 줄곧 그랬다).
+   · 웹 스토어 'PC로 보내기': 앱 밖에서만 — 앱 안엔 크롬 로그인이 없어 막힌다.
+   · 작품 탐색 줄: 작품 탐색 밖(랜딩 등)에서 연 시트에만 — 작품 탐색 안에서는 이미 거기 있다. */
+export function sheetPlan(env) {
+  var e = env || {};
+  var inApp = !!e.inApp;
+  return {
+    share: !!e.canShare,
+    mail: !e.canShare && !inApp,
+    store: !inApp,
+    catalog: String(e.path || '').indexOf('/catalog') !== 0,
+  };
 }
 /* install_guide_action 의 action 열거값 — 트래킹 플랜 §6 과 같다. */
 export var GUIDE_ACTIONS = ['opened', 'copy_link', 'share', 'mail', 'open_store', 'open_catalog'];
@@ -122,7 +141,7 @@ function copyLink() {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, fallback);
   else fallback();
 }
-/* 메일로 나에게 보내기 — 공유 기능이 없는 브라우저(안드로이드 앱 안 등)의 두 번째 길. 받는 사람은 비워 두고 사용자가 고른다.
+/* 메일로 나에게 보내기 — 공유 기능이 없는 앱 밖 브라우저의 두 번째 길(sheetPlan). 받는 사람은 비워 두고 사용자가 고른다.
    우리 쪽으로 나가는 요청은 없다(메일 앱이 연다). */
 function mailHref() {
   return 'mailto:?subject=' + encodeURIComponent('Replix PC에서 열기') +
@@ -132,9 +151,11 @@ function mailHref() {
    그 자리를 바꿔 들어가 되돌린다 — 그냥 이동하면 뒤로 가기가 같은 랜딩을 한 번 더 지난다. */
 function openCatalog(ev) {
   track('open_catalog');
-  if (!_historyPushed) return;   /* 칸을 쌓지 못했으면 평소 링크 이동 */
+  var pushed = _historyPushed;
+  /* 떠나기 전에 시트를 닫는다(히스토리는 건드리지 않는다) — 뒤로 와 bfcache 에서 되살아날 때 시트가 덮고 있지 않게 */
+  close(true);
+  if (!pushed) return;   /* 칸을 쌓지 못했으면 평소 링크 이동 */
   ev.preventDefault();
-  _historyPushed = false;
   location.replace(ev.currentTarget.getAttribute('href'));
 }
 function shareLink() {
@@ -148,11 +169,11 @@ function build() {
   var el = document.createElement('div');
   el.id = 'rx-install-guide';
   el.innerHTML =
-    '<div class="rxg-panel" role="dialog" aria-modal="true" aria-labelledby="rxg-title" aria-describedby="rxg-desc">' +
+    '<div class="rxg-panel" role="dialog" aria-modal="true" aria-labelledby="rxg-title" aria-describedby="rxg-desc rxg-addr">' +
       '<button type="button" class="rxg-close" aria-label="닫기">×</button>' +
       '<h2 id="rxg-title">Replix는 PC 크롬에서 써요</h2>' +
       '<p class="rxg-desc" id="rxg-desc">PC 크롬 주소창에 이렇게 입력하세요.</p>' +
-      '<p class="rxg-omni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg><span class="rxg-omni-url">replix.tv</span></p>' +
+      '<p class="rxg-omni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg><span class="rxg-omni-url" id="rxg-addr">replix.tv</span></p>' +
       '<p class="rxg-or">또는</p>' +
       '<p class="rxg-sub">이 링크를 PC로 보내 두세요.</p>' +
       '<div class="rxg-actions">' +
@@ -167,14 +188,12 @@ function build() {
     '</div>';
   document.body.appendChild(el);
   _sheet = el;
-  /* [hidden] 은 CSS display 에 진다(docs/README '고칠 때 알아 둘 것') — 보이지 않을 것은 style 로 끈다.
-     두 번째 버튼은 하나만: 공유 기능이 있으면 [공유하기](메일 앱도 그 안에 있다), 없으면 [메일로 보내기]. */
-  var canShare = typeof navigator.share === 'function';
-  if (!canShare) $('.rxg-share').style.display = 'none';
-  if (canShare) $('.rxg-mail').style.display = 'none';
-  /* 앱 안 브라우저엔 크롬 로그인이 없어 웹 스토어의 'PC로 보내기'가 막힌다 — 막히는 길은 보이지 않는다(inAppBrowser 주석). */
-  if (_inApp) $('.rxg-store').style.display = 'none';
-  if (location.pathname.indexOf('/catalog') === 0) $('.rxg-catalog').style.display = 'none';
+  /* [hidden] 은 CSS display 에 진다(docs/README '고칠 때 알아 둘 것') — 보이지 않을 것은 style 로 끈다. 무엇을 보일지는 sheetPlan. */
+  var plan = sheetPlan({ canShare: typeof navigator.share === 'function', inApp: _inApp, path: location.pathname });
+  if (!plan.share) $('.rxg-share').style.display = 'none';
+  if (!plan.mail) $('.rxg-mail').style.display = 'none';
+  if (!plan.store) $('.rxg-store').style.display = 'none';
+  if (!plan.catalog) $('.rxg-catalog').style.display = 'none';
   $('.rxg-copy').addEventListener('click', copyLink);
   $('.rxg-share').addEventListener('click', shareLink);
   $('.rxg-mail').addEventListener('click', function () { track('mail'); });
@@ -244,5 +263,7 @@ function boot() {
      새 화면을 덮은 채 남는다. */
   window.addEventListener('popstate', onNavigate);
   window.addEventListener('hashchange', onNavigate);
+  /* 다른 페이지로 갔다가 뒤로 와 bfcache 에서 되살아나면 시트가 덮인 채일 수 있다 — 닫는다(히스토리는 건드리지 않는다). */
+  window.addEventListener('pageshow', function (ev) { if (ev.persisted) onNavigate(); });
 }
 if (typeof window !== 'undefined' && typeof document !== 'undefined') boot();
