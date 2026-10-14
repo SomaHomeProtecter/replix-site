@@ -19,5 +19,5 @@ if (chartSection && !chartSection.hidden && window.getComputedStyle(chartSection
   import('./chart.js');
 }
 
-/* 계측(docs/analytics/tracking-plan.md) — 동의 전이면 analytics.js 가 기억해 두고 허용 직후 1회 보낸다. */
+/* 계측(analytics/tracking-plan.md) — 동의 전이면 analytics.js 가 기억해 두고 허용 직후 1회 보낸다. */
 page();

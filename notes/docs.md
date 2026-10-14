@@ -1,3 +1,5 @@
+> 이 문서는 `docs/`(replix.tv 게시 폴더) 작업 안내다. 게시되지 않게 `docs/` 밖에 둔다(HP-647) — 본문의 상대 경로(`js/…`, `invite/…`)는 `docs/` 기준이다.
+
 # docs — HP-87 공개 랜딩 페이지
 
 `replix.tv` 에 들어갈 랜딩 페이지 소스다. 폴더 이름이 `docs`인 이유는 이게 GitHub
@@ -61,7 +63,7 @@ python3 -m http.server 8000     # http://localhost:8000
   두 페이지의 PC 경로(2.5초 대기 후 설치 안내, 초대는 방 요약까지)는 `node scripts/test-invite.mjs` 가 지킨다.
   헤더는 760px 이하에서 설치 버튼을 숨기고 '작품 탐색'만 남긴다.
 - **계측(Amplitude)은 `js/analytics.js` 한 곳이다**(HP-415). 이벤트를 추가·변경하려면
-  **`docs/analytics/tracking-plan.md` 부터** 고친다 — 코드에만 있고 문서에 없는 이벤트는 버그다.
+  **`analytics/tracking-plan.md` 부터** 고친다 — 코드에만 있고 문서에 없는 이벤트는 버그다.
   설치 CTA 는 `data-cta="…"` 속성만 붙이면 자동 계측되고(세 곳 = `nav`·`hero`·`close`), 그 밖의 링크는
   `data-link="<target>" data-link-loc="nav|footer"` 로 버튼마다 구분해 센다(HP-437 — **랜딩에 `<a>` 를 새로 붙이면
   둘 중 하나를 반드시 단다**, 안 달면 검사가 깨진다. 값은 `analytics.js` `LINK_TARGETS` 의 열거값만). 동의 배너·SDK

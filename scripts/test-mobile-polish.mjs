@@ -64,6 +64,6 @@ assert.deepEqual(pngSize('docs/apple-touch-icon.png'), [180, 180], 'apple-touch-
 const ico = bytes('docs/favicon.ico');
 assert.deepEqual([ico.readUInt16LE(0), ico.readUInt16LE(2)], [0, 1], 'favicon.ico 는 ICO');
 assert.ok(ico.readUInt16LE(4) >= 2, 'favicon.ico 는 여러 크기(16·32·48)');
-assert.ok(existsSync(resolve(root, 'docs/assets/og/README.md')), 'og 이미지의 출처(로고 자산)·만드는 법을 남긴다');
+assert.ok(existsSync(resolve(root, 'notes/og-assets.md')), 'og 이미지의 출처(로고 자산)·만드는 법을 남긴다');
 
 console.log('scripts/test-mobile-polish.mjs: 통과');

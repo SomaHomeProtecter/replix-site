@@ -66,7 +66,7 @@ assert.doesNotMatch(invite, /analytics|amplitude|gtag/i, '/invite 는 계측하�
 
 // 시트 안의 행동 계측 — 열거값은 트래킹 플랜과 같아야 한다. 웹 스토어 링크에 data-cta 를 달면 설치 의도를 두 번 센다.
 const src = read('docs/js/install-guide.js');
-const plan = read('docs/analytics/tracking-plan.md');
+const plan = read('analytics/tracking-plan.md');
 assert.deepEqual(g.GUIDE_ACTIONS, ['opened', 'copy_link', 'share', 'mail', 'open_store', 'open_catalog']);
 assert.match(plan, /`install_guide_action`/, '트래킹 플랜에 install_guide_action 이 있다');
 for (const action of g.GUIDE_ACTIONS) assert.match(plan, new RegExp('`' + action + '`'), `트래킹 플랜에 action ${action}`);
