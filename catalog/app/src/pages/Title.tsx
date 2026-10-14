@@ -138,8 +138,7 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
                 <ArrowUpRightIcon size={13} weight="bold" className="opacity-80" />
               </a>
             )}
-            {/* 설치는 웹 스토어로 — data-cta 라야 설치 계측(install_cta_clicked)과 휴대폰 안내 시트(install-guide.js)를 탄다.
-                2026-09-05~10-14 에는 href="#/"(작품 탐색 홈)라 이 버튼으로는 설치에 닿지 못했다(HP-636). */}
+            {/* 설치는 웹 스토어로 — data-cta 라야 설치 계측(install_cta_clicked)과 휴대폰 안내 시트(install-guide.js)를 탄다(HP-636). */}
             <a href={storeUrl('catalog_title_hero')} target="_blank" rel="noopener" data-cta="catalog_title_hero" className="inline-flex items-center gap-2 whitespace-nowrap rounded-btn border border-line2 bg-raise px-4 py-2.5 text-[14px] font-bold text-ink transition-colors hover:bg-soft">
               <PuzzlePieceIcon size={16} />
               크롬 익스텐션 설치하기
