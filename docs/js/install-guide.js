@@ -56,9 +56,14 @@ var CSS = '#rx-install-guide{position:fixed;inset:0;z-index:10000;display:none;a
   'border-radius:18px 18px 0 0;padding:26px 20px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(16,16,24,.18)}' +
   '#rx-install-guide h2{margin:0 44px 6px 0;font-size:19px;line-height:1.35;font-weight:800;letter-spacing:-.02em;color:#101016}' +
   '#rx-install-guide p{margin:0}#rx-install-guide .rxg-desc{color:#40404c;font-size:14.5px}' +
-  '#rx-install-guide .rxg-addr{margin-top:12px;padding:12px 14px;border-radius:12px;background:#f6f6f8;color:#101016;' +
-  'font:700 26px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:-.01em;text-align:center;user-select:all;-webkit-user-select:all}' +
-  '#rx-install-guide .rxg-sub{margin-top:14px;color:#40404c;font-size:14px}' +
+  /* 주소는 브라우저 주소창 모양 안에 보통 주소 크기로 — 입력 칸처럼 보이거나 혼자 튀지 않게(2026-10-14 김지호) */
+  '#rx-install-guide .rxg-omni{display:flex;align-items:center;gap:10px;margin-top:12px;height:44px;padding:0 16px;border-radius:999px;' +
+  'background:#f1f1f4;border:1px solid rgba(16,16,24,.08);color:#101016}' +
+  '#rx-install-guide .rxg-omni svg{flex:none;color:#6b6b78}' +
+  '#rx-install-guide .rxg-omni-url{font-size:16px;font-weight:600;letter-spacing:-.01em;user-select:all;-webkit-user-select:all}' +
+  '#rx-install-guide .rxg-or{display:flex;align-items:center;gap:10px;margin-top:18px;color:#9d9daa;font-size:12.5px}' +
+  '#rx-install-guide .rxg-or::before,#rx-install-guide .rxg-or::after{content:"";flex:1;height:1px;background:rgba(16,16,24,.09)}' +
+  '#rx-install-guide .rxg-sub{margin-top:12px;color:#40404c;font-size:14.5px}' +
   '#rx-install-guide .rxg-actions{display:flex;gap:8px;margin-top:10px}' +
   '#rx-install-guide .rxg-actions button,#rx-install-guide .rxg-actions a{box-sizing:border-box;flex:1 1 0;min-height:48px;display:flex;' +
   'align-items:center;justify-content:center;font:inherit;font-weight:700;border-radius:12px;padding:12px 14px;cursor:pointer;text-decoration:none}' +
@@ -69,8 +74,11 @@ var CSS = '#rx-install-guide{position:fixed;inset:0;z-index:10000;display:none;a
   '#rx-install-guide .rxg-url{display:none;box-sizing:border-box;width:100%;margin-top:12px;padding:10px 12px;border:1px solid rgba(16,16,24,.16);' +
   'border-radius:10px;background:#f6f6f8;color:#40404c;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}' +
   '#rx-install-guide .rxg-status{min-height:20px;margin-top:10px;font-size:13px;color:#40404c}' +
-  '#rx-install-guide .rxg-links{display:flex;flex-direction:column;align-items:flex-start}' +
-  '#rx-install-guide .rxg-store,#rx-install-guide .rxg-catalog{display:inline-block;padding:10px 0 4px;font-size:14px;color:#6b6b78;text-decoration:underline;text-underline-offset:3px}' +
+  '#rx-install-guide .rxg-store{display:inline-block;padding:2px 0;font-size:13px;color:#6b6b78;text-decoration:underline;text-underline-offset:3px}' +
+  /* 작품 탐색은 설치와 다른 갈래(휴대폰에서 지금 할 수 있는 일)라 맨 아래 한 줄로 떼어 둔다 */
+  '#rx-install-guide .rxg-catalog{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;padding-top:14px;' +
+  'border-top:1px solid rgba(16,16,24,.09);color:#101016;font-size:14px;font-weight:600;text-decoration:none}' +
+  '#rx-install-guide .rxg-catalog svg{flex:none;color:#9d9daa}' +
   '@media (min-width:600px){#rx-install-guide{align-items:center}#rx-install-guide .rxg-panel{border-radius:18px;padding-bottom:20px}}';
 
 var _sheet = null;
@@ -143,9 +151,10 @@ function build() {
     '<div class="rxg-panel" role="dialog" aria-modal="true" aria-labelledby="rxg-title" aria-describedby="rxg-desc">' +
       '<button type="button" class="rxg-close" aria-label="닫기">×</button>' +
       '<h2 id="rxg-title">Replix는 PC 크롬에서 써요</h2>' +
-      '<p class="rxg-desc" id="rxg-desc">PC 크롬 주소창에 이렇게 입력하면 돼요.</p>' +
-      '<p class="rxg-addr">replix.tv</p>' +
-      '<p class="rxg-sub">또는 이 링크를 PC로 보내 두세요.</p>' +
+      '<p class="rxg-desc" id="rxg-desc">PC 크롬 주소창에 이렇게 입력하세요.</p>' +
+      '<p class="rxg-omni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg><span class="rxg-omni-url">replix.tv</span></p>' +
+      '<p class="rxg-or">또는</p>' +
+      '<p class="rxg-sub">이 링크를 PC로 보내 두세요.</p>' +
       '<div class="rxg-actions">' +
         '<button type="button" class="rxg-copy">링크 복사</button>' +
         '<button type="button" class="rxg-share">공유하기</button>' +
@@ -153,10 +162,8 @@ function build() {
       '</div>' +
       '<input class="rxg-url" type="text" readonly aria-label="이 페이지 주소">' +
       '<p class="rxg-status" role="status" aria-live="polite"></p>' +
-      '<div class="rxg-links">' +
-        '<a class="rxg-catalog" href="/catalog/">휴대폰에서는 작품 탐색으로 먼저 둘러보기 →</a>' +
-        '<a class="rxg-store" target="_blank" rel="noopener">웹 스토어에서 PC로 보내기 →</a>' +
-      '</div>' +
+      '<a class="rxg-store" target="_blank" rel="noopener">웹 스토어에서 PC로 보내기 →</a>' +
+      '<a class="rxg-catalog" href="/catalog/">휴대폰으로는 작품 탐색부터 둘러보기<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>' +
     '</div>';
   document.body.appendChild(el);
   _sheet = el;

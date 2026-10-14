@@ -104,7 +104,7 @@ assert.match(src, /if \(_inApp\) \$\('\.rxg-store'\)\.style\.display = 'none';/,
 assert.match(src, /if \(!canShare\) \$\('\.rxg-share'\)\.style\.display = 'none';\s*if \(canShare\) \$\('\.rxg-mail'\)\.style\.display = 'none';/,
   '두 번째 버튼은 공유 또는 메일 하나만');
 assert.match(src, /if \(location\.pathname\.indexOf\('\/catalog'\) === 0\) \$\('\.rxg-catalog'\)\.style\.display = 'none';/, '작품 탐색 안에선 작품 탐색 링크를 뺀다');
-assert.match(src, /<p class="rxg-addr">replix\.tv<\/p>/, 'PC 주소창에 넣을 주소를 크게');
+assert.match(src, /<span class="rxg-omni-url">replix\.tv<\/span>/, 'PC 주소창에 넣을 주소를 주소창 모양으로');
 assert.match(src, /href = 'mailto:\?subject=|'mailto:\?subject='/, '메일은 받는 사람 없이 mailto 로(우리 쪽 요청 없음)');
 assert.match(src, /location\.replace\(ev\.currentTarget\.getAttribute\('href'\)\)/, '작품 탐색으로 갈 때 쌓은 히스토리 칸을 바꿔 들어간다');
 assert.match(plan, /`in_app`/, '트래킹 플랜에 in_app');
