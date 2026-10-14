@@ -15,7 +15,8 @@
 <!-- 구조화 데이터(HP-645). WebSite 의 alternateName 은 구글이 사이트 이름을 고를 때 쓰는 한글 표기다(구글 '사이트 이름' 문서).
      SoftwareApplication 은 네이버 '소프트웨어' 마크업(name·applicationCategory 필수)과 schema.org 를 따른다. 평점(aggregateRating)은
      넣지 않는다 — 평점은 이 페이지가 아니라 웹스토어에 있고, 페이지에 없는 평점을 표시하는 것은 구조화 데이터 지침 위반이다.
-     installUrl 은 utm 을 붙이지 않는다 — 사람이 누르는 링크가 아니라 검색 로봇이 읽는 값이다. -->
+     installUrl 은 utm 을 붙이지 않는다 — 사람이 누르는 링크가 아니라 검색 로봇이 읽는 값이다.
+     Organization 의 sameAs 는 네이버 '사이트 연관채널' 마크업(name·url·sameAs 필수)이다 — 공식 채널이 늘면 여기에 더한다. -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -40,6 +41,14 @@
       "installUrl": "https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp",
       "inLanguage": "ko",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://replix.tv/#organization",
+      "name": "Replix",
+      "alternateName": "리플릭스",
+      "url": "https://replix.tv/",
+      "sameAs": ["https://www.instagram.com/replixcontact/"]
     }
   ]
 }
