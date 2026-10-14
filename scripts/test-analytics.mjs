@@ -183,7 +183,7 @@ const src = read('docs/js/analytics.js');
 const index = read('docs/index.html');
 assert.doesNotMatch(index, /cdn\.amplitude\.com/, 'SDK 는 동의 뒤 스크립트로만 로드한다(정적 태그 금지)');
 assert.doesNotMatch(read('docs/invite/index.html'), /analytics\.js|amplitude/i, '/invite 는 계측하지 않는다(쿼리에 토큰)');
-assert.match(src, /_banner\.style\.display = 'none'/, '[hidden] 은 display:flex 에 진다(docs/README) — style 로 끈다');
+assert.match(src, /_banner\.style\.display = 'none'/, '[hidden] 은 display:flex 에 진다(notes/docs.md) — style 로 끈다');
 assert.doesNotMatch(src, /\.hidden = true/, '배너를 [hidden] 으로 숨기면 display:flex 가 이긴다');
 assert.match(src, /a\.setOptOut\(false\); a\.reset\(\);/, '같은 페이지에서 거부→허용이면 optOut 해제 + 새 device_id (검증에서 잡힌 버그)');
 assert.match(src, /a\.setOptOut\(true\)/, '거부·철회 시 SDK optOut');

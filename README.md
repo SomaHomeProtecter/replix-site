@@ -21,11 +21,11 @@ Replix의 정적 웹 표면. GitHub Pages로 `https://replix.tv`에 서빙된다
 
 ## 배포 구조 (2026-08-06 결정 · 2026-09-20 미리보기 제거, HP-433)
 
-**`replix.tv`는 실공개 상태다** — GitHub Pages 소스가 `main`/`/docs`이고, `main`에 push하면 그대로 나간다(순수 정적, 별도 빌드 없음 — **머지가 곧 배포**). 문구는 여전히 초안이다(담당자가 확정 전 override로 먼저 공개했다, `docs/README.md` 참조).
+**`replix.tv`는 실공개 상태다** — GitHub Pages 소스가 `main`/`/docs`이고, `main`에 push하면 그대로 나간다(순수 정적, 별도 빌드 없음 — **머지가 곧 배포**). 문구는 여전히 초안이다(담당자가 확정 전 override로 먼저 공개했다, `notes/docs.md` 참조).
 
 | 무엇을 | 어떻게 | 브랜치 연결 |
 | --- | --- | --- |
-| 로컬 개발 | `docs/` 에서 작업, `python3 -m http.server`로 확인(`docs/README.md`) | 없음 |
+| 로컬 개발 | `docs/` 에서 작업, `python3 -m http.server`로 확인(`notes/docs.md`) | 없음 |
 | 실제 배포 | GitHub Pages | `main` push → 자동 |
 
 **팀 리뷰용 미리보기(`landing.replix-dev.site`)는 2026-09-20 없앴다(HP-433).** 2026-08-06에 "랜딩 문구 확정 전 팀이 먼저 본다"는 용도로 EKS dev에 nginx 컨테이너로 띄웠는데, `replix.tv`가 확정 전에 공개되면서 같은 `main`이 두 주소에 동시에 나가는 중복이 됐다. 머지 전 확인은 로컬(`python3 -m http.server`)로 하고, 운영 데이터를 건드리지 않는 시험은 `api.replix-dev.site`를 겨눠서 한다. 그때 쓰던 워크플로(`deploy-preview-on-main.yml`)·`scripts/deploy-dev.sh`·`Dockerfile`·`nginx.conf`, Replix-be `k8s/overlays/dev/landing.yaml`, ECR `replix-landing`, IAM 역할 `replix-site-gha-deploy`, 가비아 `landing` 레코드가 그 흔적이다 — 되살릴 일이 있으면 `git log`의 HP-433 이전 상태와 Confluence `[운영] 인프라 구성`을 본다.

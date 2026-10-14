@@ -188,7 +188,7 @@ function build() {
     '</div>';
   document.body.appendChild(el);
   _sheet = el;
-  /* [hidden] 은 CSS display 에 진다(docs/README '고칠 때 알아 둘 것') — 보이지 않을 것은 style 로 끈다. 무엇을 보일지는 sheetPlan. */
+  /* [hidden] 은 CSS display 에 진다(notes/docs.md '고칠 때 알아 둘 것') — 보이지 않을 것은 style 로 끈다. 무엇을 보일지는 sheetPlan. */
   var plan = sheetPlan({ canShare: typeof navigator.share === 'function', inApp: _inApp, path: location.pathname });
   if (!plan.share) $('.rxg-share').style.display = 'none';
   if (!plan.mail) $('.rxg-mail').style.display = 'none';

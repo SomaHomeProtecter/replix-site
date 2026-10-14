@@ -39,7 +39,7 @@ new IntersectionObserver(function (es) {
   nav.classList.toggle("stuck", !es[0].isIntersecting);
 }).observe(sen);
 
-/* ═══ 섹션 도달 계측 (docs/analytics/tracking-plan.md W3) ═══════════
+/* ═══ 섹션 도달 계측 (analytics/tracking-plan.md W3) ═══════════
    섹션 상단이 뷰포트 위 60% 안에 들어오면 페이지뷰당 1회. 50% 노출 threshold 를 쓰지 않는 이유:
    뷰포트보다 큰 섹션은 교차 비율이 0.5 에 영영 못 미쳐 절대 발화하지 않는다. */
 var SECTIONS = ['intro', 'how', 'scenes', 'works', 'rooms', 'faq', 'install'];

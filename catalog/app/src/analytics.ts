@@ -1,5 +1,5 @@
 /* Amplitude 계측 shim — 실제 구현은 랜딩과 공유하는 /js/analytics.js(동의 배너·SDK 지연 로드·공통 속성).
-   이 앱은 그 파일을 런타임에 붙이고 window.ReplixAnalytics 로만 부른다. 정본: docs/analytics/tracking-plan.md.
+   이 앱은 그 파일을 런타임에 붙이고 window.ReplixAnalytics 로만 부른다. 정본: analytics/tracking-plan.md.
    Vite dev·file:// 시안 검토에서는 그 파일이 없어 no-op 이다(fail-open — 계측이 화면을 막지 않는다).
    ⚠️ 작품·회차 ID·검색어는 어떤 속성에도 싣지 않는다(트래킹 플랜 §2). */
 type Props = Record<string, string | number | boolean>

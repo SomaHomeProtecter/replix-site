@@ -1,4 +1,4 @@
-/* Amplitude 계측 — 랜딩·작품 탐색 공용. 정본은 docs/analytics/tracking-plan.md (이벤트를 바꾸려면 거기부터).
+/* Amplitude 계측 — 랜딩·작품 탐색 공용. 정본은 analytics/tracking-plan.md (이벤트를 바꾸려면 거기부터).
    설계 요지:
    ① 동의 방식은 지역으로 가른다(HP-466, 시행 OPTOUT_FROM). **한국 시간대** 방문자는 랜딩·작품 탐색 모두 옵트아웃 —
       미선택이어도 이벤트를 수집하고 배너는 '수집 안내 + 거부'다(개인정보위 2024-01-31: 특정 개인을 식별하지 않는 행태정보는
@@ -574,7 +574,7 @@ export function setConsent(decision) {
    (flex-wrap, 세부는 flex-basis 100%). 접힌 높이 — 휴대폰 390×664 에서 70px(약 11%), PC 1366×640 에서 61px(2026-10-12 실측,
    종전 전문 배너는 202px·30%). 처리방침으로 떠나지 않고 배너 안에서 펼치는 이유: 광고로 들어온 방문자가 랜딩을 떠나지 않게.
    · [거부]는 [허용]과 같은 크기·같은 채움으로 둔다 — 거부를 테두리만 남겨 덜 보이게 하지 않는다(개인정보위 눈속임 설계 유형⑨).
-   · ⚠️ 세부(.rx-consent-detail)에 display 를 선언하지 않는다 — [hidden] 이 display 선언에 지면(docs/README) 늘 펼쳐진다. */
+   · ⚠️ 세부(.rx-consent-detail)에 display 를 선언하지 않는다 — [hidden] 이 display 선언에 지면(notes/docs.md) 늘 펼쳐진다. */
 var BANNER_CSS = '#rx-consent{position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;max-width:640px;margin:0 auto;' +
   'padding:10px 10px 10px 16px;border-radius:12px;background:#15151b;color:#e8e8ec;box-shadow:0 8px 28px rgba(0,0,0,.28);' +
   'font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}' +
@@ -613,7 +613,7 @@ export function showBanner() {
   });
   document.body.appendChild(el); _banner = el;
 }
-/* [hidden] 속성은 CSS display 선언에 진다(docs/README '고칠 때 알아 둘 것') — style 로 직접 끈다. */
+/* [hidden] 속성은 CSS display 선언에 진다(notes/docs.md '고칠 때 알아 둘 것') — style 로 직접 끈다. */
 function hideBanner() { if (_banner) _banner.style.display = 'none'; }
 
 /* ═══ 부트 ═══════════════════════════════════════════════════════ */
