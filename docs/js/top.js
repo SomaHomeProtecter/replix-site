@@ -153,6 +153,10 @@
     later(function () { run(steps, loopMs); }, loopMs);
   }
 
+  /* 연출이 시작됐다는 표식(HP-666) — 여기까지 준비가 끝나야 단다. index.html 의 안전장치가 이 표식을 보고, 몇 초 안에 없으면
+     (캐시가 섞인 옛 main.js·스크립트 오류·차단으로 이 파일이 돌지 않으면) 닫힘을 풀어 패널이 열린 정지 화면으로 둔다. */
+  document.documentElement.classList.add('hx-live');
+
   /* 움직임 줄이기 — 친구 둘이 들어와 함께 보는 중인 방을 멈춘 채 보인다 */
   if (STILL) {
     setShut(false, true);

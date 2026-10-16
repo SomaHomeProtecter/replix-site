@@ -108,8 +108,19 @@
       uaMobile: nav.userAgentData ? nav.userAgentData.mobile === true : undefined,
       uaPlatform: nav.userAgentData ? nav.userAgentData.platform : undefined };
     if (isMobileDevice(device)) document.documentElement.classList.add('rx-mobile-device');
+    /* 첫 화면 안전장치(HP-666): 연출(js/top.js)이 2.5초 안에 시작 표식(hx-live)을 달지 않으면 — 캐시가 섞인 옛 스크립트·오류·차단 —
+       닫힘(is-shut)을 풀어 패널이 열린 정지 화면으로 둔다. 연출이 늦게라도 시작되면 처음 장면부터 다시 이어 간다. */
+    setTimeout(function () {
+      if (document.documentElement.classList.contains('hx-live')) return;
+      var s = document.querySelector('.ys.hx-screen.is-shut');
+      if (s) s.classList.remove('is-shut');
+    }, 2500);
   })();
   </script>
+  <!-- 첫 화면 연출은 HTML 만 부른다(HP-666). main.js 를 거치면 두 가지가 깨진다 — ① 배포 뒤 10분 안(GitHub Pages max-age=600)에
+       새로고침한 방문자에게 새 HTML + 캐시에 남은 옛 main.js 가 섞여 연출이 아예 돌지 않는다(2026-10-17 실제로 일어남) ② top.js 를
+       받지 못하면 main.js 묶음 전체(섹션 등장·FAQ·계측)가 함께 멈춘다. -->
+  <script type="module" src="js/top.js"></script>
 </head>
 
 <body>
