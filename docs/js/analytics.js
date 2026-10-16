@@ -324,7 +324,8 @@ export function bannerDetail(version) {
 /* 랜딩 링크(nav_link_clicked) 열거값 — 트래킹 플랜 §6 의 표와 같다. 목록 밖이면 보내지 않는다:
    마크업 오타가 새 값으로 쌓이면 차트가 조용히 갈라지고, href 를 그대로 넣는 실수는 §2(전체 URL 금지)를 깬다.
    '분석 설정'은 일부러 없다 — 동의를 철회하러 가는 클릭을 세지 않는다. */
-export var LINK_TARGETS = ['top', 'scenes', 'rooms', 'faq', 'catalog', 'privacy', 'terms', 'contact_email', 'tmdb',
+/* friends·how = HP-664 메뉴·바닥 링크. scenes·rooms 는 그 전 랜딩(git 태그 landing-v1)의 값이라 남겨 둔다. */
+export var LINK_TARGETS = ['top', 'friends', 'how', 'scenes', 'rooms', 'faq', 'catalog', 'privacy', 'terms', 'contact_email', 'tmdb',
   'discord', 'discord_install'];
 export var LINK_LOCATIONS = ['nav', 'footer', 'discord'];
 export function linkProps(target, location) {
@@ -588,8 +589,10 @@ var BANNER_CSS = '#rx-consent{position:fixed;left:12px;right:12px;bottom:12px;z-
   '#rx-consent .rx-consent-actions .rx-allow{background:#e50914;color:#fff}' +
   '#rx-consent .rx-consent-detail{flex:1 1 100%;font-size:12.5px;line-height:1.55;color:#cfcfd6}' +
   '#rx-consent .rx-consent-detail a{color:#fff;font-weight:700;text-decoration:underline}' +
-  '@media (max-width:560px){#rx-consent{left:8px;right:8px;bottom:8px;padding:8px 8px 8px 12px;font-size:12.5px;line-height:1.45}' +
-  '#rx-consent .rx-consent-actions button{padding:6px 11px;min-height:34px}}';
+  /* 휴대폰 폭(HP-664, 2026-10-16 조현빈 선택 '두 줄 압축'): 떠 있는 카드 대신 화면 아래 끝에 붙은 띠 — 바깥 여백·둥근 모서리를 없애고
+     글자를 12px 로 줄여 첫 화면을 덜 가린다. 요약 문구는 그대로다(HP-585 — 스크롤·클릭·미국·허용이 더하는 것, HP-510 '첫 화면'). */
+  '@media (max-width:560px){#rx-consent{left:0;right:0;bottom:0;border-radius:0;gap:6px 10px;padding:7px 8px 7px 12px;font-size:12px;line-height:1.42}' +
+  '#rx-consent .rx-consent-actions button{padding:6px 11px;min-height:32px}}';
 export function showBanner() {
   if (_banner) { _banner.style.display = 'flex'; return; }
   var st = document.createElement('style'); st.textContent = BANNER_CSS; document.head.appendChild(st);

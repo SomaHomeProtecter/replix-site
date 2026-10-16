@@ -35,15 +35,20 @@ for (const tag of links) {
   assert.match(tag, /rel="noopener"/, '새 탭에 이 페이지를 넘기지 않는다');
 }
 
-// ── 랜딩: 함께 보기(#rooms) 바로 뒤, '자세히 보기'는 /discord/
-const rooms = landing.indexOf('id="rooms"');
+// ── 랜딩: 친구랑 같이 보기(#friends) 바로 뒤(HP-664 — 그 전엔 함께 보기 #rooms 뒤), '자세히 보기'는 /discord/
+const friends = landing.indexOf('id="friends"');
 const discord = landing.indexOf('id="discord"');
-const scenes = landing.indexOf('id="scenes"');
-assert.ok(rooms > 0 && discord > rooms && discord < scenes, '디스코드 섹션은 함께 보기와 인기 장면 사이');
-assert.equal(landing.slice(rooms, discord).split('<section').length - 1, 1,
-  '함께 보기와 디스코드 섹션 사이에 다른 섹션이 없다(잘라 낸 구간의 <section 은 디스코드 섹션 자신의 여는 태그 하나)');
+const next = landing.indexOf('<section', discord);   // 디스코드 섹션 다음 섹션의 여는 태그
+assert.ok(friends > 0 && discord > friends && next > discord, '디스코드 섹션은 친구랑 같이 보기 바로 뒤');
+assert.equal(landing.slice(friends, discord).split('<section').length - 1, 1,
+  '친구랑 같이 보기와 디스코드 섹션 사이에 다른 섹션이 없다(잘라 낸 구간의 <section 은 디스코드 섹션 자신의 여는 태그 하나)');
 assert.match(landing, /<link rel="stylesheet" href="css\/discord\.css">/);
-assert.match(landing.slice(discord, scenes), /href="\/discord\/"/, "섹션의 '자세히 보기'");
+const section = landing.slice(discord, next);
+assert.match(section, /href="\/discord\/"/, "섹션의 '자세히 보기'");
+// 버튼 비중(HP-664, 2026-10-17 조현빈): 빨간 주 버튼은 익스텐션 설치만 쓴다 — 디스코드 서버가 있어야 쓰는 입구라 두 버튼 모두 보조 버튼,
+// '자세히 보기'(/discord/)를 앞에
+assert.doesNotMatch(section, /class="btn btn--primary"/, '디스코드 섹션 버튼은 보조 버튼(btn--ghost)');
+assert.ok(section.indexOf('href="/discord/"') < section.indexOf('data-discord-install'), "'자세히 보기'가 [디스코드에 추가]보다 앞");
 
 // ── /discord/: 한 단계 아래 경로라 스타일·그림은 절대 경로로, 실제 화면 그림은 움직임 없이 보인다
 for (const css of ['tokens', 'base', 'rooms', 'discord', 'discord-page']) {
@@ -54,7 +59,6 @@ assert.match(page, /href="\/privacy\.html"/, '보내는 정보는 처리방침�
 
 // ── 랜딩 섹션의 움직이는 디스코드 창(2026-10-05 조현빈 결정): 명령을 안내하고, 화면에 들어온 뒤에 움직이고,
 //    움직임 줄이기에서는 누르기·Replix 창을 띄우지 않는다
-const section = landing.slice(discord, scenes);
 assert.match(landing, /<section class="[^"]*\bdx\b[^"]*" id="discord"/, '움직임은 .dx 섹션 안에서만 건다');
 assert.match(section, /<figure class="dc-shot reveal"/, '그림은 .reveal — js/reveal.js 가 .in 을 붙여야 움직이기 시작한다');
 assert.match(section, /class="dc-cmd">\/같이보기<\/span>/, '음성 채널에서 입력할 명령을 안내한다');
@@ -65,7 +69,7 @@ assert.match(dcss, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*\.dx-curs
 
 // ── 문구: 제품 호칭은 '익스텐션'(워크스페이스 CLAUDE.md §1), 봇이 보내지 않는 것을 밝힌다
 const text = (html) => html.replace(/<!--[\s\S]*?-->/g, '').replace(/<style>[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ');
-for (const [name, html] of [['랜딩 섹션', landing.slice(discord, scenes)], ['/discord/', page]]) {
+for (const [name, html] of [['랜딩 섹션', section], ['/discord/', page]]) {
   assert.doesNotMatch(text(html), /확장 ?프로그램/, `${name}: '익스텐션'으로 부른다`);
 }
 assert.match(text(page), /닉네임과 채팅은 보내지 않아요/);
