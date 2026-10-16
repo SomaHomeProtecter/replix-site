@@ -8,6 +8,7 @@ import './hero.js';
 import './scenes.js';
 import './rooms.js';
 import './faq.js';
+import './float-cta.js';   /* 휴대폰 따라오는 설치 버튼(HP-664) */
 import './stats.js';
 import './reveal.js';
 

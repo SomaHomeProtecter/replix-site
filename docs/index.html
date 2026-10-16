@@ -80,6 +80,8 @@
   <link rel="stylesheet" href="css/start-faq.css">
   <link rel="stylesheet" href="css/floaters.css">
   <link rel="stylesheet" href="css/close-footer.css">
+  <!-- 친구랑 같이 보기·디스코드 휴대폰 높이·혼자 볼 때 머리말·따라오는 설치 버튼 — HP-664 -->
+  <link rel="stylesheet" href="css/friends.css">
   <!-- 첫 화면(#top) 재생 화면 연출 — HP-662. 스타일 = css/top.css, 연출 = js/top.js(main.js 가 불러온다) -->
   <link rel="stylesheet" href="css/top.css">
   <!-- 패널은 닫힌 넷플릭스 화면(.is-shut)에서 시작해 연출이 연다 — 스크립트가 없으면 열린 채로 둔다 -->
@@ -123,8 +125,8 @@
          휴대폰 폭(760px 이하)에선 섹션 링크와 설치 버튼을 숨기고 '작품 탐색'만 남긴다(HP-477, css/tokens.css).
          치수를 바꾸면 catalog/app/src/components/Chrome.tsx 도 같이. -->
     <div class="nav-links">
-      <a href="#rooms" data-link="rooms" data-link-loc="nav">함께 보기</a>
-      <a href="#scenes" data-link="scenes" data-link-loc="nav">인기 장면</a>
+      <a href="#friends" data-link="friends" data-link-loc="nav">친구랑 보기</a>
+      <a href="#how" data-link="how" data-link-loc="nav">혼자 보기</a>
       <a href="#faq" data-link="faq" data-link-loc="nav">자주 묻는 질문</a>
     </div>
     <a class="btn btn--ghost btn--sm nav-switch" href="/catalog/" data-link="catalog" data-link-loc="nav">작품 탐색</a>
@@ -199,219 +201,88 @@
   </div>
 </section>
 
-<!-- ─── 제품 소개: 반응과 함께 감상 (2026-08-12, v18-B) ─────────────
-     히어로에서 내려온 제품 화면. "넷플릭스에 채팅이 붙는다"를 한 번 보여준다.
-     채팅 메시지에 "3일 전"·"어제"·"방금" 시점이 섞여 있고, 입력창에 타이핑
-     중인 메시지("나도 소름이야")가 있어 "나도 남길 수 있다"까지 화면이 전달.
-     스타일 = css/hero.css 하단 .intro- 블록 -->
-<section class="pad" id="intro">
-  <div class="wrap">
-    <div class="intro-head reveal">
-      <h2>다른 사람들의 반응을 보면서<br>넷플릭스를 감상하세요</h2>
-      <p>이 장면에서 다른 사람들은 어떤 반응을 남겼는지 보이고, 나도 반응을 남길 수 있어요.</p>
-    </div>
-
-    <!-- 원본↔Replix 진행 표시 — 누르는 버튼이 아니다. 스크롤하면 아래 화면이 넷플릭스에서
-         Replix 로 넘어가고, 이 알약은 지금 어느 쪽인지만 보여 준다(js/hero.js, HP-467). -->
-    <div class="hero-toggle" id="heroToggle" aria-hidden="true">
-      <span class="hero-toggle-seg hero-toggle-seg--og">넷플릭스</span>
-      <span class="hero-toggle-seg hero-toggle-seg--rx">Replix</span>
-      <i class="hero-toggle-thumb"></i>
-    </div>
-
-    <div class="screen hero-screen intro-screen reveal" role="img"
-         aria-label="Replix 가 켜진 재생 화면: 영상 위로 탄막이 흐르고, 오른쪽 패널에 채팅이 도착하며, 재생바 위에 반응이 몰린 구간이 그려진다.">
-      <div class="stage" id="splitStage">
-        <img src="assets/frame-hero.jpg" alt="">
-        <div class="dm-layer" id="dmLayer" aria-hidden="true"></div>
-        <div class="floaters" id="floaters"></div>
-        <div class="controls">
-          <div class="heat" id="heat" aria-hidden="true"></div>
-          <div class="track">
-            <div class="track-fill" id="trackFill"></div>
-            <div class="track-knob" id="trackKnob"></div>
-          </div>
-          <div class="ctrlbar">
-            <span class="ctrl-ics" aria-hidden="true">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5.5v13l9-6.5z"/><rect x="16.4" y="5.5" width="1.9" height="13" rx=".6"/></svg>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 9.5h3L11 6v12L7 14.5H4z" fill="currentColor"/><path d="M14.5 9.6a3.6 3.6 0 0 1 0 4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </span>
-            <span class="timecode"><span id="playTime">28:00 / 48:12</span><em id="hotNow"></em></span>
-            <span class="ctrl-ics ctrl-ics--r" aria-hidden="true">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 3.5v2.5M12 18v2.5M20.5 12H18M6 12H3.5M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8M18.4 18.4l-1.8-1.8M7.4 7.4 5.6 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 9.5V4.5h5M20 14.5v5h-5M20 9.5v-5h-5M4 14.5v5h5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-          </div>
-        </div>
+<!-- ─── 친구랑 같이 보기 (HP-664, 2026-10-17 조현빈 결정) ─────────────────
+     첫 화면 바로 아래에서 그룹방을 쓰는 법을 세 단계로 보여 주고, 설득이 끝나는 자리에 설치 버튼(계측 위치값 friends)을 둔다.
+     3단계의 '누가 멈추거나 넘기면 모두의 화면이 함께 움직여요'는 옛 #rooms 그룹방 소개 문구 그대로다(HP-496 — 실제 기본값과
+     다른 걸 알고 고른 문구라 동작에 맞춰 고치지 않는다). 오른쪽 카드는 옛 #rooms 의 그룹방 카드(css/rooms.css)를 옮긴 것이고,
+     휴대폰 폭에서는 숨긴다. 이 구성 이전의 랜딩(공개 채팅 중심)은 git 태그 landing-v1 에 있다(notes/docs.md). 스타일 = css/friends.css -->
+<section class="pad band-white gt" id="friends">
+  <div class="wrap gt-grid">
+    <div class="gt-copy">
+      <div class="gt-head reveal">
+        <span class="rm-eyebrow">친구랑 같이 보기</span>
+        <h2>링크 하나면,<br>같은 장면에서 같이 봐요</h2>
       </div>
-      <aside class="panel">
-        <div class="panel-head">
-          <img class="panel-logo" src="assets/logo/replix-horizontal-dark.png" alt="Replix" height="20">
-          <span class="ep-chip" style="margin-left:auto">3화</span>
-        </div>
-        <div class="panel-ep">
-          <span class="dot-live"></span>
-          <span><b class="num" id="heroViewers">42</b>명 함께 시청 중</span>
-        </div>
-        <div class="feed" id="feed"></div>
-        <div class="panel-input" id="heroInput">
-          <span id="heroInputText">지금 이 장면에 반응을 남겨보세요</span><span class="caret"></span>
-          <span class="hero-send" id="heroSend" style="display:none">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.6-8.4L3.4 3.6 3.4 10 15 12 3.4 14z"/></svg>
-          </span>
-        </div>
-      </aside>
-    </div>
-  </div>
-</section>
-
-
-<!-- 라이브 수치 — 실데이터가 하한선을 넘을 때만 스크립트가 보여준다(js/stats.js).
-     기본은 숨김(hidden) — 데이터 도착 전 빈 숫자가 스치는 것을 막는다. -->
-<div class="strip" id="strip" hidden>
-  <div class="wrap strip-in reveal" data-stagger>
-    <div class="stat stat--live" style="--i:0">
-      <b class="num" id="statViewers" data-suffix="명">0</b><span>지금 보고 있는 사람</span>
-    </div>
-    <div class="stat" style="--i:1">
-      <b class="num" id="statRooms" data-suffix="개">0</b><span>열려 있는 회차 방</span>
-    </div>
-  </div>
-</div>
-
-<!-- ─── 함께 보는 방식 (밝은 지면) ──────────────────────────────
-     제품 화면 바로 뒤 3번째(HP-467, 2026-09-12 김찬수 기획 멘토링 반영 — 원래 6번째).
-     채팅 설명 카드(#how)는 반대로 설치 안내 바로 앞으로 내려갔다.
-     2026-10-04 조현빈 결정으로 어두운 '시네마' 화면을 밝은 지면으로 바꿨다(HP-496, 시안
-     다섯 개 중 B안). 구성(제목 + 공개 채팅 + 그룹방 + 설명)은 그대로이고, 시안과 다른 것은
-     배경(흰 지면 + 위아래 선)뿐이다. 문구·대화·상태 칩을 시안 그대로 두는 것도 같은 날
-     조현빈 결정이다 — 실제 익스텐션은 탄막이 기본 꺼짐이고 그룹방 기본이 '방장만 재생
-     제어'지만, 이 소개 화면은 시안의 표현을 따른다. 스타일 = css/rooms.css -->
-<section class="band-white rm" id="rooms">
-  <div class="wrap">
-
-    <div class="rm-head reveal">
-      <div>
-        <span class="rm-eyebrow">함께 보는 두 가지 방법</span>
-        <h2>함께 보는 방식도<br>선택하세요</h2>
+      <ol class="gt-steps" data-stagger>
+        <li style="--i:0"><span class="gt-n">1</span><div>
+          <h3>방을 만들고 링크를 보내요</h3>
+          <p>보던 회차에서 그룹방을 만들고, 초대 링크를 친구에게 보내요.</p>
+          <span class="gt-chip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>초대 링크<em>✓ 복사됨</em></span>
+        </div></li>
+        <li style="--i:1"><span class="gt-n">2</span><div>
+          <h3>친구는 내가 보던 장면에서 시작해요</h3>
+          <p>링크를 누르면 같은 회차, 같은 장면으로 바로 들어와요.</p>
+          <span class="gt-chip" aria-hidden="true"><svg class="gt-fill" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg>수민님이 들어왔어요<b class="rm-mono">32:47</b></span>
+        </div></li>
+        <li style="--i:2"><span class="gt-n">3</span><div>
+          <h3>멈추면 다 같이 멈춰요</h3>
+          <p>누가 멈추거나 넘기면 모두의 화면이 함께 움직여요.</p>
+          <span class="gt-chip" aria-hidden="true"><svg class="gt-fill" viewBox="0 0 24 24"><path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z"/></svg>현우님이 잠시 멈췄어요</span>
+        </div></li>
+      </ol>
+      <div class="gt-act reveal">
+        <a class="btn btn--primary btn--chrome gt-cta" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=friends" target="_blank" rel="noopener" data-cta="friends">
+          <span class="cta-lab rx-pc-only"><span class="chrome-ic" aria-hidden="true"><img src="assets/icons/chrome-logo.png" alt="" width="17" height="17"></span>크롬에 Replix 설치하기</span>
+          <!-- 휴대폰 기기(익스텐션 설치 불가)면 이 문구로 바뀌고 js/install-guide.js 가 안내 시트를 띄운다 -->
+          <span class="cta-lab rx-mobile-only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>PC로 설치 링크 보내기</span>
+        </a>
+        <p class="gt-note"><span class="rx-pc-only">무료 · 친구도 링크를 열면 설치 안내가 나와요</span><span class="rx-mobile-only">PC 크롬 웹스토어에서 <b>'리플릭스'</b>를 검색해도 돼요</span></p>
       </div>
-      <p>때로는 더 많은 사람들과, 때로는 가까운 사람들과.
-        Replix에서 함께 보는 방식을 골라보세요.</p>
     </div>
-
-    <div class="rm-grid" data-stagger>
-
-      <!-- 01 공개 채팅 — 위는 직접 그린 밤 장면(사진 아님, 작품은 가상의 '밤의 정원')에
-           탄막·이모지가 흐르고, 아래는 장면 머리로 묶인 채팅과 '지금' 줄 -->
-      <figure class="rm-col" style="--i:0">
-        <figcaption class="rm-cap">
-          <span class="rm-idx">01</span>
-          <h3 class="rm-title">공개 채팅<span class="rm-tag rm-tag--live">실시간</span></h3>
-          <p>같은 회차를 보는 모든 사람과 장면마다 반응을 나눠요.
-            영상 위로는 탄막이 흐르고, 지금 몇 명이 함께 보는지도 보여요.</p>
-        </figcaption>
-        <div class="rm-card" role="img"
-             aria-label="공개 채팅 화면 예시: 밤 장면 위로 탄막과 이모지가 흐르고, 아래에는 32분 31초와 32분 47초 장면별로 채팅이 묶여 있다. 맨 아래 줄에 지금 1,284명이 함께 보는 중이라고 나온다.">
-          <div class="rm-stage">
-            <div class="rm-night">
-              <i class="rm-moon"></i>
-              <svg class="rm-ridge rm-ridge--far" viewBox="0 0 400 120" preserveAspectRatio="none">
-                <path d="M0 64 L52 40 L110 56 L170 22 L238 50 L300 30 L360 48 L400 36 L400 120 L0 120 Z"/>
-              </svg>
-              <svg class="rm-ridge rm-ridge--near" viewBox="0 0 400 80" preserveAspectRatio="none">
-                <path d="M0 40 L70 28 L140 40 L220 20 L300 36 L400 24 L400 80 L0 80 Z"/>
-              </svg>
+    <figure class="gt-card reveal">
+          <div class="rm-card" role="img"
+               aria-label="그룹방 화면 예시: 지혜의 방에서 밤의 정원 3화를 재생을 맞춰 보는 중이다. 지혜, 수민, 현우가 들어와 있고, 지혜가 재생하고 현우가 잠시 멈추는 사이 대화가 이어진다.">
+            <div class="rm-rhead">
+              <svg class="rm-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+              <div class="rm-rname"><b>지혜의 방</b><span>밤의 정원 3화</span></div>
+              <span class="rm-sync"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>재생 맞춤</span>
             </div>
-            <span class="rm-dm" style="--y:14%; --dur:10s">다들 이 장면 기다렸지</span>
-            <span class="rm-dm" style="--y:34%; --dur:12s; --wait:3s">와 미쳤다 진짜</span>
-            <span class="rm-dm" style="--y:54%; --dur:11s; --wait:6s">숨 참고 보는 중</span>
-            <span class="rm-flt" style="left:62%">🔥</span>
-            <span class="rm-flt" style="left:74%; animation-delay:1.4s">❤️</span>
-            <span class="rm-flt" style="left:84%; animation-delay:2.4s">😂</span>
-            <span class="rm-bar"><i></i></span>
+            <div class="rm-crew">
+              <span class="rm-mate"><i class="rm-av" style="--bg:hsl(262 45% 88%); --fg:hsl(262 35% 34%)">지</i>지혜</span>
+              <span class="rm-mate"><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i>수민</span>
+              <span class="rm-mate"><i class="rm-av" style="--bg:hsl(168 45% 86%); --fg:hsl(168 40% 26%)">현</i>현우</span>
+              <span class="rm-invite">
+                <svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>초대 링크
+              </span>
+            </div>
+            <div class="rm-msgs">
+              <span class="rm-sys"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg>지혜님이 재생했어요</span>
+              <div class="rm-them">
+                <i class="rm-av" style="--bg:hsl(262 45% 88%); --fg:hsl(262 35% 34%)">지</i>
+                <div><b>지혜</b><p class="rm-bub">여기 다시 보자</p></div>
+              </div>
+              <div class="rm-them">
+                <i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i>
+                <div><b>수민</b><p class="rm-bub">방금 그 표정 봤어? 소름 돋았어</p><span class="rm-react">❤️ 2</span></div>
+              </div>
+              <span class="rm-sys"><svg viewBox="0 0 24 24"><path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z"/></svg>현우님이 잠시 멈췄어요</span>
+              <p class="rm-mine">다음 화는 주말에 같이 보자</p>
+              <span class="rm-mono rm-stamp">32:47</span>
+            </div>
+            <div class="rm-input">그룹방에 메시지 보내기 (Enter)</div>
           </div>
-          <div class="rm-feed">
-            <span class="rm-scn"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg><span class="rm-mono">32:31</span></span>
-            <div class="rm-msg">
-              <i class="rm-av" style="--bg:hsl(212 45% 88%); --fg:hsl(212 35% 32%)">밤</i>
-              <div><b>밤샘러</b><p>여기서 다 같이 비명 지르는 거 맞죠</p></div>
-            </div>
-            <div class="rm-msg">
-              <i class="rm-av" style="--bg:hsl(36 45% 88%); --fg:hsl(36 35% 32%)">팝</i>
-              <div><b>팝콘한줌</b><p>숨 참고 보는 중</p></div>
-              <span class="rm-like"><svg viewBox="0 0 24 24"><path d="M12 20.3l-1.4-1.3C5.4 14.4 2 11.3 2 7.6 2 4.8 4.2 2.6 7 2.6c1.7 0 3.3.8 4 2 .8-1.2 2.4-2 4-2 2.8 0 5 2.2 5 5 0 3.7-3.4 6.8-8.6 11.4z"/></svg>12</span>
-            </div>
-            <div class="rm-msg">
-              <i class="rm-av" style="--bg:hsl(290 45% 88%); --fg:hsl(290 35% 32%)">새</i>
-              <div><b>새벽시청자</b><p>이 대사 진짜 명대사</p></div>
-            </div>
-            <span class="rm-scn"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg><span class="rm-mono">32:47</span></span>
-            <div class="rm-msg">
-              <i class="rm-av" style="--bg:hsl(140 45% 88%); --fg:hsl(140 35% 30%)">정</i>
-              <div><b>정주행중</b><p>와 연출 미쳤다</p></div>
-            </div>
-          </div>
-          <div class="rm-now">
-            <i class="rm-live"></i><span>지금</span><span class="rm-mono">32:47</span>
-            <span class="rm-mono rm-count">1,284명</span>
-          </div>
-          <div class="rm-input">이 장면에 한마디</div>
-        </div>
-      </figure>
-
-      <!-- 02 그룹방 — 익스텐션 그룹방 창의 상태판(방장 이름의 방 · 회차 · 상태 칩 · 함께 보는
-           사람)과 메신저식 대화, 테두리 없는 시스템 줄을 개념만 옮겼다 -->
-      <figure class="rm-col" style="--i:1">
-        <figcaption class="rm-cap">
-          <span class="rm-idx">02</span>
-          <h3 class="rm-title">그룹방<span class="rm-tag rm-tag--invite">초대 전용</span></h3>
-          <p>초대한 사람끼리 재생을 맞춰 보며 이야기해요.
-            누가 멈추거나 넘기면 모두의 화면이 함께 움직여요.</p>
-        </figcaption>
-        <div class="rm-card" role="img"
-             aria-label="그룹방 화면 예시: 지혜의 방에서 밤의 정원 3화를 재생을 맞춰 보는 중이다. 지혜, 수민, 현우가 들어와 있고, 지혜가 재생하고 현우가 잠시 멈추는 사이 대화가 이어진다.">
-          <div class="rm-rhead">
-            <svg class="rm-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
-            <div class="rm-rname"><b>지혜의 방</b><span>밤의 정원 3화</span></div>
-            <span class="rm-sync"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>재생 맞춤</span>
-          </div>
-          <div class="rm-crew">
-            <span class="rm-mate"><i class="rm-av" style="--bg:hsl(262 45% 88%); --fg:hsl(262 35% 34%)">지</i>지혜</span>
-            <span class="rm-mate"><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i>수민</span>
-            <span class="rm-mate"><i class="rm-av" style="--bg:hsl(168 45% 86%); --fg:hsl(168 40% 26%)">현</i>현우</span>
-            <span class="rm-invite">
-              <svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>초대 링크
-            </span>
-          </div>
-          <div class="rm-msgs">
-            <span class="rm-sys"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg>지혜님이 재생했어요</span>
-            <div class="rm-them">
-              <i class="rm-av" style="--bg:hsl(262 45% 88%); --fg:hsl(262 35% 34%)">지</i>
-              <div><b>지혜</b><p class="rm-bub">여기 다시 보자</p></div>
-            </div>
-            <div class="rm-them">
-              <i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i>
-              <div><b>수민</b><p class="rm-bub">방금 그 표정 봤어? 소름 돋았어</p><span class="rm-react">❤️ 2</span></div>
-            </div>
-            <span class="rm-sys"><svg viewBox="0 0 24 24"><path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z"/></svg>현우님이 잠시 멈췄어요</span>
-            <p class="rm-mine">다음 화는 주말에 같이 보자</p>
-            <span class="rm-mono rm-stamp">32:47</span>
-          </div>
-          <div class="rm-input">그룹방에 메시지 보내기 (Enter)</div>
-        </div>
-      </figure>
-
-    </div>
+    </figure>
   </div>
 </section>
 
 <!-- ─── 디스코드에서 같이 보기 (HP-497) ─────────────────────────
-     함께 보기(#rooms) 바로 뒤. 디스코드는 함께 보는 셋째 방식이 아니라 그룹방으로 들어오는 또 하나의 입구라
+     친구랑 같이 보기(#friends) 바로 뒤(HP-664 — 옛 함께 보기 #rooms 자리). 디스코드는 함께 보는 셋째 방식이 아니라 그룹방으로 들어오는 또 하나의 입구라
      #rooms 의 셋째 칸이 아니라 따로 둔다. 2026-10-05 조현빈 결정(시안 3차) — '약속 없이 열리는 우리끼리 상영회' +
      움직이는 디스코드 창(친구들이 하나둘 들어오고 → 봇이 부르고 → [참여하기] → Replix 가 열린다). 사람·작품은
      #rooms 와 같은 가상 이름(지혜·수민·현우·민지, '밤의 정원'). [디스코드에 추가]의 주소는 /discord/ 페이지와 같다 —
-     운영 봇 id 를 바꾸면 두 곳을 함께(scripts/test-discord.mjs 가 맞춰 본다). 스타일·움직임 = css/discord.css -->
+     운영 봇 id 를 바꾸면 두 곳을 함께(scripts/test-discord.mjs 가 맞춰 본다). 스타일·움직임 = css/discord.css,
+     HP-664: 디스코드 서버가 있어야 쓰는 입구라 버튼 둘을 보조 버튼으로 두고 '자세히 보기'(/discord/)를 앞에 — 빨간 주 버튼은 익스텐션 설치만 쓴다.
+     휴대폰 높이 줄이기 = css/friends.css -->
 <section class="pad band-soft dc dx" id="discord">
   <div class="wrap">
     <div class="dc-wrap">
@@ -420,8 +291,8 @@
         <h2>약속 없이 열리는<br>우리끼리 상영회</h2>
         <p class="dc-lead">디스코드 음성 채널에서 <span class="dc-cmd">/같이보기</span> 를 입력하면 상영회가 열려요. 서버 친구들이 하나둘 들어오고, 중간에 와도 같은 장면부터 함께 봐요.</p>
         <div class="dc-cta">
-          <a class="btn btn--primary" href="https://discord.com/oauth2/authorize?client_id=1556613278992572438&amp;scope=bot%20applications.commands&amp;permissions=281474976730128" target="_blank" rel="noopener" data-discord-install data-link="discord_install" data-link-loc="discord">디스코드에 추가</a>
           <a class="btn btn--ghost" href="/discord/" data-link="discord" data-link-loc="discord">자세히 보기</a>
+          <a class="btn btn--ghost" href="https://discord.com/oauth2/authorize?client_id=1556613278992572438&amp;scope=bot%20applications.commands&amp;permissions=281474976730128" target="_blank" rel="noopener" data-discord-install data-link="discord_install" data-link-loc="discord">디스코드에 추가</a>
         </div>
         <p class="dc-safe"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>보는 작품은 /같이보기 를 시작한 채널에만 보여요.</p>
         <p class="dc-note">PC 크롬과 Replix 익스텐션이 필요해요.</p>
@@ -490,8 +361,8 @@
 
 <!-- ─── 반응이 몰린 구간 (구버전) ─────────────────────────────────
      2026-08-12 조현빈 결정으로 감춤(삭제 아님 — 복잡도가 높아 단순화 버전으로 교체).
-     id 는 아래 새 섹션이 이어받았다(내비·푸터 #scenes 링크 유지).
-     복구 시: 아래 style 제거 + id 를 scenes 로 되돌리고 새 섹션 제거. -->
+     id 를 이어받은 단순화 섹션(#scenes)도 HP-664(2026-10-17)로 뺐다 — 그 마크업은 git 태그 landing-v1 에 있다.
+     복구 시: 아래 style 제거 + id 를 scenes 로 되돌린다. -->
 <section class="pad band-dark" id="scenes-legacy" style="display:none">
   <!-- 채팅 패널 쪽 카드는 뷰포트 여백 앵커링(콘텐츠 침범 ~80px 고정) -->
   <span class="fcard fcard--edge" aria-hidden="true"
@@ -572,34 +443,6 @@
   </div>
 </section>
 
-<!-- ─── 반응이 몰린 구간 (단순화, 2026-08-12) ──────────────────────
-     파형 = 랜딩 기존 빨간 막대 그라디언트(정적 — 막대 높이는 고정값 인라인,
-     JS 불필요). 핀 = 익스텐션 실물의 "N명 시청 중" 크림 알약(features/heatmap.js
-     renderMarkers · styles.css .rx-vm-pill 참조). 핀 bottom 은 그 지점 막대
-     높이(110px 기준) + 6px 로 손계산 — 막대 배열·높이를 바꾸면 함께 갱신할 것.
-     스타일 = css/scenes.css 하단 .pulse- 블록 -->
-<section class="pad" id="scenes">
-  <div class="wrap">
-    <div class="pulse-head reveal">
-      <h2>다들 어느 장면에서 터졌는지 보여요</h2>
-      <p>채팅이 몰린 장면은 재생바 위에 봉우리로 쌓이고,
-        지금 사람이 몰려 있는 지점에는 시청 중 표시가 떠요.</p>
-    </div>
-  </div>
-  <div class="wrap">
-  <div class="pulse-stage reveal">
-    <div class="pulse-bars" aria-hidden="true"><span style="height:8%"></span><span style="height:10%"></span><span style="height:9%"></span><span style="height:12%"></span><span style="height:15%"></span><span style="height:12%"></span><span style="height:10%"></span><span style="height:14%"></span><span style="height:22%"></span><span style="height:34%"></span><span style="height:48%"></span><span style="height:40%"></span><span style="height:26%"></span><span style="height:16%"></span><span style="height:12%"></span><span style="height:10%"></span><span style="height:9%"></span><span style="height:12%"></span><span style="height:16%"></span><span style="height:22%"></span><span style="height:30%"></span><span style="height:42%"></span><span style="height:58%"></span><span style="height:74%"></span><span style="height:92%"></span><span style="height:100%"></span><span style="height:84%"></span><span style="height:60%"></span><span style="height:40%"></span><span style="height:26%"></span><span style="height:18%"></span><span style="height:13%"></span><span style="height:10%"></span><span style="height:9%"></span><span style="height:11%"></span><span style="height:14%"></span><span style="height:20%"></span><span style="height:30%"></span><span style="height:44%"></span><span style="height:62%"></span><span style="height:78%"></span><span style="height:64%"></span><span style="height:44%"></span><span style="height:28%"></span><span style="height:18%"></span><span style="height:12%"></span><span style="height:9%"></span><span style="height:8%"></span></div>
-    <div class="pulse-pins" aria-hidden="true">
-      <span class="pulse-pin" style="left:14%; bottom:20px"><span class="pulse-pill">12명 <em>시청 중</em></span></span>
-      <span class="pulse-pin" style="left:43%; bottom:42px"><span class="pulse-pill">47명 <em>시청 중</em></span></span>
-      <span class="pulse-pin" style="left:88%; bottom:68px"><span class="pulse-pill">8명 <em>시청 중</em></span></span>
-    </div>
-    <div class="pulse-track" aria-hidden="true"><i></i><em></em></div>
-    <div class="pulse-times" aria-hidden="true"><span>0:00</span><span>56:20</span></div>
-  </div>
-  </div>
-</section>
-
 <!-- ─── 인기 회차 ───────────────────────────────────────────────
      2026-08-12 조현빈 결정으로 감춤(삭제 아님 — 추후 재사용 가능성).
      [hidden] 속성은 CSS display 선언에 질 수 있어 인라인 display:none 사용.
@@ -627,36 +470,11 @@
   </div>
 </section>
 
-<!-- ─── 함께 보는 중인 작품 — 필름 스트립 (2026-08-12) ──────────────
-     흩어져 있던 떠다니는 카드(fcard)들을 한 섹션의 무한 마키로 모았다.
-     카드 세트는 두 번 반복(루프용) — 뒤 세트는 aria-hidden.
-     스타일 = css/floaters.css 하단 .works- 블록 -->
-<section class="pad band-soft" id="works">
-  <div class="wrap">
-    <div class="works-head reveal">
-      <h2>지금도 누군가는 함께 보고 있어요</h2>
-    </div>
-  </div>
-  <div class="works-belt">
-    <div class="works-row">
-      <span class="works-card"><img src="assets/still-devils.jpg" alt="데블스 플랜2"><b>함께 보는 중</b><span class="works-title">데블스 플랜2</span></span>
-      <span class="works-card"><img src="assets/still-solo.jpg" alt="나는 SOLO"><b>함께 보는 중</b><span class="works-title">나는 SOLO</span></span>
-      <span class="works-card"><img src="assets/still-titan.jpg" alt="진격의 거인"><b>함께 보는 중</b><span class="works-title">진격의 거인</span></span>
-      <span class="works-card"><img src="assets/still-kdh.jpg" alt="케이팝 데몬 헌터스"><b>함께 보는 중</b><span class="works-title">케이팝 데몬 헌터스</span></span>
-      <span class="works-card" aria-hidden="true"><img src="assets/still-devils.jpg" alt=""><b>함께 보는 중</b><span class="works-title">데블스 플랜2</span></span>
-      <span class="works-card" aria-hidden="true"><img src="assets/still-solo.jpg" alt=""><b>함께 보는 중</b><span class="works-title">나는 SOLO</span></span>
-      <span class="works-card" aria-hidden="true"><img src="assets/still-titan.jpg" alt=""><b>함께 보는 중</b><span class="works-title">진격의 거인</span></span>
-      <span class="works-card" aria-hidden="true"><img src="assets/still-kdh.jpg" alt=""><b>함께 보는 중</b><span class="works-title">케이팝 데몬 헌터스</span></span>
-    </div>
-  </div>
-</section>
-
-<!-- ─── 동작 방식: 남겨진 채팅 · 실시간 채팅 ─────────────────────
-     방문자의 실제 의문("아무도 없는데 채팅이 왜 있지?")을 채팅 패널
-     실물 두 개로 답한다. 1행 = 남겨진 채팅(정지), 2행 = 그 사이로
-     LIVE 채팅이 도착하는 패널(애니메이션). 스타일 = css/how.css
-     설치 안내 바로 앞 6번째(HP-467 — 원래 3번째). 배경은 기본색: 회색(band-soft)으로 두면
-     작품 → 이 섹션 → 설치 안내로 회색 띠가 세 번 이어진다. -->
+<!-- ─── 혼자 볼 때: 남겨진 채팅 · 실시간 채팅 ─────────────────────
+     친구와 보는 이야기(#friends·#discord) 뒤에 '혼자 볼 때' 머리말로 공개 채팅을 소개한다(HP-664) — 설치 뒤 넷플릭스를 틀면
+     채팅창은 공개 채팅으로 열린다(HP-481). 방문자의 실제 의문("아무도 없는데 채팅이 왜 있지?")을 채팅 패널 실물 두 개로 답한다.
+     1행 = 남겨진 채팅(정지), 2행 = 그 사이로 LIVE 채팅이 도착하는 패널(애니메이션). 휴대폰 폭에서는 각 줄의 글(질문·답)을
+     패널보다 먼저 둔다(css/friends.css). 스타일 = css/how.css -->
 <section class="pad" id="how">
   <div class="wrap">
 
@@ -699,6 +517,7 @@
       </div>
 
       <div class="how-copy">
+        <span class="rm-eyebrow">혼자 볼 때</span>
         <h2>"지금 아무도 안 보고 있는데<br>채팅이 왜 있지?"</h2>
         <p>이 장면을 먼저 본 사람들이 남긴 채팅이에요.
           남긴 그 장면에서 다시 재생되니까, 혼자 봐도 같이 보는 것처럼 느껴져요.</p>
@@ -775,44 +594,18 @@
   </div>
 </section>
 
-<!-- ─── 시작하기 ────────────────────────────────────────────── -->
-<section class="pad band-soft">
-  <div class="wrap">
-    <div class="steps-head reveal"><h2>설치하고 재생하세요</h2></div>
-    <div class="steps reveal" data-stagger>
-      <div class="step" style="--i:0">
-        <span class="step-ic" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M12 3v11m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
-                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        <h3>Chrome에 추가</h3>
-        <p>웹 스토어에서 한 번 누르면 끝입니다. 로그인은 Google 계정으로 한 번만 하면 됩니다.</p>
-      </div>
-      <div class="step" style="--i:1">
-        <span class="step-ic" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
-            <path d="M9.5 8.6v6.8l6-3.4-6-3.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        <h3>보던 작품 재생</h3>
-        <p>넷플릭스에서 평소처럼 재생하세요. 채팅창이 자동으로 나타납니다.</p>
-      </div>
-      <div class="step" style="--i:2">
-        <span class="step-ic" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M20 12.5a7.5 7.5 0 0 1-10.8 6.7L4 20.5l1.4-4.9A7.5 7.5 0 1 1 20 12.5Z"
-                  stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        <h3>한마디 남기기</h3>
-        <p>지금 보는 장면에 채팅을 남기면, 같은 장면을 보는 다른 시청자들에게 전달됩니다.</p>
-      </div>
+<!-- 라이브 수치 — 실데이터가 하한선을 넘을 때만 스크립트가 보여준다(js/stats.js).
+     기본은 숨김(hidden) — 데이터 도착 전 빈 숫자가 스치는 것을 막는다. -->
+<div class="strip" id="strip" hidden>
+  <div class="wrap strip-in reveal" data-stagger>
+    <div class="stat stat--live" style="--i:0">
+      <b class="num" id="statViewers" data-suffix="명">0</b><span>지금 보고 있는 사람</span>
+    </div>
+    <div class="stat" style="--i:1">
+      <b class="num" id="statRooms" data-suffix="개">0</b><span>열려 있는 회차 방</span>
     </div>
   </div>
-</section>
+</div>
 
 <!-- ─── FAQ ─────────────────────────────────────────────────── -->
 <section class="pad band-white" id="faq">
@@ -848,7 +641,7 @@
         </p>
       </div>
       <div class="foot-links">
-        <a href="#scenes" data-link="scenes" data-link-loc="footer">인기 장면</a>
+        <a href="#friends" data-link="friends" data-link-loc="footer">친구랑 보기</a>
         <a href="/catalog/" data-link="catalog" data-link-loc="footer">작품 탐색</a>
         <a href="#faq" data-link="faq" data-link-loc="footer">자주 묻는 질문</a>
         <a class="foot-privacy" href="/privacy" data-link="privacy" data-link-loc="footer">개인정보처리방침</a><a href="/terms" data-link="terms" data-link-loc="footer">이용약관</a>
@@ -875,6 +668,10 @@
     </p>
   </div>
 </footer>
+<!-- ─── 따라오는 설치 버튼 (휴대폰, HP-664) ────────────────────────────
+     '친구랑 같이 보기'의 설치 버튼을 지난 뒤부터 마지막 버튼이 보이기 전까지 화면 아래 가운데에 뜬다 — 동의 배너가 있으면 그 위로.
+     휴대폰 기기에서만 보이고, 누르면 다른 설치 버튼처럼 안내 시트가 열린다. 연출 = js/float-cta.js, 스타일 = css/friends.css -->
+<a class="float-cta" id="floatCta" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=float" target="_blank" rel="noopener" data-cta="float" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>PC로 설치 링크 보내기</a>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

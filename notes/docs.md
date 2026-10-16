@@ -28,17 +28,19 @@ python3 -m http.server 8000     # http://localhost:8000
 
 | 경로 | 내용 |
 | --- | --- |
-| `index.html` | 마크업. `<head>` 에서 CSS 12개를 순서대로 걸고(첫 화면 `top.css` 가 마지막), 휴대폰 기기 표식을 첫 그림 전에 다는 짧은 인라인 스크립트를 둔다. 끝에서 `js/main.js` 하나를 모듈로 부른다 |
+| `index.html` | 마크업. `<head>` 에서 CSS 13개를 순서대로 걸고(첫 화면 `top.css` 가 마지막), 휴대폰 기기 표식을 첫 그림 전에 다는 짧은 인라인 스크립트를 둔다. 끝에서 `js/main.js` 하나를 모듈로 부른다 |
 | `css/tokens.css` | 색·간격·타이포 토큰과 리셋. **다른 CSS 보다 먼저 와야 한다** |
 | `css/base.css` | 내비·구획 배경 등 화면 공통 |
-| `css/hero.css` `scenes.css` `chart.css` `rooms.css` `start-faq.css` `close-footer.css` | 구획별 스타일 |
+| `css/hero.css` `scenes.css` `chart.css` `how.css` `rooms.css` `discord.css` `start-faq.css` `close-footer.css` | 구획별 스타일. 지금 랜딩(HP-664)에 쓰이지 않는 규칙도 남아 있다 — 숨긴 옛 섹션과 이전 랜딩(아래 '이전 랜딩 보관')을 되살릴 때 쓴다 |
+| `css/friends.css` | '친구랑 같이 보기'(`#friends`)·디스코드 휴대폰 높이·혼자 볼 때 머리말·휴대폰 따라오는 설치 버튼(HP-664) |
 | `css/floaters.css` | 페이지 곳곳에 떠 있는 장면 카드(`.fcard`) — 전역 장식이라 따로 뒀다 |
 | `css/top.css` `js/top.js` | 첫 화면(#top) — 넷플릭스 기본 플레이어 모양 옆에 Replix 그룹방 패널이 열리는 한 바퀴(13.9초) 연출(HP-662). 영상은 `assets/scene/`(가상의 작품 '밤의 정원', Pexels 무료 영상 — 출처 `notes/hero-scene.md`) |
 | `js/common.js` | 여러 구획이 함께 쓰는 값·헬퍼. **반응 밀도 함수 `density()` 를 히어로와 히트맵이 공유**하는 것이 핵심이다 — 두 그래프가 어긋나지 않는다 |
 | `js/hero.js` `scenes.js` `chart.js` `rooms.js` `faq.js` | 구획별 시뮬레이션. 각자 자기 DOM 을 찾아 스스로 붙는다 |
-| `js/reveal.js` | 스크롤 조립·숫자 카운트업·내비 경계선(전역 동작) |
+| `js/reveal.js` | 스크롤 조립·숫자 카운트업·내비 경계선(전역 동작), 섹션 도달·페이지 깊이 계측 |
+| `js/float-cta.js` | 휴대폰 따라오는 설치 버튼 — 화면에 설치 버튼이 없는 구간에만 아래 가운데에, 동의 배너가 있으면 그 위로(HP-664) |
 | `js/main.js` | 진입점. 위 모듈을 부르기만 한다 |
-| `assets/*.jpg` | 실제 작품 스틸 5장(히어로 프레임 + 떠다니는 장면 카드 4장) |
+| `assets/*.jpg` | 실제 작품 스틸 5장(제품 화면 프레임 + 장면 카드 4장). **2026-10-17(HP-664)부터 보이는 곳에는 쓰지 않는다** — 숨긴 옛 섹션(`#scenes-legacy`·`#chart`)만 3장을 부른다. 출처를 확인하지 못한 실제 작품 장면이라 되살리기 전에 §7(공개 웹 작품 이미지)을 확인한다 |
 
 모듈 사이 의존은 **`common.js` 한 방향뿐**이다(구획 모듈끼리는 서로 모른다).
 구획을 하나 들어내도 나머지가 그대로 도는 구조이므로, 새 구획을 붙일 때도
@@ -107,7 +109,22 @@ python3 -m http.server 8000     # http://localhost:8000
 | `PEAKS` / `density()` | `js/common.js` | 반응 밀도. 히트맵과 채팅 생성이 이 함수 하나를 공유한다 |
 | `CHAT_POOL` / `ARCHIVE` | `js/scenes.js` | 회차에 쌓인 반응. 밀도 함수로 생성하며 시드 고정 |
 | `PLAY_STEP` | `js/scenes.js` | 히트맵 재생 속도 |
-| `--y` / `--dur` / `--wait` | `index.html` `#rooms` `.rm-dm` | 함께 보는 방식 공개 채팅 카드의 탄막 줄 높이·지나가는 시간·시작 지연. CSS 애니메이션이다(`css/rooms.css`) — `js/rooms.js` 는 화면 밖에서 멈추기만 한다 |
+| `--y` / `--dur` / `--wait` | `index.html` `#rooms` `.rm-dm`(이전 랜딩 `landing-v1`) | 함께 보는 방식 공개 채팅 카드의 탄막 줄 높이·지나가는 시간·시작 지연. CSS 애니메이션이다(`css/rooms.css`) — `js/rooms.js` 는 화면 밖에서 멈추기만 한다. HP-664 로 `#rooms` 를 빼 지금은 쓰이지 않는다 |
+
+## 이전 랜딩 보관 (HP-664, 2026-10-17)
+
+2026-10-17 랜딩 본문을 그룹방 중심 여섯 섹션(첫 화면 → 친구랑 같이 보기 → 디스코드 → 혼자 볼 때 → 자주 묻는 질문 → 마지막 버튼)으로
+바꾸기 직전의 랜딩은 **git 태그 `landing-v1`** 에 있다 — 공개 채팅 중심 구성(제품 화면 `#intro` · 함께 보는 방식 `#rooms` · 디스코드 ·
+인기 장면 `#scenes` · 작품 띠 `#works` · 설명 카드 `#how` · 설치 단계 · 자주 묻는 질문 8개). 별도 사본 페이지는 두지 않는다.
+
+- 보기: `git show landing-v1:docs/index.html` · 로컬로 띄우기: `git worktree add ../site-landing-v1 landing-v1` 뒤 그 폴더의 `docs/` 를 연다.
+- CSS·JS 는 지우지 않았다(`hero.css` 제품 화면, `rooms.css` 공개 채팅 카드, `scenes.css` 반응 막대, `floaters.css` 작품 띠, `start-faq.css` 설치 단계) —
+  되살릴 때는 대개 마크업만 가져오면 된다.
+- 되살리거나 A/B 시험에 쓰기 전에 볼 것: ① `#intro`·`#works` 의 작품 사진 5장은 출처를 모르는 실제 작품 장면이다(워크스페이스 CLAUDE.md §7) —
+  가상 작품 이미지로 바꾼다. ② 계측 열거값 — `section_viewed`·`nav_link_clicked`·`install_cta_clicked` 값이 지금과 다르다(트래킹 플랜 v21).
+  ③ 같은 주소에서 두 판을 나눠 보이는 장치(배정·`variant` 속성)는 아직 없다 — A/B 를 하려면 먼저 트래킹 플랜에 배정 규칙을 적는다.
+- 사본 페이지를 공개 경로에 두지 않는 이유: ①의 사진이 다시 공개되고, 검색엔진이 같은 내용의 두 페이지를 보게 되며, 처리방침이 밝힌
+  계측 표면(`/`·작품 탐색) 밖이라 배너·옵트아웃 규칙이 맞지 않는다.
 
 ## 실데이터 연동 (HP-87, 2026-08-05)
 
