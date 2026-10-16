@@ -3,7 +3,8 @@
    페이지 단위 사건이라 어느 구획에도 속하지 않아 여기서 1회 부른다. */
 import { page } from './analytics.js';
 import './install-guide.js';
-import './top.js';
+/* 첫 화면 연출(top.js)은 여기서 부르지 않는다(HP-666) — index.html 이 직접 부른다. 여기서 부르면 top.js 를 받지 못할 때
+   (캐시가 섞임·차단·네트워크 오류) 이 모듈 묶음 전체가 실행되지 않아 섹션 등장·FAQ·계측·설치 안내 창까지 함께 멈춘다. */
 import './hero.js';
 import './scenes.js';
 import './rooms.js';
