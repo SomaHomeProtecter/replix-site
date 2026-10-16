@@ -3,6 +3,7 @@
    페이지 단위 사건이라 어느 구획에도 속하지 않아 여기서 1회 부른다. */
 import { page } from './analytics.js';
 import './install-guide.js';
+import './top.js';
 import './hero.js';
 import './scenes.js';
 import './rooms.js';

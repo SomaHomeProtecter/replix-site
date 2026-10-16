@@ -28,11 +28,12 @@ python3 -m http.server 8000     # http://localhost:8000
 
 | 경로 | 내용 |
 | --- | --- |
-| `index.html` | 마크업. `<head>` 에서 CSS 9개를 순서대로 걸고, 끝에서 `js/main.js` 하나를 모듈로 부른다 |
+| `index.html` | 마크업. `<head>` 에서 CSS 12개를 순서대로 걸고(첫 화면 `top.css` 가 마지막), 휴대폰 기기 표식을 첫 그림 전에 다는 짧은 인라인 스크립트를 둔다. 끝에서 `js/main.js` 하나를 모듈로 부른다 |
 | `css/tokens.css` | 색·간격·타이포 토큰과 리셋. **다른 CSS 보다 먼저 와야 한다** |
 | `css/base.css` | 내비·구획 배경 등 화면 공통 |
 | `css/hero.css` `scenes.css` `chart.css` `rooms.css` `start-faq.css` `close-footer.css` | 구획별 스타일 |
 | `css/floaters.css` | 페이지 곳곳에 떠 있는 장면 카드(`.fcard`) — 전역 장식이라 따로 뒀다 |
+| `css/top.css` `js/top.js` | 첫 화면(#top) — 넷플릭스 기본 플레이어 모양 옆에 Replix 그룹방 패널이 열리는 한 바퀴(13.9초) 연출(HP-662). 영상은 `assets/scene/`(가상의 작품 '밤의 정원', Pexels 무료 영상 — 출처 `notes/hero-scene.md`) |
 | `js/common.js` | 여러 구획이 함께 쓰는 값·헬퍼. **반응 밀도 함수 `density()` 를 히어로와 히트맵이 공유**하는 것이 핵심이다 — 두 그래프가 어긋나지 않는다 |
 | `js/hero.js` `scenes.js` `chart.js` `rooms.js` `faq.js` | 구획별 시뮬레이션. 각자 자기 DOM 을 찾아 스스로 붙는다 |
 | `js/reveal.js` | 스크롤 조립·숫자 카운트업·내비 경계선(전역 동작) |
@@ -46,18 +47,18 @@ python3 -m http.server 8000     # http://localhost:8000
 ## 고칠 때 알아 둘 것
 
 - **문구는 전부 초안이다.** 최종 문구는 담당자가 직접 작성한다(2026-07-13 팀 결정).
-  헤드라인 세 개가 서로 변주 관계다: 히어로 `혼자서도 같이 보는 즐거움, 넷플릭스에서`
-  → 히트맵 `같은 장면에서, 시간이 달라도 우리는 만난다` → 마지막 `…, Replix에서`.
-  하나를 고치면 나머지도 함께 본다.
+  첫 화면 제목은 광고와 같은 말 `친구랑 넷플릭스, 이제 진짜 같이`다(HP-662, 2026-10-16). 히트맵 `같은 장면에서, 시간이 달라도
+  우리는 만난다` → 마지막 `혼자서도 같이 보는 즐거움, Replix에서` 는 서로 변주 관계라 하나를 고치면 나머지도 함께 본다.
 - **검색 노출(HP-645)** — 첫 화면 `<title>`·설명·og 는 같은 글을 쓰고, 구조화 데이터(WebSite·SoftwareApplication)가 `<head>` 에 있다.
   네이버 웹마스터 가이드는 제목·설명에서 같은 키워드를 두 번 넘게 쓰거나 노출을 노려 자주 바꾸면 불이익을 준다고 적으니, 고칠 때 한 번에 정해서 고친다.
   검색에 보일 페이지를 새로 만들면 `sitemap.xml` 에 한 줄을 더하고 `<link rel="canonical">` 을 단다. 색인에서 뺄 페이지는
   `robots.txt` 로 막지 말고 `noindex` 를 단다(막으면 로봇이 그 태그를 못 읽는다).
-- **설치 CTA 는 세 곳(내비·히어로·마지막)이 모두 `#install` 앵커**다. 웹 스토어
-  URL 이 정해지면 그 세 곳의 `href` 만 바꾸면 된다(HP-193).
+- **설치 CTA 는 세 곳(내비·첫 화면·마지막)**이고 모두 웹 스토어로 간다(`utm_medium` = `nav`·`hero`·`close`, 계측 `data-cta` 도 같은 값).
 - **휴대폰 기기에선 설치 버튼이 웹 스토어로 가지 않는다**(HP-477). `js/install-guide.js` 가 익스텐션을 깔 수 없는
   기기(안드로이드·iPhone·iPad)에서 `[data-cta]` 클릭을 가로채 'PC 크롬에서 써요' 시트(링크 복사·공유·웹 스토어)를 띄우고,
   `<html>` 에 `rx-mobile-device` 를 달아 `.rx-mobile-only`/`.rx-pc-only` 문구를 바꿔 끼운다. 판정은 화면 폭이 아니라 기기다.
+  첫 화면·마지막 설치 버튼은 휴대폰 기기면 'PC로 설치 링크 보내기'가 된다. 표식은 `<head>` 의 인라인 스크립트가 첫 그림 전에 단다 —
+  모듈 스크립트만 기다리면 첫 그림에 PC 문구가 잠깐 보인다(HP-662). 그 판정은 `isMobileDevice` 와 같아야 한다(`scripts/test-install-guide.mjs` 가 대조).
   작품 탐색도 같은 파일을 런타임에 붙인다. 초대 페이지(`invite/index.html`)와 디스코드 연결 페이지(`together/index.html`, HP-497)는
   단일 파일이라 판정 사본을 두며, 휴대폰이면 링크 복사를 보여 준다 — 판정을 고치면 셋 다(검사: `node scripts/test-install-guide.mjs`).
   두 페이지의 PC 경로(2.5초 대기 후 설치 안내, 초대는 방 요약까지)는 `node scripts/test-invite.mjs` 가 지킨다.
@@ -87,7 +88,7 @@ python3 -m http.server 8000     # http://localhost:8000
 - **없는 기능을 그리지 않는다.** 익스텐션에 없는 UI(정렬 셀렉터, 회차 드롭다운 등)는
   의도적으로 뺐다.
 - **이미지는 전부 실제 작품 실물 캡처다**(2026-08-03 조현빈 결정). 생성 이미지는
-  쓰지 않는다.
+  쓰지 않는다. 예외는 첫 화면 영상으로, 가상의 작품 '밤의 정원'을 Pexels 무료 영상으로 만들었다(HP-662, `notes/hero-scene.md`).
 - **히어로 플레이어·시네마 섹션의 채팅·시청 인원은 시뮬레이션(예시)이다** — 푸터에
   밝혀 두었다. 반면 **히어로 통계 띠와 '리플릭스에서 많이 본 작품' 섹션은 실데이터다**
   (`/api/v1/public-stats`, 2026-08-05). 데이터가 하한선에 못 미치면 통계 띠는
@@ -102,7 +103,7 @@ python3 -m http.server 8000     # http://localhost:8000
 | --- | --- | --- |
 | `LIVE` | `js/hero.js` | 히어로 라이브 채팅의 도착 시각과 내용 |
 | `DM_*` | `js/hero.js` | 탄막 레인·속도·지연. 익스텐션 `features/danmaku.js` 값을 옮겼다 |
-| `OTT_ROLL` | `js/hero.js` | 헤드라인 OTT 이름 순환. **현재 꺼 둠** — 이름 길이가 달라 뒤의 '에서'가 밀린다(2026-07-31). 다시 켤 때는 전환 방식을 새로 설계할 것 |
+| `run([...])` · `SUBS` | `js/top.js` | 첫 화면 연출의 대본(밀리초)과 영상 자막. 영상 시각과 장면 = `assets/scene/garden.mp4`(`notes/hero-scene.md`) |
 | `PEAKS` / `density()` | `js/common.js` | 반응 밀도. 히트맵과 채팅 생성이 이 함수 하나를 공유한다 |
 | `CHAT_POOL` / `ARCHIVE` | `js/scenes.js` | 회차에 쌓인 반응. 밀도 함수로 생성하며 시드 고정 |
 | `PLAY_STEP` | `js/scenes.js` | 히트맵 재생 속도 |
