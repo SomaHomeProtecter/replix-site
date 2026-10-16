@@ -82,6 +82,34 @@
   <link rel="stylesheet" href="css/close-footer.css">
   <!-- 친구랑 같이 보기·디스코드 휴대폰 높이·혼자 볼 때 머리말·따라오는 설치 버튼 — HP-664 -->
   <link rel="stylesheet" href="css/friends.css">
+  <!-- 첫 화면(#top) 재생 화면 연출 — HP-662. 스타일 = css/top.css, 연출 = js/top.js(main.js 가 불러온다) -->
+  <link rel="stylesheet" href="css/top.css">
+  <!-- 패널은 닫힌 넷플릭스 화면(.is-shut)에서 시작해 연출이 연다 — 스크립트가 없으면 열린 채로 둔다 -->
+  <noscript><style>.ys.hx-screen.is-shut { --open: 1; }</style></noscript>
+  <!-- 휴대폰 기기 표식(rx-mobile-device)을 첫 그림 전에 단다(HP-662). 문구를 바꿔 끼우는 이 표식(css/tokens.css .rx-mobile-only)을
+       모듈 스크립트(js/install-guide.js)만 달면 첫 그림에 PC 문구('크롬에 Replix 설치하기')가 잠깐 보인다. -->
+  <script>
+  (function () {
+    // 정본은 js/install-guide.js 의 isMobileDevice 이고 여기는 사본이다 — 첫 그림 전에 돌아야 해서 모듈을 기다리지 못한다.
+    // scripts/test-install-guide.mjs 가 같은 기기 목록으로 대조한다.
+    /* isMobileDevice:start */
+    function isMobileDevice(env) {
+      var e = env || {};
+      var ua = e.ua || '';
+      if (/Android|iPhone|iPad|iPod/i.test(ua)) return true;
+      if (e.uaPlatform === 'Android') return true;
+      if (e.platform === 'MacIntel' && (e.maxTouchPoints || 0) > 1) return true;
+      if (/Linux/.test(ua) && !/CrOS/.test(ua) && (e.maxTouchPoints || 0) > 0) return true;
+      return e.uaMobile === true;
+    }
+    /* isMobileDevice:end */
+    var nav = navigator;
+    var device = { ua: nav.userAgent || '', platform: nav.platform || '', maxTouchPoints: nav.maxTouchPoints || 0,
+      uaMobile: nav.userAgentData ? nav.userAgentData.mobile === true : undefined,
+      uaPlatform: nav.userAgentData ? nav.userAgentData.platform : undefined };
+    if (isMobileDevice(device)) document.documentElement.classList.add('rx-mobile-device');
+  })();
+  </script>
 </head>
 
 <body>
@@ -106,33 +134,70 @@
   </div>
 </nav>
 
-<!-- ─── 히어로 (v18-B: 큰 타이포 + 붉은 후광, 2026-08-12) ──────────
-     기존 플레이어·비교 슬라이더·버블·카드를 전부 걷어내고 카피만.
-     플레이어는 아래 제품 화면 섹션(#intro, 아직 미삽입)으로 이동 예정.
-     기존 히어로 전문은 git 이력에 보존(삭제 아님, 커밋 diff 참조).
-     스타일 = css/hero.css 하단 .hero-slim- 블록 -->
-<section class="hero-slim" id="top">
-  <div class="hero-slim-glow" aria-hidden="true"></div>
-  <div class="wrap">
-    <h1 aria-label="혼자서도 같이 보는 즐거움, Replix에서">혼자서도<br>같이 보는 즐거움,<br><b class="ott" id="ottWord">Replix</b>에서</h1>
-    <p class="hero-slim-sub">같은 장면을 보는 사람들과 반응을 나누며 넷플릭스를 즐기세요.</p>
-
-    <div class="hero-slim-cta">
-      <a class="btn btn--primary btn--chrome" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=hero" target="_blank" rel="noopener" data-cta="hero">
-        <span class="chrome-ic" aria-hidden="true">
-          <img src="assets/icons/chrome-logo.png" alt="" width="17" height="17">
-        </span>
-        크롬 익스텐션 설치하기
+<!-- ─── 첫 화면 (HP-662, 2026-10-16 조현빈 결정) ──────────────────────
+     광고('친구와 같이 보기')와 같은 말로 시작한다 — 1041px 이상은 왼쪽 제목·버튼, 오른쪽 재생 화면(그 아래는 위아래).
+     재생 화면은 넷플릭스 기본 플레이어 모양에 Replix 그룹방 패널이 열리는 한 바퀴(13.9초)를 연출한다: 패널이 닫힌 넷플릭스 화면 →
+     패널 열림 → 이 회차로 방 만들기 → 초대 링크 복사 → 친구 둘 입장 → 내가 멈춤 → 32:30 으로 옮김 → 재생 → 패널 닫힘.
+     작품 '밤의 정원'은 가상이고 영상은 Pexels 무료 영상이다 — 넷플릭스·실제 작품 화면이 아니다(출처 = notes/hero-scene.md).
+     패널 문구는 익스텐션 새 그룹방(HP-655·656)의 실제 문구다. 휴대폰 기기면 버튼이 'PC로 설치 링크 보내기'로 바뀌고
+     js/install-guide.js 가 안내 시트를 띄운다. 스타일 = css/top.css, 연출 = js/top.js -->
+<section class="hv hv-split" id="top">
+  <div class="hv-glow" aria-hidden="true"></div>
+  <div class="wrap hv-split-grid">
+    <div class="hv-split-copy">
+    <p class="hv-eyebrow"><i></i>PC 크롬 익스텐션 · 무료</p>
+    <h1>친구랑 넷플릭스,<br>이제 <b>진짜 같이</b></h1>
+    <p class="hv-sub">링크를 누른 친구는 내가 보던 장면에서 시작하고, 내가 멈추면 다 같이 멈춰요.</p>
+    <div class="hv-act">
+      <a class="btn btn--primary hv-cta" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=hero" target="_blank" rel="noopener" data-cta="hero">
+        <span class="hv-lab rx-pc-only"><span class="chrome-ic" aria-hidden="true"><img src="assets/icons/chrome-logo.png" alt="" width="17" height="17"></span>크롬에 Replix 설치하기</span>
+        <span class="hv-lab rx-mobile-only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>PC로 설치 링크 보내기</span>
       </a>
-      <!-- 휴대폰 기기(익스텐션 설치 불가)면 js/install-guide.js 가 <html> 에 rx-mobile-device 를 달아 아래 문구로 바뀐다(HP-477). -->
-      <p class="hero-note"><span class="rx-pc-only">Chrome 120 이상에서 사용 가능</span><span class="rx-mobile-only">PC 크롬에서 설치할 수 있어요</span></p>
+      <p class="hv-note"><span class="rx-pc-only">무료 · 회원가입 30초 · 링크로 친구 초대</span><span class="rx-mobile-only">PC 크롬 웹스토어에서 <b>'리플릭스'</b>를 검색해도 돼요</span></p>
     </div>
-
-    <ul class="hero-chips">
-      <li><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 8.4L22 12l-8.4 1.6L12 22l-1.6-8.4L2 12l8.4-1.6z"/></svg>무료로 시작</li>
-      <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>회원가입 30초</li>
-      <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.2 2.9 8.1 7 9 4.1-.9 7-4.8 7-9V6l-7-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>안전한 사용</li>
-    </ul>
+    </div>
+    <div class="hx-vis">
+      <div class="hx-screen hx-enter ys is-shut" role="img" aria-label="그룹방 기능 연출: 넷플릭스 옆 Replix 패널에서 이 회차로 방을 만들고, 초대 링크를 복사하자 친구 둘이 같은 장면에서 들어오고, 내가 멈추고 앞으로 옮기고 다시 틀면 모두 함께 움직인다.">
+        <div class="hv-stage nf">
+          <video class="ys-video" muted playsinline autoplay loop preload="auto" poster="assets/scene/garden-poster.jpg" aria-hidden="true"><source src="assets/scene/garden.mp4" type="video/mp4"></video>
+          <div class="ys-sub" aria-hidden="true"></div>
+          <div class="floaters" aria-hidden="true"></div>
+          <div class="hx-flash" aria-hidden="true"></div>
+          <div class="nf-flash" aria-hidden="true"><svg class="fz" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg><svg class="fp" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg></div>
+          <div class="nf-top" aria-hidden="true"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4h11.5l-2 3.8 2 3.7H6"/></svg></div>
+          <div class="nf-preview" aria-hidden="true"><img src="assets/scene/firefly-thumb.jpg" alt="" width="120" height="68"><span>32:30</span></div>
+          <div class="nf-bottom" aria-hidden="true">
+            <div class="nf-bar"><div class="nf-track"><i class="nf-buf"></i><i class="nf-fill"></i><i class="nf-knob"></i></div><span class="nf-left">15:20</span></div>
+            <div class="nf-row"><span class="nf-l"><svg class="nf-pp ic-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg><svg class="nf-pp ic-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5a7.5 7.5 0 1 1-7.1 5.1"/><path d="M4.4 3.6v5.3h5.3"/><text x="12" y="15.4" font-size="7.2" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">10</text></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5a7.5 7.5 0 1 0 7.1 5.1"/><path d="M19.6 3.6v5.3h-5.3"/><text x="12" y="15.4" font-size="7.2" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">10</text></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></span><span class="nf-title"><b>밤의 정원</b> 3화<em>밤에만 피는 꽃</em></span><span class="nf-r"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 5l9 7-9 7z" fill="currentColor"/><path d="M17.5 5v14"/></svg><svg class="nf-hide-s" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="9" width="13" height="10" rx="1.2"/><path d="M7 5.5h13.5v10"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5h16v11.5H9.5L5 19.5v-3.5H4z"/><path d="M8 9h8M8 12.2h5"/></svg><svg class="nf-hide-s" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15.5a8 8 0 1 1 16 0"/><path d="M12 15.5l4.2-5"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></span></div>
+          </div>
+        </div>
+        <aside class="hv-panel" aria-hidden="true"><div class="yp-in">
+          <div class="yp-top"><span class="yp-mark">REPLIX</span><span class="yp-icons" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.3 3.2-5 6.5-5s5.8 1.7 6.5 5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 15c1.6.6 2.7 2.2 3 5"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></span></div>
+          <div class="yp-body">
+            <section class="yp-lobby">
+              <div class="yp-nav"><i>‹</i>그룹방</div>
+              <div class="yp-hero">
+                <div class="yp-hero-row"><span class="yp-pair"><i class="yp-av" data-who="지우">지</i><i class="yp-plus">+</i></span><div><b>친구와 같이 보기</b><span>밤의 정원 3화</span></div></div>
+                <p>초대한 친구끼리 같은 화면을 보며 이야기해요.</p>
+                <button class="yp-make" type="button" tabindex="-1">이 회차로 방 만들기</button>
+              </div>
+              <div class="yp-opt"><div><b>재생 제어</b><span>재생 위치를 조작해요</span></div><span class="yp-seg"><i class="on">나만</i><i>모두</i></span></div>
+              <div class="yp-opt"><div><b>모두 나가도 방 유지하기</b><span>모두 나가면 방과 대화가 사라져요</span></div><span class="yp-toggle"></span></div>
+            </section>
+            <section class="yp-room">
+              <div class="yp-bar">
+                <div class="yp-bar-top"><span class="yp-back">‹</span><div class="yp-name"><b>지우의 방</b><span class="yp-meta">3화<i></i>기본 방<i></i><em class="yp-state">혼자 보는 중</em></span></div><span class="yp-chip">맞추는 중</span><span class="yp-more">⋯</span></div>
+                <div class="yp-strip"><ul class="yp-mates"></ul><button class="yp-invite" type="button" tabindex="-1"><span class="pl">+</span><span class="cp">✓ 복사됨</span></button></div>
+                <div class="yp-ctl"><span>내가 재생을 제어해요</span><b>활동 기록</b></div>
+              </div>
+              <div class="yp-feed"></div>
+              <div class="yp-input"><span>방 사람들에게 메시지... (Enter)</span><i>☺</i></div>
+            </section>
+            <div class="yp-toast"></div>
+          </div>
+        </div></aside>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -556,10 +621,9 @@
     <h2>혼자서도 같이 보는 즐거움,<br>Replix에서</h2>
     <p>설치하면 넷플릭스 재생 화면에서 바로 시작할 수 있습니다.</p>
     <a class="btn btn--white btn--chrome" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=close" target="_blank" rel="noopener" data-cta="close">
-      <span class="chrome-ic" aria-hidden="true">
-        <img src="assets/icons/chrome-logo.png" alt="" width="17" height="17">
-      </span>
-      크롬 익스텐션 설치하기
+      <span class="cta-lab rx-pc-only"><span class="chrome-ic" aria-hidden="true"><img src="assets/icons/chrome-logo.png" alt="" width="17" height="17"></span>크롬 익스텐션 설치하기</span>
+      <!-- 휴대폰 기기(익스텐션 설치 불가)면 이 문구로 바뀌고 js/install-guide.js 가 안내 시트를 띄운다(HP-662 — 첫 화면 버튼과 같은 말) -->
+      <span class="cta-lab rx-mobile-only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>PC로 설치 링크 보내기</span>
     </a>
     <p style="font-size:13px;color:rgba(255,255,255,.72)">무료로 시작 · 30초 설치 · 안전한 사용</p>
   </div>

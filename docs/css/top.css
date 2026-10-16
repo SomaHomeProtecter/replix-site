@@ -1,0 +1,330 @@
+/* ═══ 첫 화면(#top) — HP-662(2026-10-16 조현빈 결정) ═══════════════════════════════════════
+   광고('친구와 같이 보기')와 같은 말로 시작하고, 넷플릭스 옆에 Replix 그룹방이 열리는 재생 화면을 보인다. 연출 = js/top.js.
+   이름 접두어: hv = 첫 화면 글·바탕 · hx = 재생 화면 틀 · nf = 넷플릭스 기본 플레이어 모양(로고·글꼴·아이콘 파일은 쓰지 않고
+   생김새만 닮게 그렸다 — 상표) · ys/yp = 익스텐션 그룹방 패널(색은 익스텐션 다크 테마 styles.css --rx-*, 글은 room.js 의 실제 문구) ·
+   yc = 연출 커서. 1041px 이상은 왼쪽 글·오른쪽 재생 화면(.hv-split), 그 아래는 위아래로 쌓는다. */
+
+/* ── 글·바탕 ── */
+.hv { position: relative; overflow: hidden; text-align: center; padding: clamp(24px, 3.6vh, 48px) 0 clamp(44px, 7vh, 80px);
+  background: linear-gradient(175deg, var(--warm) 0%, #fef2f2 40%, var(--warm) 100%); }
+.hv-glow { position: absolute; left: 50%; top: 4%; width: 640px; height: 640px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(229,9,20,.07) 0%, transparent 70%); transform: translateX(-50%); }
+.hv .wrap { position: relative; }
+.hv-eyebrow { display: inline-flex; align-items: center; gap: 8px; margin: 0;
+  font-size: 13.5px; font-weight: 700; letter-spacing: -.01em; color: var(--accent-d); }
+.hv-eyebrow i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
+.hv h1 { margin-top: 10px; font-size: clamp(38px, 4.4vw, 62px); line-height: 1.05; }
+.hv h1 b { color: var(--accent); font-weight: 800; }
+.hv-sub { max-width: 46em; margin: 14px auto 0; font-size: clamp(15px, 1.2vw, 17.5px); line-height: 1.7; color: var(--ink-2); text-wrap: balance; }
+.hv-act { display: flex; flex-direction: column; align-items: center; gap: 11px; margin-top: 20px; }
+/* 설치 버튼 — 휴대폰 기기(익스텐션 설치 불가)면 'PC로 설치 링크 보내기'로 바뀌고 js/install-guide.js 가 안내 시트를 띄운다.
+   표식(rx-mobile-device)은 index.html 머리의 인라인 스크립트가 첫 그림 전에 단다 */
+.hv-cta { min-height: 54px; padding: 15px 26px 15px 20px; font-size: 16px; }
+.hv-cta .hv-lab { display: inline-flex; align-items: center; gap: 9px; }
+.hv-cta .hv-lab.rx-mobile-only { display: none; }
+.rx-mobile-device .hv-cta .hv-lab.rx-pc-only { display: none; }
+.rx-mobile-device .hv-cta .hv-lab.rx-mobile-only { display: inline-flex; }
+.hv-cta svg { width: 18px; height: 18px; flex: none; }
+.hv-note { font-size: 13px; line-height: 1.5; color: var(--muted); }
+.hv-note b { color: var(--ink); font-weight: 700; }
+.hv-note .rx-mobile-only { display: none; }
+.rx-mobile-device .hv-note .rx-mobile-only { display: inline; }
+@media (max-width: 480px) {
+  .hv h1 { font-size: clamp(34px, 9.6vw, 44px); }
+  .hv-cta { width: 100%; justify-content: center; }
+  .hv-act { align-items: stretch; }
+  .hv-note { text-align: center; }
+}
+
+/* ── 재생 화면 틀 ──
+   영상 칸 + 패널 칸의 그리드. 패널 칸 폭 = 제 폭(--pw) × 열림(--open, 0~1) — 2번 섹션(#intro, css/hero.css 의 --rx)과 같은 방식이고,
+   js/top.js 대본이 0.35초에 열고 한 바퀴 끝에 닫는다. 처음 그림은 HTML 의 is-shut(닫힘)이다(스크립트가 없으면 index.html 의 noscript 가 연다).
+   여닫는 동안 화면 높이가 바뀌면 아래 내용이 밀리므로, 높이는 기기별로 '패널이 열린 모양'에 고정하고 영상 칸이 그 높이를 채운다. */
+@property --open { syntax: "<number>"; inherits: true; initial-value: 1; }
+.hx-vis { margin-top: 26px; }
+.hx-screen { --pw: 300px; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--open, 1) * var(--pw));
+  border-radius: 16px; overflow: hidden; background: var(--screen); text-align: left; margin-inline: auto;
+  box-shadow: 0 2px 4px rgba(16,16,24,.06), 0 16px 34px -12px rgba(16,16,24,.22), 0 60px 110px -38px rgba(16,16,24,.46);
+  transition: --open .6s var(--ease); }
+.hx-screen.is-shut { --open: 0; }
+.hx-screen.no-anim { transition: none; }
+.hv-stage { position: relative; min-width: 0; overflow: hidden; }
+/* 패널 — 열고 닫히는 동안 안쪽이 한두 글자씩 줄바꿈되지 않게 속 내용은 제 폭을 지키고 왼쪽에 붙는다(열릴수록 왼쪽부터 밀려 들어온다).
+   글이 늘어도 화면이 커지지 않게 contain: size */
+.hv-panel { overflow: hidden; contain: size; background: var(--y-bg); border-left: 1px solid var(--s-line); color: var(--s-text);
+  opacity: var(--open, 1); }
+.hv-panel > .yp-in { width: calc(var(--pw) - 1px); }   /* 1px = 패널 왼쪽 경계선 */
+/* 첫 등장 — 화면이 아래에서 떠오른다(첫 1초 안에 끝) */
+.hx-screen.hx-enter { animation: hx-rise .5s var(--ease) both; }
+@keyframes hx-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+/* 친구가 들어와 '맞추는 중'일 때 영상 칸이 한 번 초록빛으로 번쩍인다 */
+.hx-flash { position: absolute; z-index: 2; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(52,211,153,.28), transparent 70%); }
+.hx-flash.go { animation: hx-flash .55s ease-out; }
+@keyframes hx-flash { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+.hx-screen .floaters { z-index: 3; }
+.hx-screen .floater { font-size: 24px; }
+/* 태블릿 — 폭은 남은 세로 높이로 잡아 첫 화면에 통째로 넣고(440px = 위 글 묶음 높이 + 여유), 높이 = (폭 − 패널) × 9/16 */
+@media (min-width: 761px) and (max-width: 1040px) {
+  .hx-vis { container-type: inline-size; }
+  .hx-screen { --sw: max(min(100cqw, 780px), min(100cqw, 1040px, calc((100vh - 440px) * 16 / 9 + var(--pw))));
+    --sw: max(min(100cqw, 780px), min(100cqw, 1040px, calc((100svh - 440px) * 16 / 9 + var(--pw))));
+    width: var(--sw); height: calc((var(--sw) - var(--pw)) * 9 / 16); }
+  .hx-screen .hv-stage { height: 100%; }
+}
+/* PC — 왼쪽 글, 오른쪽 재생 화면(오른쪽 칸 폭을 다 쓰고 높이는 화면 비율) */
+@media (min-width: 1041px) {
+  .hv-split { text-align: left; padding: clamp(28px, 5vh, 60px) 0 clamp(36px, 6vh, 72px); }
+  .hv-split .hv-glow { left: 74%; top: -6%; width: 760px; height: 760px; }
+  .hv-split-grid { display: grid; grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr); gap: clamp(28px, 3.2vw, 56px); align-items: center; }
+  .hv-split h1 { margin-top: 12px; font-size: clamp(38px, 3.8vw, 56px); line-height: 1.08; }
+  .hv-split .hv-sub { margin: 16px 0 0; max-width: 25em; text-wrap: pretty; }
+  .hv-split .hv-act { align-items: flex-start; margin-top: 24px; }
+  .hv-split .hv-note { text-align: left; }
+  .hv-split .hx-vis { margin-top: 0; }
+  .hv-split .hx-screen { --pw: 290px; width: 100%; aspect-ratio: 16 / 8.6; }
+  .hv-split .hx-screen .hv-stage { height: 100%; }
+}
+
+/* ── 넷플릭스 기본 플레이어 모양 ──
+   쉴 때는 검은 바탕에 영상과 흰 굵은 두 줄 자막만 있고, 커서가 영상 위로 오면 조작 막대(위 = 뒤로 가기·신고 깃발, 아래 = 빨간 진행 막대·
+   남은 시간·버튼 줄·작품명)가 나타났다가 사라진다. 영상은 가상의 작품 '밤의 정원'(Pexels 무료 영상, notes/hero-scene.md)이다.
+   영상 칸이 16:9 보다 넓거나 높으면 자르지 않고 담아 레터박스가 생긴다 — 넷플릭스 옆에 패널을 열었을 때와 같은 모습. */
+.nf { background: #000; }
+.ys-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+.ys-sub { position: absolute; z-index: 3; left: 50%; bottom: 8%; transform: translateX(-50%); max-width: 88%;
+  text-align: center; color: #fff; font-weight: 700; font-size: clamp(13px, 1.45vw, 19px); line-height: 1.34; letter-spacing: -.01em;
+  text-shadow: 0 0 2px #000, 0 0 3px #000, 0 1px 4px rgba(0,0,0,.9), 0 0 9px rgba(0,0,0,.55); white-space: nowrap; pointer-events: none;
+  transition: bottom .25s var(--ease), opacity .15s; }
+.ys-sub:empty { opacity: 0; }
+.nf.nf-on .ys-sub { bottom: calc(8% + 46px); }
+.nf.nf-scrub .ys-sub { opacity: 0; }   /* 진행 막대 위 미리보기가 자막 자리를 덮는 동안 */
+.nf-top, .nf-bottom { position: absolute; left: 0; right: 0; z-index: 6; opacity: 0; pointer-events: none; color: #fff;
+  transition: opacity .3s var(--ease); }
+.nf.nf-on .nf-top, .nf.nf-on .nf-bottom { opacity: 1; }
+.nf-top { top: 0; display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 18px;
+  background: linear-gradient(180deg, rgba(0,0,0,.6), transparent); }
+.nf-top svg { width: 18px; height: 18px; display: block; }
+.nf-bottom { bottom: 0; padding: 18px 12px 9px; background: linear-gradient(0deg, rgba(0,0,0,.82), rgba(0,0,0,.4) 60%, transparent); }
+.nf-bar { display: flex; align-items: center; gap: 10px; height: 14px; }
+.nf-track { position: relative; flex: 1; height: 4px; background: rgba(150,150,150,.55); }
+.nf-buf { position: absolute; inset: 0 auto 0 0; width: min(100%, calc(var(--p, 60%) + 9%)); background: rgba(205,205,205,.55); }
+.nf-fill { position: absolute; inset: 0 auto 0 0; width: var(--p, 60%); background: #e50914; }
+.nf-knob { position: absolute; top: 50%; left: var(--p, 60%); width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%; background: #e50914; }
+.nf .nf-fill, .nf .nf-knob { transition: width .25s linear, left .25s linear; }
+.ys.seeking .nf-fill, .ys.seeking .nf-knob { transition: width .45s cubic-bezier(.2,.8,.2,1), left .45s cubic-bezier(.2,.8,.2,1); }
+.nf-left { flex: none; font-size: 11.5px; font-weight: 600; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+.nf-row { display: flex; align-items: center; gap: 12px; margin-top: 7px; }
+.nf-row svg { width: 19px; height: 19px; display: block; flex: none; }
+.nf-l, .nf-r { display: flex; align-items: center; gap: 13px; flex: none; }
+.nf-l .nf-pp { width: 21px; height: 21px; }
+.nf-title { flex: 1 1 auto; min-width: 0; text-align: center; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nf-title b { font-weight: 800; }
+.nf-title em { font-style: normal; color: #cfcfcf; margin-left: 4px; }
+.nf .ic-play { display: none; }
+.ys.is-paused .nf .ic-play { display: block; }
+.ys.is-paused .nf .ic-pause { display: none; }
+/* 누르는 순간 가운데에 잠깐 떴다 사라지는 재생·멈춤 표시 */
+.nf-flash { position: absolute; z-index: 5; left: 50%; top: 50%; width: 62px; height: 62px; margin: -31px 0 0 -31px; border-radius: 50%;
+  display: grid; place-items: center; background: rgba(0,0,0,.42); color: #fff; opacity: 0; pointer-events: none; }
+.nf-flash svg { width: 26px; height: 26px; }
+.nf-flash .fp { display: none; }
+.nf-flash.is-play .fp { display: block; }
+.nf-flash.is-play .fz { display: none; }
+.nf-flash.go { animation: nf-flash .65s ease-out; }
+@keyframes nf-flash { 0% { opacity: 0; transform: scale(.7); } 25% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.45); } }
+/* 진행 막대 위 미리보기 — 커서가 놓인 곳의 장면과 시각 */
+.nf-preview { position: absolute; z-index: 7; bottom: 44px; width: 120px; transform: translateX(-50%); opacity: 0; pointer-events: none;
+  text-align: center; transition: opacity .18s var(--ease); }
+.nf-preview img { display: block; width: 120px; height: 68px; object-fit: cover; border: 2px solid #fff; border-radius: 2px; background: #000; }
+.nf-preview span { display: block; margin-top: 3px; font-size: 11px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px #000; }
+.nf-preview.on { opacity: 1; }
+/* PC — 자막은 위아래 띠가 넉넉하면(영상 칸 비율 5:4 이하 = 패널이 열린 모양) 아래 띠 가운데에 둔다. 영상 경계에 걸치지 않고 밝은 장면에서도
+   흰 글자가 검은 바탕 위에 놓인다. 띠 높이 = (칸 높이 − 칸 폭 × 9/16) ÷ 2, 두 줄 자막 높이 = 2 × 1.34em. 조작 막대가 뜨면 막대 위로 */
+@media (min-width: 1041px) {
+  .hv-split .nf { container-type: size; }
+  .hv-split .nf .ys-sub { bottom: max(4px, calc((100cqh - 56.25cqw) / 4 - 1.34em)); }
+  @container (min-aspect-ratio: 5 / 4) { .hv-split .nf .ys-sub { bottom: 8%; } }
+  .hv-split .nf.nf-on .ys-sub { bottom: calc(8% + 46px); }
+}
+
+/* ── 그룹방 패널 ── 시작 화면(이 회차로 방 만들기)과 방 창이 같은 자리에 겹치고, 방을 만들면 방 창이 옆에서 덮는다 */
+.ys { --y-bg: #0b0b0f; --y-surface: #15151b; --y-surface2: #1d1d25; --y-line: rgba(255,255,255,.07); --y-text: #e8e8ec;
+  --y-soft: #a6a6b0; --y-muted: #8b8b96; --y-name: #9d9da8; --y-red: #e50914; --y-red-text: #f0424d;
+  --y-live: #10b981; --y-live-text: #34d8a3; --y-warn: #f59e0b; --y-warn-text: #fbbf24; --y-warn-dim: rgba(245,158,11,.13); }
+.yp-in { position: relative; height: 100%; display: flex; flex-direction: column; overflow: hidden; font-size: 12px; color: var(--y-text); }
+.yp-top { flex: none; display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 12px; border-bottom: 1px solid var(--y-line); }
+.yp-mark { font-size: 11px; font-weight: 900; letter-spacing: .32em; color: var(--y-red); }
+.yp-icons { margin-left: auto; display: flex; gap: 11px; color: var(--y-muted); }
+.yp-icons svg { width: 13px; height: 13px; display: block; }
+.yp-body { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.yp-lobby, .yp-room { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--y-bg);
+  transition: transform .44s var(--ease), opacity .44s var(--ease); }
+.yp-room { transform: translateX(100%); box-shadow: -18px 0 30px -18px rgba(0,0,0,.8); }
+.ys.in-room .yp-room { transform: none; }
+.ys.in-room .yp-lobby { transform: translateX(-14%); opacity: .35; }
+.ys.no-anim .yp-lobby, .ys.no-anim .yp-room { transition: none; }
+/* 시작 화면 */
+.yp-nav { flex: none; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--y-line);
+  font-size: 12px; font-weight: 700; }
+.yp-nav i { font-style: normal; color: var(--y-muted); }
+.yp-hero { padding: 12px 12px 10px; display: grid; gap: 8px; }
+.yp-hero-row { display: flex; align-items: center; gap: 9px; }
+.yp-hero-row b { display: block; font-size: 14px; font-weight: 800; letter-spacing: -.02em; }
+.yp-hero-row span { display: block; font-size: 11px; color: var(--y-muted); }
+.yp-hero-row .yp-pair { display: flex; align-items: center; flex: none; }
+.yp-plus { width: 22px; height: 22px; margin-left: -6px; border-radius: 50%; border: 1px dashed rgba(255,255,255,.35); display: grid; place-items: center;
+  font-size: 13px; line-height: 1; color: var(--y-soft); background: var(--y-bg); }
+.yp-hero p { font-size: 11px; color: var(--y-muted); }
+.yp-make { display: block; width: 100%; height: 34px; border: 0; border-radius: 8px; background: var(--y-red); color: #fff;
+  font: 800 12.5px/1 var(--sans); transition: transform .12s var(--ease), filter .2s; }
+.yp-make.press { transform: scale(.96); filter: brightness(1.15); }
+.yp-opt { display: flex; align-items: center; gap: 10px; padding: 8px 12px; }
+.yp-opt b { display: block; font-size: 11.5px; font-weight: 700; }
+.yp-opt span { display: block; font-size: 10.5px; color: var(--y-muted); }
+.yp-seg { margin-left: auto; display: flex; padding: 2px; border-radius: 7px; background: var(--y-surface2); }
+.yp-seg i { font-style: normal; padding: 3px 9px; border-radius: 5px; font-size: 10.5px; font-weight: 700; color: var(--y-muted); }
+.yp-seg i.on { background: #3a3a46; color: #fff; }
+.yp-toggle { margin-left: auto; width: 28px; height: 16px; border-radius: 999px; background: #3a3a46; position: relative; flex: none; }
+.yp-toggle::after { content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #cfcfd6; }
+/* 얼굴 */
+.yp-av { flex: none; position: relative; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-style: normal;
+  font-size: 10px; font-weight: 800; color: #e8e8ec; background: #2d3340; }
+.yp-av.on::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--y-live); box-shadow: 0 0 0 2px var(--y-bg); }
+.yp-av[data-who="민지"] { background: #2f4a3f; }
+.yp-av[data-who="현우"] { background: #3b3550; }
+.yp-av[data-who="지우"] { background: #4a2f33; }
+/* 방 창 머리 — 방 이름 · 상태('혼자 보는 중' → '맞추는 중' → '함께 보는 중') · 사람 · 초대 */
+.yp-bar { flex: none; background: var(--y-bg); border-bottom: 1px solid var(--y-line); transition: background .35s var(--ease); }
+.ys.syncing .yp-bar { background: linear-gradient(180deg, rgba(245,158,11,.16), rgba(245,158,11,.07)); }
+.yp-bar-top { display: flex; align-items: center; gap: 8px; padding: 9px 12px 6px; }
+.yp-back { color: var(--y-muted); font-size: 14px; line-height: 1; }
+.yp-name { min-width: 0; }
+.yp-name b { display: block; font-size: 13.5px; font-weight: 800; letter-spacing: -.02em; }
+.yp-meta { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--y-muted); white-space: nowrap; }
+.yp-meta i { width: 1px; height: 9px; background: rgba(255,255,255,.18); }
+.yp-state { font-style: normal; display: inline-flex; align-items: center; gap: 4px; }
+.yp-state.ok { color: var(--y-live-text); }
+.yp-state.ok::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--y-live); }
+.yp-chip { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px;
+  background: var(--y-warn-dim); color: var(--y-warn-text); font-size: 10.5px; font-weight: 800; white-space: nowrap;
+  opacity: 0; transform: scale(.85); transition: opacity .25s, transform .25s var(--spring); }
+.yp-chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--y-warn); }
+.ys.syncing .yp-chip { opacity: 1; transform: none; }
+.ys.syncing .yp-state, .ys.syncing .yp-meta i:last-of-type { display: none; }
+.yp-more { color: var(--y-muted); font-size: 13px; letter-spacing: 1px; }
+.yp-chip + .yp-more { margin-left: 0; }
+.yp-strip { display: flex; align-items: center; gap: 6px; padding: 4px 12px 8px; }
+.yp-mates { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; min-width: 0; overflow: hidden; }
+.yp-mate { display: flex; align-items: center; gap: 6px; flex: none; }
+.yp-mate.join { animation: yp-join .42s var(--spring) both; }
+@keyframes yp-join { 0% { opacity: 0; transform: scale(.3); } 70% { transform: scale(1.1); } 100% { opacity: 1; transform: none; } }
+.yp-mate b { display: block; font-size: 11px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.yp-mate b small { margin-left: 3px; font-size: 9px; font-weight: 800; color: var(--y-red-text); }
+.yp-mate span { display: block; font-size: 9.5px; color: var(--y-live-text); line-height: 1.2; white-space: nowrap; }
+.yp-mate span.ctl { color: var(--y-soft); }
+.yp-invite { margin-left: auto; flex: none; position: relative; height: 26px; width: 26px; border-radius: 999px; padding: 0;
+  border: 1px dashed rgba(255,255,255,.3); background: transparent; color: var(--y-soft); font: 700 10.5px/1 var(--sans);
+  display: grid; place-items: center; overflow: hidden; transition: width .3s var(--ease), background .3s, border-color .3s, color .3s; }
+.yp-invite .cp { display: none; white-space: nowrap; }
+.yp-invite.copied { width: 68px; border-style: solid; border-color: rgba(52,216,163,.4); background: rgba(16,185,129,.14); color: var(--y-live-text); }
+.yp-invite.copied .pl { display: none; }
+.yp-invite.copied .cp { display: inline; }
+.yp-invite.press { transform: scale(.92); }
+.yp-ctl { display: flex; align-items: center; gap: 8px; padding: 0 12px 8px; font-size: 10.5px; color: var(--y-muted); }
+.yp-ctl b { margin-left: auto; font-weight: 700; color: var(--y-soft); }
+/* 대화 — 아래에서 쌓이고, 넘친 윗줄은 잘리지 않고 흐려진다 */
+.yp-feed { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px;
+  padding: 8px 12px 8px; -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22px); mask-image: linear-gradient(180deg, transparent 0, #000 22px); }
+.yp-feed > * { animation: yp-in .26s var(--spring) both; }
+@keyframes yp-in { from { opacity: 0; transform: translateY(10px) scale(.95); } to { opacity: 1; transform: none; } }
+.yp-feed .still { animation: none; }
+.yp-start { align-self: center; font-size: 10.5px; color: var(--y-muted); }
+.yp-msg { display: flex; gap: 7px; align-items: flex-start; }
+.yp-msg b { display: block; font-size: 10.5px; font-weight: 700; color: var(--y-name); }
+.yp-msg.mine b { color: var(--y-red-text); }
+.yp-msg p { margin: 1px 0 0; font-size: 12px; line-height: 1.4; color: var(--y-text); }
+.yp-sys { align-self: center; display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--y-soft); white-space: nowrap; }
+.yp-sys svg { width: 9px; height: 9px; flex: none; }
+.yp-input { flex: none; display: flex; align-items: center; gap: 7px; margin: 0 10px 10px; }
+.yp-input span { flex: 1; height: 32px; display: flex; align-items: center; padding: 0 11px; border-radius: 9px; background: var(--y-surface);
+  border: 1px solid var(--y-line); font-size: 11px; color: var(--y-muted); white-space: nowrap; overflow: hidden; }
+.yp-input i { flex: none; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: var(--y-surface);
+  border: 1px solid var(--y-line); color: var(--y-soft); font-style: normal; font-size: 14px; }
+.yp-toast { position: absolute; left: 50%; bottom: 52px; z-index: 5; padding: 7px 12px; border-radius: 999px; background: #2a2a33;
+  border: 1px solid rgba(255,255,255,.1); color: var(--y-text); font-size: 11px; font-weight: 700; white-space: nowrap;
+  transform: translate(-50%, 10px); opacity: 0; transition: transform .3s var(--ease), opacity .3s var(--ease); pointer-events: none; }
+.yp-toast.on { transform: translate(-50%, 0); opacity: 1; }
+
+/* ── 연출 커서 — 실제 단추 위치로 움직여 누른다(js/top.js aim·tap) ── */
+.yc { position: absolute; z-index: 20; left: 0; top: 0; width: 18px; height: 18px; pointer-events: none; opacity: 0;
+  transition: transform .5s cubic-bezier(.3,.7,.2,1), opacity .25s; filter: drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
+.yc.on { opacity: 1; }
+.yc svg { width: 18px; height: 18px; display: block; }
+.yc::after { content: ""; position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.85); opacity: 0; }
+.yc.tap::after { animation: yc-tap .45s ease-out; }
+@keyframes yc-tap { from { opacity: 1; transform: scale(.4); } to { opacity: 0; transform: scale(1.9); } }
+
+/* ── 휴대폰(760px 이하) ── 영상 아래에 패널. 화면 높이 = 영상 칸(폭 × 9/16) + 패널 156px 로 고정하고(패널이 열리고 닫혀도 같다),
+   패널이 아래에서 올라온다. 패널은 덜어 낸 모양이다(2026-10-16 조현빈, '답답하다' → 정리형 채택) — REPLIX 막대를 없애 글자표를 방 머리
+   한 줄에 넣고, 사람은 얼굴만 겹쳐 오른쪽에 두고, 대화는 한 줄씩 크게(13px) 쓴다. 영상은 칸 폭에 맞춘 16:9 상자로 세로 가운데에 둔다 —
+   패널이 닫혀 칸이 16:9 보다 높으면 위아래 레터박스, 열리면 칸을 채운다. 여닫는 동안 영상 크기는 그대로다. */
+@media (max-width: 760px) {
+  .hx-vis { margin-top: 22px; container-type: inline-size; }
+  .hx-screen { --ph: 156px; width: 100%; height: calc(100cqw * 9 / 16 + var(--ph));
+    grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) calc(var(--open, 1) * var(--ph)); }
+  .hx-screen .floater { font-size: 20px; }
+  .hv-panel { border-left: 0; border-top: 1px solid var(--s-line); }
+  .hv-panel > .yp-in { width: auto; height: calc(var(--ph) - 1px); }   /* 1px = 패널 위 경계선 */
+  .nf { container-type: size; }
+  .ys-video { inset: auto 0; top: 50%; height: auto; aspect-ratio: 16 / 9; transform: translateY(-50%); }
+  .ys-sub { bottom: 12%; font-size: 11.5px; }
+  @container (max-aspect-ratio: 5 / 4) { .ys-sub { bottom: max(4px, calc((100cqh - 56.25cqw) / 4 - 1.34em)); } }
+  .nf.nf-on .ys-sub { bottom: calc(12% + 24px); }
+  /* 조작 막대 — 영상 칸이 작아 PC 막대를 줄이면 칸의 절반을 덮는다. 위 줄은 빼고 [재생·멈춤][진행 막대][남은 시간] 한 줄만 */
+  .nf-top { display: none; }
+  .nf-bottom { display: flex; align-items: center; gap: 9px; padding: 14px 10px 6px; }
+  .nf-row { order: -1; flex: none; margin: 0; }
+  .nf-l { gap: 0; }
+  .nf-l svg:not(.nf-pp), .nf-title, .nf-r { display: none; }
+  .nf-l .nf-pp { width: 15px; height: 15px; }
+  .nf-bar { flex: 1; gap: 8px; }
+  .nf-left { font-size: 10.5px; }
+  .nf-preview { bottom: 30px; width: 92px; }
+  .nf-preview img { width: 92px; height: 52px; }
+  /* 패널 */
+  .yp-top, .yp-back, .yp-more, .yp-lobby .yp-nav, .yp-lobby .yp-opt, .yp-hero p, .yp-ctl, .yp-input { display: none; }
+  .yp-hero { padding: 14px; gap: 11px; }
+  .yp-bar { position: relative; border-bottom: 0; }
+  .yp-bar-top { padding: 12px 14px 4px; }
+  .yp-bar-top::before, .yp-hero::before { content: "REPLIX"; flex: none; font-size: 9px; font-weight: 900; letter-spacing: .28em; color: var(--y-red); }
+  .yp-name { display: flex; align-items: center; gap: 8px; }
+  .yp-meta { font-size: 0; gap: 0; }   /* '3화 | 기본 방'은 빼고 상태('함께 보는 중')만 */
+  .yp-meta i { display: none; }
+  .yp-state { font-size: 11px; }
+  .yp-chip { margin-left: 0; }
+  .yp-strip { position: absolute; right: 12px; top: 9px; padding: 0; gap: 9px; }
+  .yp-mates { gap: 0; overflow: visible; }
+  .yp-mate div { display: none; }
+  .yp-mate + .yp-mate { margin-left: -7px; }
+  .yp-mate .yp-av { width: 25px; height: 25px; font-size: 10.5px; box-shadow: 0 0 0 2px var(--y-bg); }
+  .yp-invite { width: 25px; height: 25px; }
+  .yp-invite.copied { width: 68px; }
+  .yp-feed { padding: 4px 14px 12px; gap: 10px;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 24px); mask-image: linear-gradient(180deg, transparent 0, #000 24px); }
+  .yp-msg { align-items: center; gap: 8px; }
+  .yp-msg > div { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .yp-msg b { flex: none; font-size: 11.5px; }
+  .yp-msg p { margin: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .yp-sys { font-size: 11px; }
+  .yp-make { height: 38px; font-size: 13px; }
+  .yp-toast { bottom: 10px; }
+}
+
+/* ── 움직임 줄이기 — js/top.js 가 친구 둘이 들어온 방을 멈춘 채 보이고, 여기서는 남은 움직임을 끈다 ── */
+@media (prefers-reduced-motion: reduce) {
+  .hx-screen, .yp-lobby, .yp-room, .yc, .yp-invite, .yp-toast { transition: none !important; }
+  .hx-screen.hx-enter, .yp-feed > *, .yp-mate.join { animation: none !important; }
+}

@@ -16,6 +16,7 @@ const UA = {
   androidTablet: 'Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
   iphone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 Safari/604.1',
   ipadDesktopMode: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15',
+  ipadMobileMode: 'Mozilla/5.0 (iPad; CPU OS 17_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 Safari/604.1',
   kakaotalk: 'Mozilla/5.0 (Linux; Android 14; SM-S918N Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.0.0 Mobile Safari/537.36;KAKAOTALK 2410870',
   macChrome: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
   winChrome: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
@@ -29,6 +30,7 @@ const CASES = [
     '안드로이드 태블릿 — UA-CH mobile 은 false 지만 익스텐션을 깔 수 없다'],
   [{ ua: UA.iphone, platform: 'iPhone', maxTouchPoints: 5 }, true, 'iPhone'],
   [{ ua: UA.ipadDesktopMode, platform: 'MacIntel', maxTouchPoints: 5 }, true, 'iPadOS 사파리(데스크톱 모드 UA = Mac 과 같음)'],
+  [{ ua: UA.ipadMobileMode, platform: 'iPad', maxTouchPoints: 5 }, true, 'iPad UA(데스크톱 모드를 끈 iPad) — UA 의 iPad 로만 잡힌다'],
   [{ ua: UA.kakaotalk, platform: 'Linux armv81', maxTouchPoints: 5 }, true, '카카오톡 인앱 브라우저'],
   [{ ua: UA.macChrome, platform: 'MacIntel', maxTouchPoints: 0 }, false, 'Mac 크롬 — Mac 은 터치 지점이 없다'],
   [{ ua: UA.winChrome, platform: 'Win32', maxTouchPoints: 10, uaMobile: false }, false, '터치 화면 Windows 노트북 — 설치할 수 있다'],
@@ -46,7 +48,9 @@ const CASES = [
 for (const [env, want, why] of CASES) assert.equal(g.isMobileDevice(env), want, why);
 
 // 초대·디스코드 연결 페이지는 외부 리소스 0 원칙의 단일 파일이라 판정을 import 하지 못하고 사본을 둔다 — 같은 사례로 대조한다.
-for (const [page, label] of [['docs/invite/index.html', '초대 페이지'], ['docs/together/index.html', '디스코드 연결 페이지(HP-497)']]) {
+// 랜딩도 첫 그림 전에 휴대폰 표식을 달려고 <head> 인라인 스크립트에 사본을 둔다(HP-662 — 모듈을 기다리면 PC 문구가 잠깐 보인다).
+for (const [page, label] of [['docs/invite/index.html', '초대 페이지'], ['docs/together/index.html', '디스코드 연결 페이지(HP-497)'],
+  ['docs/index.html', '랜딩 첫 그림 전 표식(HP-662)']]) {
   const copy = /\/\* isMobileDevice:start \*\/([\s\S]*?)\/\* isMobileDevice:end \*\//.exec(read(page));
   assert.ok(copy, `${label}에 휴대폰 판정 사본(isMobileDevice:start~end)이 있다`);
   const pageIsMobile = new Function(`${copy[1]}; return isMobileDevice;`)();
@@ -138,10 +142,18 @@ assert.match(narrow, /\.nav \.nav-install/, '760px 이하에서 헤더 설치 �
 assert.doesNotMatch(narrow, /nav-switch/, '760px 이하에서도 작품 탐색 버튼은 보인다');
 assert.match(tokens, /\.nav \.wordmark \{[^}]*flex-shrink: 0/, '로고는 줄지 않는다(비율이 깨진다)');
 
-// 히어로 — 휴대폰 기기엔 'PC 크롬에서 설치할 수 있어요', PC 엔 지금 문구.
-assert.match(index, /class="rx-pc-only">Chrome 120 이상에서 사용 가능</, 'PC 문구');
-assert.match(index, /class="rx-mobile-only">PC 크롬에서 설치할 수 있어요</, '휴대폰 문구');
+// 첫 화면·마지막 설치 버튼 — 휴대폰 기기엔 'PC로 설치 링크 보내기'(HP-662), PC 엔 웹 스토어로 가는 설치 문구.
+// 문구 검사는 버튼 하나(<a>…</a>) 안에서만 맞춘다 — 넓게 찾으면 다른 버튼의 같은 문구에 맞아 바뀐 것을 놓친다.
+assert.match(index, /data-cta="hero">\s*<span class="hv-lab rx-pc-only"><span class="chrome-ic"[^>]*><img[^>]*><\/span>크롬에 Replix 설치하기<\/span>\s*<span class="hv-lab rx-mobile-only"><svg(?:(?!<\/span>)[\s\S])*?<\/svg>PC로 설치 링크 보내기<\/span>\s*<\/a>/,
+  '첫 화면 버튼 — PC·휴대폰 문구');
+assert.match(index, /<span class="rx-mobile-only">PC 크롬 웹스토어에서 <b>'리플릭스'<\/b>를 검색해도 돼요<\/span>/, '첫 화면 휴대폰 안내 문구');
+assert.match(index, /data-cta="close">\s*<span class="cta-lab rx-pc-only"><span class="chrome-ic"[^>]*><img[^>]*><\/span>크롬 익스텐션 설치하기<\/span>\s*<!--(?:(?!-->)[\s\S])*-->\s*<span class="cta-lab rx-mobile-only"><svg(?:(?!<\/span>)[\s\S])*?<\/svg>PC로 설치 링크 보내기<\/span>\s*<\/a>/,
+  '마지막 버튼 — PC·휴대폰 문구');
 assert.match(tokens, /\.rx-mobile-device \.rx-mobile-only/, '기기 표식이 붙으면 휴대폰 문구를 보인다');
 assert.match(src, /classList\.add\('rx-mobile-device'\)/, '휴대폰 기기면 <html> 에 표식을 단다');
+
+// 첫 그림 전 표식(HP-662) — 사본(위 대조)을 담은 인라인 스크립트가 <head> 안에서 표식을 단다.
+const early = /<script>\s*\(function \(\) \{[\s\S]*?isMobileDevice:start[\s\S]*?classList\.add\('rx-mobile-device'\)[\s\S]*?<\/script>/.exec(index);
+assert.ok(early && early.index < index.indexOf('</head>'), '랜딩 <head> 의 인라인 스크립트가 첫 그림 전에 휴대폰 표식을 단다');
 
 console.log('scripts/test-install-guide.mjs: 통과');

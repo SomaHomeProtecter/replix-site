@@ -8,6 +8,12 @@
   padding-block: clamp(80px, 12vh, 140px); }
 .close h2 { font-size: clamp(40px, 7vw, 84px); line-height: .98; color: #fff; }
 .close p { color: rgba(255,255,255,.86); font-size: 16.5px; max-width: 40ch; }
+/* 설치 버튼 — 휴대폰 기기(익스텐션 설치 불가)면 'PC로 설치 링크 보내기'(HP-662, 첫 화면 버튼과 같은 말). 아이콘과 글을 한 줄로 */
+.close .btn .cta-lab { display: inline-flex; align-items: center; gap: 9px; }
+.close .btn .cta-lab.rx-mobile-only { display: none; }
+.rx-mobile-device .close .btn .cta-lab.rx-pc-only { display: none; }
+.rx-mobile-device .close .btn .cta-lab.rx-mobile-only { display: inline-flex; }
+.close .btn .cta-lab svg { width: 18px; height: 18px; flex: none; }
 
 /* ═══ 푸터 (다크) ══════════════════════════════════════════════ */
 footer { background: var(--screen); color: var(--s-muted); padding-block: 50px 44px; font-size: 13.5px; }

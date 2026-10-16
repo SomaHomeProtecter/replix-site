@@ -185,43 +185,6 @@ if (reduce) {
 
 var heroScreen = document.querySelector(".hero-screen");
 
-/* ── 헤드라인의 OTT 이름 ──────────────────────────────────────
-   이름을 순환시키는 장치. 2026-07-31 인수 판단으로 껐다 - 글자가
-   바뀔 때마다 뒤의 '에서'가 함께 밀려 헤드라인이 안정적으로 읽히지
-   않았다(폭을 미리 재서 전환해도 남는 문제). 다시 켜려면 아래 값을
-   true 로 바꾸면 되지만, 그때는 전환 방식을 다시 설계하는 편이 낫다. */
-var OTT_ROLL = false;
-var OTTS = ["넷플릭스", "왓챠", "티빙", "웨이브", "디즈니+"];
-var ottWord = document.getElementById("ottWord");
-
-function ottWidth(text) {
-  var probe = ottWord.cloneNode(false);
-  probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;width:auto;transition:none";
-  probe.textContent = text;
-  ottWord.parentNode.appendChild(probe);
-  var w = probe.offsetWidth;
-  probe.remove();
-  return w;
-}
-
-if (ottWord && OTT_ROLL && OTTS.length > 1 && !reduce) {
-  var oi = 0;
-  ottWord.style.width = ottWidth(OTTS[0]) + "px";
-  /* 폰트 크기가 뷰포트에 따라 변하므로 창이 바뀌면 폭을 다시 잡는다 */
-  addEventListener("resize", function () { ottWord.style.width = ottWidth(OTTS[oi]) + "px"; });
-
-  setInterval(function () {
-    var next = (oi + 1) % OTTS.length;
-    ottWord.classList.add("swap");
-    ottWord.style.width = ottWidth(OTTS[next]) + "px";   // 사라지는 동안 폭이 이동
-    setTimeout(function () {
-      oi = next;
-      ottWord.textContent = OTTS[oi];
-      ottWord.classList.remove("swap");
-    }, 280);
-  }, 2500);
-}
-
 /* 탄막은 Replix 가 켜져 있으면 늘 흐른다. */
 if (heroScreen) heroScreen.classList.add("dm-on");
 
