@@ -168,8 +168,11 @@ assert.equal(noticeDate('not-a-date'), '');
 // 실행 기기의 시간대와 무관해야 한다 — 다른 시간대로 띄운 node 에서도 같은 값인지 확인한다.
 if (!process.env.NOTICE_TZ_CHILD) {
   const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  // 파일 경로는 fileURLToPath 로 만든다 — URL 의 pathname 은 공백·한글이 %20·%ED… 로 남고 Windows 에서는 /C:/… 가 되어,
+  // 그런 폴더에 레포를 둔 PC 에서는 자식 node 가 파일을 못 찾아 검사가 여기서 멈춘다(HP-670).
   for (const tz of ['America/Los_Angeles', 'UTC', 'Pacific/Kiritimati']) {
-    execFileSync(process.execPath, [new URL(import.meta.url).pathname], {
+    execFileSync(process.execPath, [fileURLToPath(import.meta.url)], {
       env: { ...process.env, TZ: tz, NOTICE_TZ_CHILD: '1' },
       stdio: ['ignore', 'ignore', 'inherit'],
     });
