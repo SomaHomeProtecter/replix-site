@@ -1,20 +1,24 @@
 /* 공지(HP-425) — 목록 가져오기 + 읽음/띠 닫힘 상태.
    표시 규칙(안 읽은 수·띠 고르기)은 타입 없는 notices-pure.js 에 두고 node 로 검사한다(scripts/test-notices.mjs).
-   저장 키: 읽음 = localStorage(기기에 남는다) · 띠 닫힘 = sessionStorage(탭을 닫으면 다시 보여준다). */
+   저장 키: 읽음 = localStorage(기기에 남는다) · 띠 닫힘 = sessionStorage(탭을 닫으면 다시 보여준다).
+   읽음 값은 공지 id 가 아니라 '본 목록의 가장 늦은 게시 시각'이다(HP-427) — 초안을 먼저 만들고 늦게 게시한 공지도
+   새 공지로 잡으려는 것이다. 규칙과 옛 id 값을 옮기는 방법은 notices-pure.js 에 있다. */
 import { useEffect, useSyncExternalStore } from 'react'
 import { api, type Notice } from './api'
-import { applyLoadFailure, noticePageState, pickBand, unreadCount } from './notices-pure.js'
+import { applyLoadFailure, isFresh, maxNoticeTime, migrateSeenAt, noticeDate, noticePageState, pickBand, unreadCount } from './notices-pure.js'
 
-export { applyLoadFailure, noticePageState, pickBand, unreadCount }
+export { applyLoadFailure, isFresh, noticeDate, noticePageState, pickBand, unreadCount }
 export type { Band, BandTone, NoticePageState } from './notices-pure.js'
 
-const SEEN_KEY = 'replix_notice_seen_id'
+const SEEN_AT_KEY = 'replix_notice_seen_at' // epoch ms
+/** HP-427 이전의 읽음 값(공지 id). 첫 목록 로드 성공 뒤 SEEN_AT_KEY 로 옮기고 지운다(migrateLegacySeen). */
+const LEGACY_SEEN_KEY = 'replix_notice_seen_id'
 const BAND_KEY = 'replix_notice_band_dismissed'
 
 /** `failed` = 마지막 로드가 실패했는지(빈 목록과 구분해 C2 가 안내 문구를 고를 수 있게).
  *  `loading` = 지금 요청이 떠 있는지(in-flight). 실패 뒤 재시도 동안 items 는 빈 목록·failed 는 false 라
  *  이 값이 없으면 화면이 "아직 공지가 없어요"를 거짓으로 보인다 — 그 구간을 구분하는 것이 이 필드의 목적이다. */
-export type NoticeState = { items: Notice[] | null; seenId: number; dismissed: number[]; failed: boolean; loading: boolean }
+export type NoticeState = { items: Notice[] | null; seenAt: number; dismissed: number[]; failed: boolean; loading: boolean }
 
 let shared: Promise<Notice[]> | null = null // 헤더 링크·띠·공지 페이지가 한 번의 응답을 나눠 쓴다
 let loaded: Notice[] | null = null
@@ -26,11 +30,11 @@ const listeners = new Set<() => void>()
 /* useSyncExternalStore 는 렌더마다 같은 객체를 돌려받아야 한다(매번 새 배열을 만들면 무한 루프) —
    그래서 스냅샷을 한 번 만들어 두고, 목록·읽음·닫힘이 바뀔 때만 새로 만든다. */
 function getSnapshot(): NoticeState {
-  if (!snapshot) snapshot = { items: loaded, seenId: readSeenId(), dismissed: dismissedBands(), failed, loading }
+  if (!snapshot) snapshot = { items: loaded, seenAt: readSeenAt(), dismissed: dismissedBands(), failed, loading }
   return snapshot
 }
 function notify() {
-  snapshot = { items: loaded, seenId: readSeenId(), dismissed: dismissedBands(), failed, loading }
+  snapshot = { items: loaded, seenAt: readSeenAt(), dismissed: dismissedBands(), failed, loading }
   listeners.forEach((l) => l())
 }
 function subscribe(l: () => void) {
@@ -53,6 +57,7 @@ export function fetchNotices(): Promise<Notice[]> {
     shared = api
       .notices(20)
       .then((r) => {
+        migrateLegacySeen(r) // 알리기 전에 옮긴다 — 첫 화면이 옛 값 없는 상태(전부 새 공지)로 한 번 깜빡이지 않게
         loaded = r
         failed = false
         loading = false
@@ -76,25 +81,50 @@ export function fetchNotices(): Promise<Notice[]> {
   return shared
 }
 
-export function readSeenId(): number {
+export function readSeenAt(): number {
   try {
-    return Number(localStorage.getItem(SEEN_KEY)) || 0
+    const raw = localStorage.getItem(SEEN_AT_KEY)
+    const v = Number(raw)
+    // 값이 없으면 0 — 모든 공지가 새 공지다(HP-427 이전에 아무것도 안 본 사람과 같은 뜻).
+    return raw !== null && Number.isFinite(v) ? v : 0
   } catch {
     return 0 // 사설 창·저장 차단
   }
 }
 
-/** 목록에서 가장 큰 id 를 읽음으로 기록한다(공지함을 열었을 때). */
+/** 옛 id 읽음 값을 게시 시각 기준으로 한 번 옮긴다. 목록이 있어야 id 를 시각으로 바꿀 수 있어서 첫 로드 성공 뒤에 부른다.
+ *  새 키가 이미 있으면(다른 탭이 먼저 옮겼거나 새로 읽은 적이 있으면) 아무것도 하지 않는다. */
+function migrateLegacySeen(items: Notice[]) {
+  try {
+    if (localStorage.getItem(SEEN_AT_KEY) !== null) return
+    const legacy = localStorage.getItem(LEGACY_SEEN_KEY)
+    if (legacy === null) return
+    localStorage.setItem(SEEN_AT_KEY, String(migrateSeenAt(items, Number(legacy) || 0)))
+    localStorage.removeItem(LEGACY_SEEN_KEY)
+  } catch {
+    /* 사설 창 — 옮기지 못하면 다음 방문에 다시 시도한다 */
+  }
+}
+
+/** 목록의 가장 늦은 게시 시각을 읽음 기준으로 기록한다(공지함을 열었을 때). 기준은 내려가지 않는다. */
 export function markSeen(items: Notice[]) {
-  const max = items.reduce((m, n) => Math.max(m, Number(n.id) || 0), 0)
-  if (max > readSeenId()) {
+  const max = maxNoticeTime(items)
+  if (max > readSeenAt()) {
     try {
-      localStorage.setItem(SEEN_KEY, String(max))
+      localStorage.setItem(SEEN_AT_KEY, String(max))
     } catch {
       /* 사설 창 */
     }
     notify()
   }
+}
+
+/* 다른 탭에서 공지 페이지를 열어 읽음 기준이 바뀌면 이 탭의 헤더 점·띠도 따라 꺼진다. storage 이벤트는
+   값을 바꾼 탭이 아닌 다른 탭에만 오므로 이 탭의 markSeen 과 겹쳐 두 번 알리지 않는다. key 가 null 이면 저장소 전체 삭제다. */
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === SEEN_AT_KEY || e.key === null) notify()
+  })
 }
 
 export function dismissedBands(): number[] {
