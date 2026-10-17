@@ -168,6 +168,8 @@
 .yp-nav { flex: none; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--y-line);
   font-size: 12px; font-weight: 700; }
 .yp-nav i { font-style: normal; color: var(--y-muted); }
+/* 만들기 영역 — 테두리 없이 붉은 기가 도는 면(익스텐션 시작 화면과 같은 값, HP-665) */
+.yp-create { margin: 10px 10px 0; padding-bottom: 4px; border-radius: 14px; background: linear-gradient(180deg, rgba(229, 9, 20, .13), rgba(229, 9, 20, .05)); }
 .yp-hero { padding: 12px 12px 10px; display: grid; gap: 8px; }
 .yp-hero-row { display: flex; align-items: center; gap: 9px; }
 .yp-hero-row b { display: block; font-size: 14px; font-weight: 800; letter-spacing: -.02em; }
