@@ -1,5 +1,6 @@
 /* 공지(HP-425) — 목록 가져오기 + 읽음/띠 닫힘 상태.
-   표시 규칙(안 읽은 수·띠 고르기)은 타입 없는 notices-pure.js 에 두고 node 로 검사한다(scripts/test-notices.mjs).
+   표시 규칙(안 읽은 수·띠 고르기)은 notices-pure.js 에 두고 node 로 검사한다(scripts/test-notices.mjs). 그 파일은 node 가
+   그대로 읽는 .js 이고 타입은 JSDoc 이다 — tsc 가 본문까지 검사하므로 여기서 가져다 쓰는 함수의 타입도 그 JSDoc 이다(HP-670).
    저장 키: 읽음 = localStorage(기기에 남는다) · 띠 닫힘 = sessionStorage(탭을 닫으면 다시 보여준다).
    읽음 값은 공지 id 가 아니라 '본 목록의 가장 늦은 게시 시각'이다(HP-427) — 초안을 먼저 만들고 늦게 게시한 공지도
    새 공지로 잡으려는 것이다. 규칙과 옛 id 값을 옮기는 방법은 notices-pure.js 에 있다. */

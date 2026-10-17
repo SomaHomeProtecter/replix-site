@@ -6,6 +6,12 @@
     "module": "esnext",
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
+    /* 순수 규칙 모듈(*-pure.js)을 JSDoc 타입째 읽으려고 켠다. node 검사(scripts/test-*.mjs)가 그대로 읽게 .js 로 두되,
+       타입을 손으로 쓴 .d.ts 에 따로 두면 본문을 고쳐도 아무도 대조하지 않는다(HP-670). 그래서 notices-pure.js 는 타입을
+       JSDoc 으로 적고 파일 머리 // @ts-check 로 본문까지 검사받는다. checkJs 를 여기서 전역으로 켜지 않는 이유: include 가
+       .js 도 잡아서, 아직 .d.ts 로 타입을 붙인 나머지 *-pure.js 의 타입 없는 인자마다 오류가 난다(2026-10-17 실측).
+       그 모듈들은 가져오는 쪽이 여전히 .d.ts 를 먼저 읽으므로(.d.ts 가 .js 보다 우선) 이 설정으로 달라지는 것이 없다. */
+    "allowJs": true,
     "skipLibCheck": true,
 
     /* Bundler mode */

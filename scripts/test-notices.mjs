@@ -1,7 +1,8 @@
 // scripts/test-notices.mjs — 공지 표시 규칙(HP-425 · 읽음 기준 HP-427)의 순수 함수 검사. 카탈로그 앱엔 테스트 러너가 없어
-// 규칙을 `catalog/app/src/notices-pure.js`(타입 없는 ESM)로 분리해 node 로 직접 돌린다.
+// 규칙을 `catalog/app/src/notices-pure.js`(JSDoc 으로 타입을 적은 ESM — node 는 주석이라 그대로 읽는다)로 분리해 node 로 직접 돌린다.
 // 실행: node scripts/test-notices.mjs
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
 import {
   applyLoadFailure,
   unreadCount,
@@ -144,5 +145,12 @@ assert.equal(page({ items: [N(4, 'NOTICE')], failed: true }), 'stale');
 // 그때 목록이 부족한 것은 '내려가서'가 아니라 '못 불러와서'다 — 'missing' 대신 'stale'.
 assert.equal(page({ items: [N(4, 'NOTICE')], failed: true, noticeId: 9 }), 'stale');
 assert.equal(page({ items: [N(4, 'NOTICE')], failed: true, noticeId: 4 }), 'stale');
+
+// 타입 배선(HP-670) — 타입은 notices-pure.js 의 JSDoc 한 곳뿐이고 tsc 가 그 본문까지 검사한다. 첫 줄 @ts-check 가 빠지면
+// tsc 가 본문을 다시 보지 않아 적어 둔 타입과 함수가 어긋나도 통과하고, 손으로 쓴 .d.ts 가 돌아오면 가져오는 쪽이 그것을 먼저
+// 읽어 이중 관리로 되돌아간다. 둘 다 tsc 로는 드러나지 않아 여기서 막는다.
+const pureSrc = readFileSync(new URL('../catalog/app/src/notices-pure.js', import.meta.url), 'utf8');
+assert.match(pureSrc, /^\/\/ @ts-check\n/, 'notices-pure.js 첫 줄은 // @ts-check');
+assert.ok(!existsSync(new URL('../catalog/app/src/notices-pure.d.ts', import.meta.url)), '손으로 쓴 notices-pure.d.ts 를 다시 두지 않는다');
 
 if (!process.env.NOTICE_TZ_CHILD) console.log('scripts/test-notices.mjs: 통과');
