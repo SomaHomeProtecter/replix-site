@@ -327,7 +327,8 @@ export function bannerDetail(version) {
 /* friends·how = HP-664 메뉴·바닥 링크. scenes·rooms 는 그 전 랜딩(git 태그 landing-v1)의 값이라 남겨 둔다. */
 export var LINK_TARGETS = ['top', 'friends', 'how', 'scenes', 'rooms', 'faq', 'catalog', 'privacy', 'terms', 'contact_email', 'tmdb',
   'discord', 'discord_install'];
-export var LINK_LOCATIONS = ['nav', 'footer', 'discord'];
+/* discord_page_hero·discord_page_close = /discord/ 페이지 머리·끝의 [디스코드에 추가](HP-671) — 그 페이지는 이미 허용한 방문자의 클릭만 간다. */
+export var LINK_LOCATIONS = ['nav', 'footer', 'discord', 'discord_page_hero', 'discord_page_close'];
 export function linkProps(target, location) {
   return LINK_TARGETS.indexOf(target) >= 0 && LINK_LOCATIONS.indexOf(location) >= 0
     ? { target: target, location: location } : null;

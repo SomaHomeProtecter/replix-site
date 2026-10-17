@@ -377,6 +377,23 @@ assert.match(discordPage, /<a class="btn btn--ghost btn--sm" href="https:\/\/chr
   '/discord/ 위 띠의 설치 버튼 = install_cta_clicked{location: discord}');
 assert.match(discordPage, /<script type="module" src="\/js\/analytics\.js"><\/script>/, '/discord/ 는 analytics.js 로 센다(허용한 방문자만)');
 assert.doesNotMatch(discordPage, /data-analytics-settings|googletagmanager|cdn\.amplitude/, '/discord/ 에 배너 입구·정적 태그를 두지 않는다');
+// /discord/ 의 [디스코드에 추가] 두 곳(HP-671) — 랜딩과 같은 target(discord_install)이고 자리로 머리·끝을 가른다(허용한 방문자만 간다).
+const discordAnchors = discordPage.match(/<a\s[^>]*>/g) || [];
+const discordPagePairs = [];
+for (const tag of discordAnchors) {
+  const kinds = [/\sdata-cta="/, /\sdata-link="/, /\sdata-analytics-settings/].filter((re) => re.test(tag)).length;
+  assert.ok(kinds <= 1, `계측 속성은 하나까지: ${tag}`);
+  const m = /\sdata-link="([^"]+)"/.exec(tag);
+  if (!m) continue;
+  const loc = (/\sdata-link-loc="([^"]+)"/.exec(tag) || [])[1];
+  assert.ok(a.linkProps(m[1], loc), `열거값 밖의 data-link / data-link-loc: ${tag}`);
+  discordPagePairs.push(`${loc}:${m[1]}`);
+}
+assert.deepEqual(discordPagePairs.sort(), ['discord_page_close:discord_install', 'discord_page_hero:discord_install'],
+  '/discord/ 링크 계측 2곳 — 바꾸면 tracking-plan.md §6 의 표도 같이');
+for (const tag of discordAnchors.filter((t) => /\sdata-discord-install/.test(t))) {
+  assert.match(tag, /\sdata-link="discord_install"/, '/discord/ 의 [디스코드에 추가]는 모두 센다(HP-671)');
+}
 assert.doesNotMatch(read('docs/together/index.html'), /analytics\.js|amplitude|gtag/i, '/together 도 계측하지 않는다(연결 토큰, README 계약)');
 
 // ③ 웹 스토어 링크 — 전부 utm_source=replix.tv 와 위치(utm_medium)를 단다. 값은 그 버튼의 install_cta_clicked location 과 같은 낱말.
