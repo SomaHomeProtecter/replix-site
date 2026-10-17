@@ -3,16 +3,8 @@
    운영자가 공지에 넣은 linkUrl 을 그대로 연다 — 이 페이지와 익스텐션 공지함은 같은 목록을 각자 보여 줄 뿐이다.
    목록·읽음 상태는 notices.ts 가 모듈 전역으로 한 번만 가져와 헤더 링크·띠와 나눠 쓴다. */
 import { useEffect, useState } from 'react'
-import { isFresh, markSeen, noticeDate, noticePageState, useNotices } from '../notices'
+import { isFresh, kindTag, markSeen, noticeDate, noticePageState, useNotices } from '../notices'
 import type { Notice as NoticeRow } from '../api'
-
-/* 태그 문구는 익스텐션·웹 공통(global-constraints): 공지 / 점검 / 장애. 점검색은 토큰에 없는 호박색 한 쌍이다
-   (라이트 배경 위 경고 톤 — 강조색 빨강은 장애에 남겨 둔다). */
-const KIND = {
-  NOTICE: ['공지', 'bg-sink text-muted'],
-  MAINTENANCE: ['점검', 'bg-[#fbf1df] text-[#7a4a00]'],
-  INCIDENT: ['장애', 'bg-accentw text-accentd'],
-} as const
 
 export default function Notice({ noticeId }: { noticeId: number | null }) {
   const { items, seenAt, failed, loading } = useNotices()
@@ -56,7 +48,8 @@ export default function Notice({ noticeId }: { noticeId: number | null }) {
       )}
       {view === 'empty' && <p className="text-muted">아직 공지가 없어요.</p>}
       {items?.map((n: NoticeRow) => {
-        const [label, cls] = KIND[n.kind] ?? KIND.NOTICE
+        // 태그 이름과 색은 공지 띠와 같은 곳(notices-pure.js NOTICE_KINDS)에서 받는다. 모르는 종류는 일반 공지로 그린다.
+        const { label, cls } = kindTag(n.kind)
         const isNew = seenAtEntry !== null && isFresh(n, seenAtEntry)
         const target = n.id === noticeId
         return (

@@ -6,9 +6,9 @@
    새 공지로 잡으려는 것이다. 규칙과 옛 id 값을 옮기는 방법은 notices-pure.js 에 있다. */
 import { useEffect, useSyncExternalStore } from 'react'
 import { api, type Notice } from './api'
-import { applyLoadFailure, isFresh, maxNoticeTime, migrateSeenAt, noticeDate, noticePageState, pickBand, unreadCount } from './notices-pure.js'
+import { applyLoadFailure, bandLook, isFresh, kindTag, maxNoticeTime, migrateSeenAt, noticeDate, noticePageState, pickBand, unreadCount } from './notices-pure.js'
 
-export { applyLoadFailure, isFresh, noticeDate, noticePageState, pickBand, unreadCount }
+export { applyLoadFailure, bandLook, isFresh, kindTag, noticeDate, noticePageState, pickBand, unreadCount }
 export type { Band, BandTone, NoticePageState } from './notices-pure.js'
 
 const SEEN_AT_KEY = 'replix_notice_seen_at' // epoch ms

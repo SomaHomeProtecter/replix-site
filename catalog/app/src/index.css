@@ -29,6 +29,12 @@
   --color-accentd: #a3060f;
   --color-accentw: #fdf1f1;
 
+  /* 경고 톤 — 공지 '점검'의 태그와 띠(notices-pure.js NOTICE_KINDS). 강조색 빨강은 '장애'에 남겨 두려고 따로 둔다.
+     accentd·accentw 와 같은 짝이다(d = 글자, w = 옅은 바탕). 값은 HP-425 부터 화면에 직접 적혀 있던 호박색 그대로이고,
+     글자색이 바탕 위에서 대비 6.7 이다. 익스텐션도 같은 쓰임을 warn 이라 부른다(--rx-warn·popup --warn). */
+  --color-warnd: #7a4a00;
+  --color-warnw: #fbf1df;
+
   /* 반응 유형 3색 (라이트 재계산본) */
   --color-joy: #a66a00;
   --color-surprise: #1f5fb8;

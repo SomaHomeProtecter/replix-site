@@ -12,6 +12,9 @@ import {
   maxNoticeTime,
   migrateSeenAt,
   noticeDate,
+  NOTICE_KINDS,
+  kindTag,
+  bandLook,
 } from '../catalog/app/src/notices-pure.js';
 
 // 기본 픽스처는 id 가 클수록 늦게 게시된다(게시일 = 9월 10+id 일). 어긋나는 경우는 startsAt 을 직접 준다.
@@ -100,6 +103,59 @@ assert.equal(pickBand([N(4, 'NOTICE')], 0, [4]), null);
 // 후보가 여럿이면 최신 1건 — 서버가 startsAt 내림차순으로 주므로 목록 앞쪽이 최신이다.
 assert.equal(pickBand([N(5, 'MAINTENANCE'), N(3, 'MAINTENANCE')], 0, []).notice.id, 5);
 assert.equal(pickBand([N(5, 'NOTICE'), N(4, 'NOTICE')], 0, []).notice.id, 5);
+
+// 종류 이름과 색(HP-670) — 띠와 공지 페이지가 NOTICE_KINDS 한 곳에서 받는다. 두 화면이 보이는 이름·색을 한 표로 고정하므로
+// 맵에서 한 종류의 이름이나 색을 바꾸면 띠와 목록의 기대값을 함께 고쳐야 통과한다. 어느 화면이 사본을 들고 있는지는 아래 '화면 배선'이 막는다.
+const bandOf = (n) => bandLook(pickBand([n], 0, []));
+const shown = (pick) => ({
+  공지: { page: pick(kindTag('NOTICE')), band: pick(bandOf(N(4, 'NOTICE'))) },
+  점검: { page: pick(kindTag('MAINTENANCE')), band: pick(bandOf(N(3, 'MAINTENANCE'))) },
+  장애: { page: pick(kindTag('INCIDENT')), band: pick(bandOf(N(3, 'INCIDENT'))) },
+});
+assert.deepEqual(shown((v) => v.label), {
+  공지: { page: '공지', band: '새 공지' }, // 일반 공지는 안 읽은 것만 띠에 오르므로 띠에서는 '새 공지'
+  점검: { page: '점검', band: '점검' },
+  장애: { page: '장애', band: '장애' },
+});
+assert.deepEqual(shown((v) => v.cls), {
+  공지: { page: 'bg-sink text-muted', band: 'bg-soft text-ink2' },
+  점검: { page: 'bg-warnw text-warnd', band: 'bg-warnw text-warnd' },
+  장애: { page: 'bg-accentw text-accentd', band: 'bg-accentw text-accentd' },
+});
+// 점검·장애 띠는 목록 태그와 같은 항목을 그대로 쓴다(값만 같은 사본이 아니다).
+assert.equal(bandOf(N(3, 'MAINTENANCE')), kindTag('MAINTENANCE'));
+assert.equal(bandOf(N(3, 'INCIDENT')), kindTag('INCIDENT'));
+// 이 화면이 아직 모르는 종류 — 목록은 일반 공지 모양으로 그리고 띠에는 올리지 않는다(바꾸기 전과 같다).
+assert.equal(kindTag('EVENT'), NOTICE_KINDS.NOTICE);
+assert.equal(pickBand([N(5, 'EVENT')], 0, []), null);
+// 색은 index.css @theme 토큰이다 — 클래스 이름이 틀리면 Tailwind 가 아무 색도 만들지 않으므로 토큰이 있는지 본다.
+// 점검색 값은 바꾸기 전 화면에 직접 적혀 있던 호박색(#fbf1df 바탕, #7a4a00 글자) 그대로다.
+const kindClasses = Object.values(shown((v) => v.cls)).flatMap((v) => [v.page, v.band]);
+const css = readFileSync(new URL('../catalog/app/src/index.css', import.meta.url), 'utf8');
+for (const cls of kindClasses.join(' ').split(' ')) {
+  assert.match(css, new RegExp(`--color-${cls.replace(/^(bg|text)-/, '')}:`), `${cls} 의 색 토큰`);
+}
+assert.match(css, /--color-warnw: #fbf1df;/);
+assert.match(css, /--color-warnd: #7a4a00;/);
+
+// 화면 배선 — TSX 는 node 로 못 돌려 소스로 고정한다(test-catalog-mobile.mjs 와 같은 방식).
+// 띠(Chrome.tsx)는 bandLook, 공지 페이지(Notice.tsx)는 kindTag 로 이름과 색을 받아 그대로 그리고, 자기 사본을 두지 않는다.
+const chromeSrc = readFileSync(new URL('../catalog/app/src/components/Chrome.tsx', import.meta.url), 'utf8');
+const noticeSrc = readFileSync(new URL('../catalog/app/src/pages/Notice.tsx', import.meta.url), 'utf8');
+assert.match(chromeSrc, /const \{ label, cls \} = bandLook\(pick\)/, '띠는 bandLook 으로 이름과 색을 받는다');
+assert.match(chromeSrc, /<div role="status" className=\{`[^`]*\$\{cls\}`\}>/, '띠 바탕색 = bandLook 의 cls');
+assert.match(chromeSrc, />\{label\}<\/span>/, '띠 머리표 = bandLook 의 label');
+assert.match(noticeSrc, /const \{ label, cls \} = kindTag\(n\.kind\)/, '공지 페이지는 kindTag 로 이름과 색을 받는다');
+assert.match(noticeSrc, /<span className=\{`[^`]*\$\{cls\}`\}>\{label\}<\/span>/, '태그 = kindTag 의 이름과 색');
+// 사본 찾기는 주석을 걷어 낸 코드에서만 한다 — 주석이 '점검' 같은 낱말을 따옴표로 인용해도 걸리지 않게(https:// 의 // 는 남긴다).
+const codeOnly = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+for (const [name, src] of [['Chrome.tsx', codeOnly(chromeSrc)], ['Notice.tsx', codeOnly(noticeSrc)]]) {
+  // 따옴표로 감싼 종류 이름 사본이 없다(안내문 속 낱말은 따옴표가 없어 걸리지 않는다). '공지'와 '새 공지'는 헤더 링크와
+  // 빨간 점의 이름으로도 쓰여 여기서 찾을 수 없다 — 그 둘은 바로 위의 bandLook·kindTag 배선 검사가 맡는다.
+  for (const label of ['점검', '장애']) assert.doesNotMatch(src, new RegExp(`['"\`]${label}['"\`]`), `${name}: '${label}' 사본`);
+  for (const cls of kindClasses) assert.ok(!src.includes(cls), `${name}: '${cls}' 사본`);
+  assert.doesNotMatch(src, /#fbf1df|#7a4a00/i, `${name}: 점검색 하드코딩`);
+}
 
 // 날짜는 기기 시간대가 아니라 한국 시간 — 자정 근처 UTC 값이 한국 날짜로 넘어간다.
 assert.equal(noticeDate('2026-09-30T15:00:00Z'), '2026-10-01', 'UTC 15:00 = 한국 다음 날 00:00');

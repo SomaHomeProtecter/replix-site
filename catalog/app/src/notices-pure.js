@@ -5,10 +5,45 @@
 // 선언과 대조하는 곳이 없었다(HP-670). 가져오는 쪽(notices.ts·화면)도 이 JSDoc 타입으로 검사받는다.
 // 목록은 서버가 startsAt 내림차순으로 주므로 앞에서부터 찾으면 최신이다.
 
-/** @import { Notice } from './api' */
+/** @import { Notice, NoticeKind } from './api' */
 /** @typedef {'maint' | 'incident' | 'notice'} BandTone */
 /** @typedef {{ notice: Notice, tone: BandTone }} Band */
+/** @typedef {{ label: string, cls: string }} KindLook */
 /** @typedef {'loading' | 'failed' | 'empty' | 'missing' | 'stale' | 'list'} NoticePageState */
+
+/* 공지 종류별 이름과 색(HP-670). 공지 띠(Chrome.tsx NoticeBand)와 공지 페이지(pages/Notice.tsx)가 이름과 색을 여기서만 받고,
+   띠 고르기(pickBand)도 종류의 띠 톤을 여기서 읽는다. 전에는 '점검'·'장애'와 그 색을 두 화면이 각자 적어 두어, 한쪽만
+   고치면 같은 공지가 띠와 목록에서 달리 보일 수 있었다.
+   · label = 태그 문구. 익스텐션 공지함(Replix-extension features/notices.js KIND_LABEL)과 같은 말이어야 한다(global-constraints).
+   · cls = 태그 색(Tailwind 클래스, 색 값은 index.css @theme 토큰). 점검은 경고 톤(warnw 바탕, warnd 글자)이다 — 강조색
+     빨강은 장애에 남겨 둔다. 점검·장애 띠는 이 색을 그대로 쓴다.
+   · tone = 띠에 오를 때의 톤. 'notice' 가 아닌 종류(점검·장애)는 끝나기 전까지 안 읽은 일반 공지보다 먼저 띠에 오른다.
+   Record 라서 api.ts 에 종류가 늘면 여기 항목이 빠진 채로는 tsc 가 통과하지 않는다. */
+/** @type {Record<NoticeKind, KindLook & { tone: BandTone }>} */
+export const NOTICE_KINDS = {
+  NOTICE: { label: '공지', cls: 'bg-sink text-muted', tone: 'notice' },
+  MAINTENANCE: { label: '점검', cls: 'bg-warnw text-warnd', tone: 'maint' },
+  INCIDENT: { label: '장애', cls: 'bg-accentw text-accentd', tone: 'incident' },
+};
+
+/* 띠에 오른 일반 공지의 모습. 일반 공지는 안 읽은 것만 띠에 오르므로 종류 이름 대신 '새 공지'라 부르고,
+   목록 태그(sink)보다 옅은 바탕(soft)을 쓴다. */
+/** @type {KindLook} */
+const FRESH_BAND = { label: '새 공지', cls: 'bg-soft text-ink2' };
+
+/** 공지 페이지 태그의 이름과 색. 서버가 이 화면이 아직 모르는 종류를 보내면 일반 공지로 그린다.
+ *  @param {NoticeKind} kind
+ *  @returns {KindLook} */
+export function kindTag(kind) {
+  return NOTICE_KINDS[kind] ?? NOTICE_KINDS.NOTICE;
+}
+
+/** 띠 머리표의 이름과 색. 점검·장애 띠는 공지 페이지 태그와 같은 항목을 그대로 쓰고, 일반 공지 띠는 '새 공지'다.
+ *  @param {Band} band
+ *  @returns {KindLook} */
+export function bandLook(band) {
+  return band.tone === 'notice' ? FRESH_BAND : kindTag(band.notice.kind);
+}
 
 /** 목록 로드 실패 뒤의 목록: 이전에 성공한 캐시가 있으면 그대로 두고, 없으면 빈 목록으로 떨군다.
  *  (null 로 두면 화면이 영영 '불러오는 중'에 갇힌다 — 공지는 없어도 화면이 돌아야 한다.)
@@ -79,10 +114,11 @@ export function unreadCount(items, seenAt) {
  *  @returns {Band | null} */
 export function pickBand(items, seenAt, dismissed) {
   const d = new Set(dismissed.map(Number));
+  // 어느 종류가 먼저 오르고 어떤 톤인지는 NOTICE_KINDS 가 정한다. 이 화면이 모르는 종류는 띠에 올리지 않는다.
   const urgent = items.find(
-    (n) => (n.kind === 'MAINTENANCE' || n.kind === 'INCIDENT') && !n.endedAt && !d.has(Number(n.id)),
+    (n) => (NOTICE_KINDS[n.kind]?.tone ?? 'notice') !== 'notice' && !n.endedAt && !d.has(Number(n.id)),
   );
-  if (urgent) return { notice: urgent, tone: urgent.kind === 'MAINTENANCE' ? 'maint' : 'incident' };
+  if (urgent) return { notice: urgent, tone: NOTICE_KINDS[urgent.kind].tone };
   const fresh = items.find((n) => n.kind === 'NOTICE' && isFresh(n, seenAt) && !d.has(Number(n.id)));
   return fresh ? { notice: fresh, tone: 'notice' } : null;
 }
