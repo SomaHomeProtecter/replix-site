@@ -8,7 +8,7 @@ import { ME_HREF, noticeHref, titleHref, type Route } from '../route-pure.js'
 import { storeUrl } from '../store-pure.js'
 import { engaged } from '../analytics'
 import { login, logout, takeAccountFocus, useAuth } from '../auth'
-import { dismissBand, pickBand, unreadCount, useNotices } from '../notices'
+import { bandLook, dismissBand, pickBand, unreadCount, useNotices } from '../notices'
 import { FeedbackModal } from './FeedbackModal'
 
 /* 공개 카탈로그의 실제 목적지만 둔다. 같은 곳으로 가는 메뉴 두 개나 알림 같은 빈 약속은 두지 않는다.
@@ -100,8 +100,8 @@ export function NoticeBand() {
   const pick = items ? pickBand(items, seenAt, dismissed) : null
   if (!pick) return null
   const { notice, tone } = pick
-  const cls = tone === 'maint' ? 'bg-[#fbf1df] text-[#7a4a00]' : tone === 'incident' ? 'bg-accentw text-accentd' : 'bg-soft text-ink2'
-  const label = tone === 'maint' ? '점검' : tone === 'incident' ? '장애' : '새 공지'
+  // 머리표 이름과 색은 공지 페이지 태그와 같은 곳(notices-pure.js NOTICE_KINDS)에서 받는다 — 같은 공지를 띠와 목록이 달리 부르지 않게.
+  const { label, cls } = bandLook(pick)
   return (
     <div role="status" className={`border-b border-line text-[13px] ${cls}`}>
       <div className="wrap flex items-center gap-3 py-2">
