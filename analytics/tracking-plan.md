@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v21 (Amplitude + Google Analytics)
+# replix.tv 웹 — 트래킹 플랜 v22 (Amplitude + Google Analytics)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -11,7 +11,7 @@
 > 하단 배너는 '수집 안내 + 거부'다. **그 밖의 지역**은 지금처럼 **허용** 뒤에만 수집한다. **세션 리플레이**는 한국 시간대
 > **랜딩**은 2026-10-10 부터 미선택이어도(§9·§11), 작품 탐색·해외는 허용 뒤에만. 거부는 어디서나 no-op 이며, 거부·철회하면
 > 쿠키·미전송 큐·녹화를 지운다. 옵트아웃·리플레이·배너는 처리방침이 밝힌 두 표면(첫 화면 `/`·작품 탐색)에서만이고, `/discord/` 는
-> 이미 허용한 방문자의 설치 클릭만 보낸다(§11). **로컬 호스트는 디버그 표시 없이는 보내지 않고, 팀 브라우저는 `traffic_type=internal`
+> 이미 허용한 방문자의 설치·봇 추가 클릭만 보낸다(§11). **로컬 호스트는 디버그 표시 없이는 보내지 않고, 팀 브라우저는 `traffic_type=internal`
 > 로 표시만 한다**(§5·§7, HP-615).
 
 ## 0. 왜 문서가 먼저인가
@@ -56,7 +56,7 @@
 | --- | --- |
 | UI | 하단 고정 배너(`docs/js/analytics.js` `showBanner`). 랜딩·카탈로그 공통 — 스타일을 JS 가 들고 다닌다(두 표면의 CSS 체계가 다르다). **두 층**(HP-585, 2026-10-12): 늘 보이는 요약(`noticeText`·`bannerText`, 70자 이하 — 무엇·어디로(미국)·허용이 더하는 것) + [자세히]를 누르면 배너 안에서 펼쳐지는 세부(`noticeDetail`·`bannerDetail` — 받는 곳 이름·항목·가리는 것·거부의 효과)와 처리방침 링크. [거부]는 [허용]과 같은 크기·같은 채움. 접힌 높이는 휴대폰 390×664 에서 70px(11%) — 전문을 다 보이던 종전 배너는 202px(30%)였다 |
 | 저장 | `localStorage.replix_web_analytics_consent_v1 = { decision: 'granted'|'denied', decidedAt, version }` — 지금 유효한 버전은 `consentVersion()`(운영은 2026-10-01 전 1, 그 뒤 **4** · 로컬은 항상 4. 2·3 은 리플레이·GA 를 따로 시행하려던 계획의 값으로 남아 있다 — 같은 날 4 로 묶여 운영에서 유효한 적은 없다) |
-| 미선택 | **한국 시간대, 두 표면 모두**(첫 화면 `/`·작품 탐색 — `fullSurface()`, 운영 2026-10-01~, §11): 안내 배너 + SDK·GA 로드, 이벤트 수집(리플레이는 §9). **그 밖**: 동의 요청 배너, SDK·쿠키·요청 0건. **그 밖의 페이지(`/discord/`)**: 시간대와 무관하게 배너도 요청도 없다 — 이미 허용한 방문자만 설치 클릭을 보낸다(HP-615) |
+| 미선택 | **한국 시간대, 두 표면 모두**(첫 화면 `/`·작품 탐색 — `fullSurface()`, 운영 2026-10-01~, §11): 안내 배너 + SDK·GA 로드, 이벤트 수집(리플레이는 §9). **그 밖**: 동의 요청 배너, SDK·쿠키·요청 0건. **그 밖의 페이지(`/discord/`)**: 시간대와 무관하게 배너도 요청도 없다 — 이미 허용한 방문자만 설치·봇 추가 클릭을 보낸다(HP-615·HP-671) |
 | 거부 | 배너 숨김. SDK·쿠키·요청 0건. **거부는 버전이 바뀌어도 계속 존중**(`parseConsent`) — 옵트아웃에서 옛 거부가 풀리면 거부한 사람을 수집하게 된다 |
 | 허용 | SDK 스크립트 주입 → (랜딩이면 리플레이 플러그인 주입·부착, §9) → `init` → 큐 flush · GA `gtag.js` 주입(§10) → 현재 페이지 `page_viewed`(GA 는 `page_view`) 1회 |
 | 철회 | 푸터 '분석 설정'(`[data-analytics-settings]`) → 배너 재표시 → 거부 시 리플레이 플러그인 제거 + `setOptOut(true)` + `AMP_*` 쿠키·`AMP_*` localStorage·`AMP_*` IndexedDB 삭제(IndexedDB 는 SDK 가 연결을 쥐고 있어 페이지를 떠날 때 실제로 지워진다). 거부 뒤에는 SDK 의 묶음 전송도 나가지 않는다 — `setOptOut` 은 새 이벤트만 막아 이미 메모리 큐에 든 묶음이 1초 뒤 그대로 나갔으므로(2026-10-14 실측), 보내는 순간 수집 상태를 다시 보는 관문(`gateTransport`, 플러그인 `replix-send-gate`)이 막는다(HP-628) |
@@ -97,7 +97,7 @@
 | `page_viewed` | 둘 다 | 랜딩: `main.js` 끝 `page()` 1회 · 카탈로그: `App.tsx` 계측 effect — **페이지가 바뀔 때만**(`route-pure.js` `pageKey`: 홈 · 작품(작품마다) · 공지 · 내 활동). 홈 안 앵커(`#/ranking`·`#/hot`·`#/live`)·공지 항목·회차 선택·평가 칸 이동은 세지 않고, 로그인 왕복(IdP 로그인, 제3자 쿠키가 막힌 브라우저의 조용한 세션 확인 전체 리디렉트)으로 다시 열린 로드도 세지 않는다(`isAuthReturn`, HP-615). 동의 전 호출은 기억만 하고 허용 직후 1회 | `route`(카탈로그: `home` \| `title` \| `notice` \| `me`) | W1 분모 |
 | `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture). 휴대폰 기기(익스텐션 설치 불가)에서는 웹 스토어 대신 설치 안내 시트가 열리지만 클릭은 그대로 센다(HP-477). `/discord/` 는 이미 허용한 방문자의 클릭만(§11, HP-615) | `location`: `nav` \| `hero` \| `friends` \| `close` \| `float`(랜딩 — `friends` = '친구랑 같이 보기' 중간 버튼, `float` = 휴대폰 따라오는 버튼, HP-664) · `catalog_nav` \| `catalog_title_hero` \| `catalog_title` \| `catalog_footer` · `discord`(`/discord/` 위 띠). 스토어 링크의 `utm_medium` 과 같은 낱말(§12) | **W1** |
 | `install_guide_action` | 둘 다 | `install-guide.js` — 휴대폰 기기에서 설치 버튼으로 열린 'PC 크롬에서 써요' 시트 안의 행동. 열 때 1회(`opened`)와 버튼마다. 시트의 웹 스토어 링크에는 `data-cta` 가 없어 `install_cta_clicked` 와 겹쳐 세지 않는다. 복사·공유·메일로 보내는 주소는 싣지 않는다. 앱 안 브라우저(`in_app` ≠ `none`)에서는 '웹 스토어에서 PC로 보내기'가 보이지 않는다(크롬 로그인이 없어 막힌다). 두 번째 버튼은 공유 기능이 있으면 [공유하기], 없으면 앱 밖 브라우저에서만 [메일로 보내기](안드로이드 앱 안 웹뷰는 mailto 를 열지 못할 수 있어 [링크 복사] 하나만). [휴대폰으로는 작품 탐색부터 둘러보기]는 랜딩에서 연 시트에만 있다(HP-638, 규칙은 `install-guide.js` `sheetPlan`) | `action`: `opened` \| `copy_link` \| `share` \| `mail` \| `open_store` \| `open_catalog` · `in_app`: `instagram` \| `facebook` \| `kakaotalk` \| `naver` \| `line` \| `webview`(그 밖의 안드로이드 웹뷰, 'Safari/' 가 없는 iOS 앱 안 웹뷰) \| `none`(앱 밖 브라우저 — UA 로 가린다) | **W1**(휴대폰 갈래) |
-| `nav_link_clicked` | landing | `[data-link]` 요소 클릭(`analytics.js` 문서 위임, capture) — 설치 CTA 가 **아닌** 랜딩의 모든 `<a>`. 아래 표 | `target`(어디로) · `location`: `nav` \| `footer` \| `discord` | **W6** |
+| `nav_link_clicked` | landing · `/discord/` | `[data-link]` 요소 클릭(`analytics.js` 문서 위임, capture) — 설치 CTA 가 **아닌** 랜딩의 모든 `<a>` + `/discord/` 의 [디스코드에 추가] 2곳(이미 허용한 방문자만 — §11, HP-671). 아래 표 | `target`(어디로) · `location`: `nav` \| `footer` \| `discord` \| `discord_page_hero` \| `discord_page_close` | **W6** |
 | `section_viewed` | landing | `reveal.js` — 섹션 상단이 뷰포트 위 60% 안에 들어올 때 페이지뷰당 1회 | `section`: `friends` \| `discord` \| `how` \| `faq` \| `install`(2026-10-17 HP-664 부터. 그 전 값 `intro` · `rooms` · `scenes` · `works` 는 git 태그 `landing-v1` 의 랜딩이다 — 전후를 섹션 이름으로 잇지 말고 `scroll_depth` 로 잇는다) | W3 |
 | `scroll_depth` | landing | `reveal.js` — 화면 아래 끝이 페이지 길이의 25·50·75·100% 를 지날 때 **값마다 페이지뷰당 1회**. 메뉴 링크처럼 건너뛰면 지난 값을 한꺼번에 보낸다. 섹션 구성과 상관없는 자라 구성을 바꿔도 전후를 비교할 수 있다(HP-664) | `percent`: `25` \| `50` \| `75` \| `100` | W3 |
 | `demo_interacted` | landing | **2026-10-17(HP-664)부터 발화 지점 없음** — 제품 화면 섹션(`#intro`)을 뺐다(되살리면 다시 난다, git 태그 `landing-v1`). 그 전: `hero.js` 제품 화면이 원본으로 보인 뒤 **스크롤로 전환 경계(화면 전체가 뷰포트에 들어온 위치)를 넘어 Replix 로 바뀌었을 때** 페이지뷰당 1회(2026-10-13 HP-602 부터 — 그 전엔 스크롤 비례 진행도가 1에 닿을 때). 이미 지나친 위치에서 열린 경우(앵커·새로고침)는 세지 않는다 | `demo`: `hero_toggle` · `action`: `scroll_complete` | W4 |
@@ -125,7 +125,7 @@
 > `login_kind = signup` 을 `surface` 구분 없이 더한다. `reconsent` 는 범위가 다르다 — 웹은 새로고침으로 되살린 세션의 재동의도 세지만, 익스텐션은
 > 로그인하면서 재동의한 경우만 센다(이미 로그인된 채팅창의 재동의는 `login_completed` 가 없다). 같은 사람의 첫 저장 둘이 거의 같은 순간 서버에 닿으면 둘 다 `signup` 일 수 있다(드문 경합 — BE 가 받아들인 한계).
 
-`nav_link_clicked` 발화 지점 — 랜딩(`docs/index.html`) 15곳. 마크업의 `data-link`(=`target`) · `data-link-loc`(=`location`):
+`nav_link_clicked` 발화 지점 — 랜딩(`docs/index.html`) 15곳 + `/discord/`(`docs/discord/index.html`) 2곳. 마크업의 `data-link`(=`target`) · `data-link-loc`(=`location`):
 
 | `location` | `target` | 버튼·링크 | 이동 |
 | --- | --- | --- | --- |
@@ -140,6 +140,13 @@
 | `footer` | `tmdb` | TMDB 출처 링크 | 새 탭 |
 | `discord` | `discord_install` | 디스코드 섹션 "디스코드에 추가"(HP-497) — 익스텐션 설치가 아니라 `install_cta_clicked` 가 아니다 | 디스코드 봇 추가 창(새 탭) |
 | `discord` | `discord` | 디스코드 섹션 "자세히 보기" | `/discord/`(같은 탭, **SDK 없는 페이지**) |
+| `discord_page_hero` | `discord_install` | `/discord/` 머리의 "디스코드에 추가"(HP-671) — 이미 허용한 방문자만(§11) | 디스코드 봇 추가 창(새 탭) |
+| `discord_page_close` | `discord_install` | `/discord/` 끝의 "디스코드에 추가"(HP-671) — 같은 조건 | 디스코드 봇 추가 창(새 탭) |
+
+> 사이트의 봇 추가 클릭은 `target = discord_install` 하나로 모이고 자리는 `location` 이 가른다. **클릭은 설치가 아니다** — 승인은
+> 디스코드 화면에서 끝나 웹으로 돌아오는 신호가 없다(설치 링크에 돌아올 주소가 없다). 실제로 봇이 서버에 들어간 수는 BE 지표
+> `discord.guild_added`(`GET /api/v1/admin/stats/discord`, 표 `discord_daily_stats` — HP-671)이고, 디스코드 앱 프로필에서 바로 추가한
+> 것처럼 웹·익스텐션을 거치지 않은 추가도 거기에만 잡힌다. 익스텐션의 같은 버튼 3곳은 익스텐션 `feature_engaged{feature: discord_install}`.
 
 > ⚠️ **설치 버튼 5개는 여기 없다** — `install_cta_clicked{location: nav \| hero \| friends \| close \| float}` 로 이미 버튼마다 갈린다(W1). 둘을 합치지 않는다:
 > W1 퍼널·대시보드 차트가 `install_cta_clicked` 에 걸려 있고, "설치로 갔나 / 다른 데로 갔나"는 애초에 다른 질문이다.
@@ -300,7 +307,7 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | 세션 리플레이(§9) · 랜딩 · 한국 시간대 | **옵트아웃**(2026-10-10 부터, `REPLAY_OPTOUT_FROM`) | 국내 관행 실측(§9 범위 행) + 랜딩은 비식별에 가깝다. 처리방침 1·6항 개정 공고 2026-10-10, 공고와 동시 시행 |
 | 세션 리플레이(§9) · 작품 탐색 · 해외 | 옵트인(허용 버튼) | 작품 탐색은 남의 글·계정 이름이 뜨는 화면. 해외는 미국 CIPA 세션 리플레이 소송의 주 대상(2025 9th Cir. Mikulsky v. Bloomingdale's) — 배너 동의가 방어 수단 |
 | 익스텐션 | 옵트인(최초 실행 선택, 변경 없음) | 크롬 웹스토어 사용자 데이터 정책: 수집 전 눈에 띄는 고지 + 명시적 동의. 회원 식별값(user_id)과도 결합 |
-| 그 밖의 페이지(`/discord/`) | **이미 [허용]한 방문자의 설치 클릭만**(HP-615) — 배너·페이지뷰·리플레이 없음, SDK·GA 는 그 클릭에서야 붙는다 | 처리방침 1·6항이 미선택 수집 범위를 '웹사이트(첫 화면과 작품 탐색)'로 밝힌다 — 그 밖의 페이지까지 옵트아웃으로 넓히려면 처리방침 개정 공고가 먼저다. 허용(배너 세부 '사이트 개선을 위해 방문 통계를…')은 사이트 단위 동의라 이 클릭을 덮는다 |
+| 그 밖의 페이지(`/discord/`) | **이미 [허용]한 방문자의 설치·봇 추가 클릭만**(HP-615·HP-671) — 배너·페이지뷰·리플레이 없음, SDK·GA 는 그 클릭에서야 붙는다 | 처리방침 1·6항이 미선택 수집 범위를 '웹사이트(첫 화면과 작품 탐색)'로 밝힌다 — 그 밖의 페이지까지 옵트아웃으로 넓히려면 처리방침 개정 공고가 먼저다. 허용(배너 세부 '사이트 개선을 위해 방문 통계를…')은 사이트 단위 동의라 이 클릭을 덮는다 |
 | `/invite`·`/together` | 계측 없음(토큰, README 계약) — 스토어 링크 `utm_medium` 만(§12) | 주소와 화면에 토큰이 있다(§2 주석) |
 
 > ⚠️ **되돌리지 말 것 — 이 근거의 전제는 "식별하지 않는다"이다.** 웹 이벤트에 회원 식별값(`user_id`)·이메일·IP 를 싣는 순간
@@ -363,3 +370,4 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v19 | 2026-10-14 | 작품 화면 첫 화면 설치 버튼(HP-636, §6·§12): '넷플릭스에서 N화 보기' 옆 '크롬 익스텐션 설치하기'가 2026-09-05부터 작품 탐색 홈(`#/`)으로 가고 `data-cta` 가 없어 설치 계측·휴대폰 안내 시트를 타지 않았다 — 웹 스토어(`utm_medium=catalog_title_hero`)로 고치고 `install_cta_clicked.location` 에 `catalog_title_hero` 를 더한다. 그 전의 `catalog_title` 은 순간 채팅 아래 링크만 센 값이다. 머리 제목의 판 번호를 v16 에서 v19 로 맞춤. 이벤트 이름·동의 버전은 그대로 — 김지호(Claude Code) |
 | v20 | 2026-10-14 | 휴대폰 설치 안내 시트(HP-638, §6): `install_guide_action` 에 새 값 `mail`(메일로 나에게 보내기 — 공유 기능이 없는 앱 밖 브라우저의 두 번째 버튼)·`open_catalog`(랜딩에서 연 시트의 '휴대폰으로는 작품 탐색부터 둘러보기')과 새 속성 `in_app`(앱 안 브라우저 종류, UA 로 가림). 앱 안 브라우저에서는 '웹 스토어에서 PC로 보내기'를 빼고, 'PC 크롬 주소창에 이렇게 입력하세요' 아래 replix.tv 를 주소창 모양으로 보인다. 동의 버전은 그대로 — 김지호(Claude Code) |
 | v21 | 2026-10-17 | 랜딩 본문 구성 개편(HP-664, §6·§12): 순서가 첫 화면 → 친구랑 같이 보기(`#friends`) → 디스코드 → 혼자 볼 때(`#how`) → FAQ → 마지막 버튼으로 바뀌어 `section_viewed.section` 을 `friends` · `discord` · `how` · `faq` · `install` 로 바꿨다(`intro`·`rooms`·`scenes`·`works` 는 빠진 섹션). 섹션 구성과 상관없는 새 이벤트 `scroll_depth{percent: 25 \| 50 \| 75 \| 100}`(W3). `install_cta_clicked.location`·`utm_medium` 에 `friends`(중간 버튼)·`float`(휴대폰 따라오는 버튼) — `together` 는 디스코드 연결 착지(`/together`)가 이미 쓰는 낱말이라 피했다. `nav_link_clicked` 메뉴·바닥 링크 `friends`·`how`(15곳 그대로). `demo_interacted` 는 제품 화면을 빼 발화 지점이 없다. `faq_opened.question_index` 의 순번이 가리키는 질문이 바뀌었다. 동의 버전은 그대로 — 조현빈(Claude Code) |
+| v22 | 2026-10-17 | 디스코드 봇 추가 계측(HP-671, §3·§6·§11): `/discord/` 의 [디스코드에 추가] 2곳을 `nav_link_clicked{target: discord_install, location: discord_page_hero \| discord_page_close}` 로 센다 — 이미 허용한 방문자만(그 페이지의 웹 스토어 버튼과 같은 조건). 클릭은 설치가 아니라는 주의와 실제 추가 수의 출처(BE `discord.guild_added`)를 §6 에 적었다. 동의 버전은 그대로 — 조현빈(Claude Code) |
