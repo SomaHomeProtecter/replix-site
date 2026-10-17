@@ -77,8 +77,8 @@ export function Nav({ current }: { current: Route['page'] }) {
  *  '홈으로'와 로그인 사이에 둔다(위 주석의 2026-09-16 규칙). 안 읽은 **일반 공지**가 있을 때만 빨간 점이 붙는다:
  *  점검·장애는 아래 NoticeBand 가 이미 화면 맨 위에서 알리므로 여기서 두 번 세지 않는다. */
 function NoticeLink({ current }: { current: boolean }) {
-  const { items, seenId } = useNotices()
-  const unread = items ? unreadCount(items.filter((n) => n.kind === 'NOTICE'), seenId) : 0
+  const { items, seenAt } = useNotices()
+  const unread = items ? unreadCount(items.filter((n) => n.kind === 'NOTICE'), seenAt) : 0
   return (
     <a
       href={noticeHref()}
@@ -87,7 +87,8 @@ function NoticeLink({ current }: { current: boolean }) {
       className={`relative hidden shrink-0 text-[14px] transition-colors hover:text-ink min-[761px]:inline-flex ${current ? 'font-bold text-ink' : 'text-muted'}`}
     >
       공지
-      {unread > 0 && <span aria-label="새 공지" className="absolute -right-2 top-1 size-[7px] rounded-full bg-accent" />}
+      {/* 빈 span 의 aria-label 은 스크린리더가 읽지 않는다 — role="img" 를 붙여야 '새 공지'로 읽힌다. */}
+      {unread > 0 && <span role="img" aria-label="새 공지" className="absolute -right-2 top-1 size-[7px] rounded-full bg-accent" />}
     </a>
   )
 }
@@ -95,8 +96,8 @@ function NoticeLink({ current }: { current: boolean }) {
 /** 진행 중인 점검·장애, 또는 안 읽은 새 공지 한 건을 헤더 바로 아래 띠로 알린다. 무엇을 고를지는
  *  pickBand(notices-pure.js)가 정하고 node 로 검사한다. 닫으면 그 탭에서는 다시 뜨지 않는다(sessionStorage). */
 export function NoticeBand() {
-  const { items, seenId, dismissed } = useNotices()
-  const pick = items ? pickBand(items, seenId, dismissed) : null
+  const { items, seenAt, dismissed } = useNotices()
+  const pick = items ? pickBand(items, seenAt, dismissed) : null
   if (!pick) return null
   const { notice, tone } = pick
   const cls = tone === 'maint' ? 'bg-[#fbf1df] text-[#7a4a00]' : tone === 'incident' ? 'bg-accentw text-accentd' : 'bg-soft text-ink2'
@@ -120,8 +121,8 @@ export function NoticeBand() {
           type="button"
           onClick={() => {
             engaged('notice', 'band_dismissed', { kind: notice.kind })
-            /* 닫기는 '이 띠만' 접는다 — 읽음은 올리지 않는다. 읽음 워터마크는 목록 최대 id 하나라서
-               여기서 markSeen([notice]) 을 하면 그 공지보다 id 가 낮은 안 읽은 공지까지 읽음이 된다.
+            /* 닫기는 '이 띠만' 접는다 — 읽음은 올리지 않는다. 읽음 기준은 가장 늦은 게시 시각 하나라서
+               여기서 markSeen([notice]) 을 하면 그 공지보다 먼저 게시된 안 읽은 공지까지 읽음이 된다.
                읽음 처리는 공지 페이지를 실제로 열었을 때만 하고, 띠는 다음 안 읽은 공지로 넘어간다. */
             dismissBand(notice.id)
           }}

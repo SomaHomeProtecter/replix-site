@@ -6,10 +6,16 @@ export type BandTone = 'maint' | 'incident' | 'notice'
 export type Band = { notice: Notice; tone: BandTone }
 
 export function applyLoadFailure(prev: Notice[] | null): Notice[]
-export function unreadCount(items: Notice[], seenId: number): number
-export function pickBand(items: Notice[], seenId: number, dismissed: number[]): Band | null
+/* seenAt = 읽음 기준. 본 목록의 가장 늦은 게시 시각(epoch ms, HP-427). */
+export function noticeTime(n: Notice): number
+export function isFresh(n: Notice, seenAt: number): boolean
+export function maxNoticeTime(items: Notice[]): number
+export function migrateSeenAt(items: Notice[], seenId: number): number
+export function unreadCount(items: Notice[], seenAt: number): number
+export function pickBand(items: Notice[], seenAt: number, dismissed: number[]): Band | null
+export function noticeDate(iso: string | null): string
 
-export type NoticePageState = 'loading' | 'failed' | 'empty' | 'missing' | 'list'
+export type NoticePageState = 'loading' | 'failed' | 'empty' | 'missing' | 'stale' | 'list'
 export function noticePageState(input: {
   items: Notice[] | null
   failed: boolean
