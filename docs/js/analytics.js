@@ -15,13 +15,19 @@
    ⑦ 수집 범위(HP-615): 옵트아웃·리플레이·배너는 처리방침이 이름을 들어 밝힌 두 표면(첫 화면 `/`·작품 탐색)에서만이다
       (fullSurface). 그 밖의 페이지(/discord/)는 이 파일을 실어도 이미 [허용]한 방문자의 클릭만 보낸다. 로컬 호스트는
       디버그 표시 없이는 보내지 않고(sendAllowed), 팀 브라우저는 버리지 않고 traffic_type=internal 로 표시만 한다.
+   ⑧ Meta 픽셀(HP-542)은 **GA 와 같은 수집 게이트(collecting) 뒤에, 처리방침 시행일(META_FROM)부터, 첫 화면 `/` 에서만** 붙인다.
+      Meta 광고가 'PC 설치 의도'(설치 버튼 클릭 = Lead)로 최적화하게 하려는 것이다. 첫 화면만인 이유: 작품 탐색은 해시에
+      작품·회차 번호가 실리는데 픽셀은 전체 주소(dl)를 그대로 보내고 GA 처럼 덮어쓸 수 없다. 자동 설정(autoConfig — 버튼
+      글자·페이지 메타데이터 자동 수집)과 주소 변화 자동 PageView(disablePushState)는 끈다 — 처리방침이 밝힌 항목(방문·설치
+      버튼 클릭·PC로 보내기)만 나가게. 고급 매칭(이메일·전화번호 해시)은 쓰지 않는다. 아래 META_PIXEL_ID 주석 참조.
    카탈로그(React)는 이 파일을 /js/analytics.js 로 따로 로드해 window.ReplixAnalytics 로만 부른다.
    node 에서 import 하면 부트하지 않는다(scripts/test-analytics.mjs 가 순수 함수를 검사한다). */
 export var CONSENT_KEY = 'replix_web_analytics_consent_v1';
 /* 동의 버전 — 수집 범위나 받는 곳이 바뀌면 올려 다시 묻는다. 2 = 랜딩 세션 리플레이(HP-457), 3 = Google Analytics(HP-465),
-   4 = 작품 탐색까지 리플레이(2026-10-01 고경우). 운영에서는 각 시행일 전까지 앞 버전이 유효하다 — consentVersion() 이 가른다.
+   4 = 작품 탐색까지 리플레이(2026-10-01 고경우),
+   5 = Meta 픽셀·광고 성과 측정(2026-10-20 조현빈). 운영에서는 각 시행일 전까지 앞 버전이 유효하다 — consentVersion() 이 가른다.
    거부는 버전과 무관하게 계속 존중한다(parseConsent). */
-export var CONSENT_VERSION = 4;
+export var CONSENT_VERSION = 5;
 export var SDK_URL = 'https://cdn.amplitude.com/libs/analytics-browser-2.45.8-min.js.gz';
 /* 익스텐션 config.js 와 같은 두 프로젝트(쓰기 전용 클라이언트 키 — 읽기·삭제 불가). 표면은 surface 속성으로 가른다. */
 export var API_KEYS = { prod: '6f7bcf8fc37e9f93d442f943c23b6861', dev: 'fa98652a9c62152eaab56eb423b707ab' };
@@ -66,7 +72,9 @@ export var SR_CONFIG = { sampleRate: 1, storeType: 'memory', privacyConfig: { de
      세션 소스 'nav' 로 잡혔다(2026-10-13 GA 리포트 22세션) — gtag 는 ep.source 로 그대로 보내고 GA 서버가 유입 경로로 해석한다.
      같은 계열(medium·campaign·term·content)도 GA 쪽 이름을 정하기 전에는 싣지 않는다. Amplitude 는 기존 차트를 깨지 않게 그대로 둔다.
    · ⚠️ GA 관리 화면의 **향상된 측정은 꺼 둔다**(이탈 클릭이 넷플릭스 재생 주소를, 사이트 검색이 검색어를 싣는다).
-     이건 코드로 막을 수 없는 원격 설정이다(트래킹 플랜 §7). */
+     이건 코드로 막을 수 없는 원격 설정이다(트래킹 플랜 §7).
+   · **광고 성과 측정에도 쓴다**(2026-10-20 조현빈, HP-542). GA4 전환을 Google Ads 로 가져가 광고 성과를 잰다 — 처리방침 2·6항의
+     목적에 '광고 성과 측정'을 더했다(META_FROM 과 같은 개정). 보내는 값·설정은 그대로다(Google 신호·광고 개인화는 계속 끈다). */
 export var GA_ID = 'G-MVDJ0Z60LJ';
 export var GA_FROM = Date.parse('2026-10-01T00:00:00+09:00');
 export var GA_URL = 'https://www.googletagmanager.com/gtag/js?id=';
@@ -79,6 +87,28 @@ export var GA_CAMPAIGN_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'ut
 /* GA 쪽 이름을 따로 정한 이벤트 속성. 유입 경로 예약어 중 여기 없는 것은 GA 에 아예 싣지 않는다(gaParams). */
 export var GA_PARAM_RENAME = { source: 'click_source' };
 export var GA_TRAFFIC_PARAMS = ['source', 'medium', 'campaign', 'term', 'content'];
+/* ─── Meta 픽셀(HP-542) ───────────────────────────────────────────
+   데이터 세트 'Replix 웹 (replix.tv)'. Meta 광고가 설치 의도로 최적화하고 성과를 재게 한다.
+   · **같은 게이트 뒤에만.** collecting()(허용 / 한국 시간대 미선택, 로컬은 디버그 표시) — GA 와 같다. 거부하면 어디서든 안 붙는다.
+   · **시행일부터.** 2026-10-20 공고, 2026-10-21 시행(처리방침 1·2·3·6항, 조현빈 결정 — GA 때처럼 법정 사전 공지 기간은 없고 개인정보위
+     작성지침도 "개정 전 또는 개정 즉시 공지"다). 운영만 날짜를 본다. ⚠️ 공고가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
+   · **첫 화면 `/` 에서만**(metaOn). 픽셀은 전체 주소(dl)와 리퍼러(rl)를 그대로 보내고 GA 의 page_location 처럼 덮어쓸 방법이 없다 —
+     작품 탐색은 해시에 작품·회차 번호가 실리고(§2 금지), 그 밖의 페이지는 처리방침이 밝힌 픽셀 범위('첫 화면') 밖이다.
+     같은 이유로 첫 화면이라도 주소에 광고 캠페인 쿼리(utm) 밖의 값이 있거나, 같은 출처 리퍼러에 쿼리가 있으면(/bye?v=…&d=…
+     에서 넘어온 경우 등) 그 로드에서는 붙이지 않는다(metaPageSafe). 광고 클릭 식별값·팀 표시는 부트 첫 줄이 이미 지웠다.
+   · **팀 브라우저(INTERNAL_KEY 표시)는 보내지 않는다.** GA 는 'Internal Traffic' 필터로 거르지만 Meta 데이터 세트에는 그런
+     필터가 없어, 팀의 설치 버튼 확인 클릭이 그대로 광고 최적화 신호(Lead)가 된다.
+   · **보내는 것은 셋뿐**(metaEvent): 로드 때 PageView 1회, install_cta_clicked → 표준 이벤트 Lead(속성 없음),
+     install_guide_action 의 PC로 보내기 행동 → 맞춤 이벤트 SendToPc{action}. 그 밖의 이벤트·속성은 싣지 않는다.
+   · **자동 수집을 끈다.** autoConfig(버튼 글자·페이지 메타데이터·구조화 데이터 자동 수집)와 disablePushState(주소 변화마다
+     자동 PageView). 고급 매칭(이메일·전화번호)은 쓰지 않는다 — init 에 사용자 값을 넘기지 않는다.
+   · **거부하면 멈춘다.** fbevents.js 는 떼어 낼 방법이 없어 fbq('consent', 'revoke')(Meta 공식 전송 보류)로 막고, 이 페이지에서는
+     더 이상 fbq 를 부르지 않으며(_metaBlocked — GA 의 _gaBlocked 와 같은 이유), _fbp·_fbc 쿠키를 지운다. 다음 로드부터는 게이트가 막는다. */
+export var META_PIXEL_ID = '1791551955320987';
+export var META_FROM = Date.parse('2026-10-20T00:00:00+09:00');
+export var META_URL = 'https://connect.facebook.net/en_US/fbevents.js';
+/* install_guide_action 중 'PC로 보내기'에 해당하는 행동 — opened(시트 열림)·open_catalog(작품 탐색으로)은 보내지 않는다. */
+export var META_SEND_ACTIONS = ['copy_link', 'share', 'mail', 'open_store'];
 /* ─── 로컬·팀 트래픽(HP-615) ──────────────────────────────────────
    팀·개발 트래픽이 실데이터에 섞였다(2026-10-13: 작품 탐색 조회 268회 중 245회가 팀으로 보이는 18명, GA 에 localhost 14세션).
    · **로컬 호스트는 보내지 않는다** — 개발 중 확인이 필요하면 ?replix_analytics_debug=1 로 이 브라우저에 표시를 남긴다(=0 이면 해제).
@@ -94,8 +124,9 @@ export var DEBUG_KEY = 'replix_analytics_debug';
    광고 플랫폼이 클릭마다 주소에 붙이는 값(구글 gclid·gbraid·wbraid·dclid, 메타 fbclid, 틱톡·X·링크드인·레딧·카카오·MS 의
    것). Amplitude Browser SDK 의 웹 귀속은 이 11종을 주소에서 읽어 사용자 속성(`gclid`·`initial_gclid` …)으로 보낸다
    (2.45.8 코드 확인, 2026-10-14 운영 수집 요청 실측). 처리방침의 수집 항목에 없어 **부트 때 주소에서 지운다** — SDK·GA·
-   리플레이 모두 이 값을 보지 못한다. 우리는 광고 플랫폼 전환 태그(픽셀)를 쓰지 않아 지워도 잃는 측정이 없다. 수집 범위
-   조사(HP-627) 결과에 따라 처리방침에 적고 다시 모을지 정한다. */
+   리플레이 모두 이 값을 보지 못한다. Meta 픽셀(HP-542)도 붙기 전에 지워져 fbclid 로 만드는 _fbc 쿠키가 생기지 않는다 —
+   처리방침의 픽셀 수집 항목에 없어서다. 그래서 Meta 의 광고 귀속은 _fbp 와 Meta 자체 연결에만 기대고, 클릭 단위 귀속은
+   약해진다. 수집 범위 조사(HP-627) 결과에 따라 처리방침에 적고 다시 모을지 정한다. */
 export var CLICK_ID_PARAMS = ['dclid', 'fbclid', 'gbraid', 'gclid', 'ko_click_id', 'li_fat_id', 'msclkid', 'rdt_cid', 'ttclid', 'twclid', 'wbraid'];
 /* ─── 옵트아웃(HP-466) ───────────────────────────────────────────
    · **두 표면 모두.** 처음엔 랜딩만이었다가 같은 날 고경우 결정으로 작품 탐색도 넣었다. 작품 탐색은 로그인(Keycloak)이
@@ -231,8 +262,33 @@ export function replayFor(consent, optOut, surface, replayOptOut) {
 export function gaOn(hostname, nowMs) { return envOf(hostname) !== 'prod' || nowMs >= GA_FROM; }
 /* 지금 유효한 동의 버전. 시행일마다 앞 버전으로 받은 동의는 무효가 되어 새 문구로 다시 묻는다. */
 export function consentVersion(hostname, nowMs) {
-  if (envOf(hostname) !== 'prod' || nowMs >= GA_FROM) return CONSENT_VERSION;
+  if (envOf(hostname) !== 'prod' || nowMs >= META_FROM) return CONSENT_VERSION;
+  if (nowMs >= GA_FROM) return 4;
   return replayInForce(hostname, nowMs) ? 2 : 1;
+}
+/* Meta 픽셀을 붙이는 페이지·때인가 — 첫 화면 `/` 만, 운영은 시행일부터(그 밖은 항상). 수집 게이트(collecting)는 따로 본다. */
+export function metaOn(hostname, pathname, nowMs) {
+  return /^\/(index\.html)?$/.test(pathname || '/') && (envOf(hostname) !== 'prod' || nowMs >= META_FROM);
+}
+/* 픽셀이 그대로 싣는 주소(dl)·리퍼러(rl)에 처리방침 밖의 값이 없는가. 주소의 쿼리는 광고 캠페인 값(utm)만이어야 하고(campaignQuery 와
+   글자까지 같아야 한다 — 다른 키·중복·빈 값이 있으면 아니다), 같은 출처 리퍼러에는 쿼리가 없어야 한다(브라우저는 같은 출처면 전체 주소를
+   준다 — /bye?v=…&d=… 등). 다른 출처 리퍼러는 브라우저 기본 정책이 출처만 넘긴다. 아니면 이 로드에서는 픽셀을 붙이지 않는다. */
+export function metaPageSafe(origin, search, referrer) {
+  var q = String(search || '');
+  if (q === '?') q = '';
+  if (campaignQuery(q) !== q) return false;
+  if (!referrer) return true;
+  try {
+    var u = new URL(referrer);
+    return u.origin !== origin || !u.search;
+  } catch (_) { return false; }
+}
+/* 계측 이벤트 → 픽셀 호출. [메서드, 이름, 속성?] 또는 null(보내지 않음). 속성은 PC로 보내기의 action 하나뿐이다. */
+export function metaEvent(name, props) {
+  if (name === 'install_cta_clicked') return ['track', 'Lead'];
+  var action = props && props.action;
+  if (name === 'install_guide_action' && META_SEND_ACTIONS.indexOf(action) >= 0) return ['trackCustom', 'SendToPc', { action: action }];
+  return null;
 }
 /* GA 에 싣는 페이지 값 — 주소는 cleanPath(작품·회차 번호 없음) + 광고 캠페인 쿼리(campaignQuery), 제목은 표면 이름으로
    고정(문서 제목에 작품명이 들어가도 새지 않게), 리퍼러는 외부면 출처만·같은 출처면 정리된 경로(검색어·초대 토큰이 실리지 않게). */
@@ -288,9 +344,11 @@ export function noticeText(replayOptOut) {
     ? '방문 통계와 첫 화면의 스크롤·클릭 기록을 미국 분석 도구로 수집해요. 허용하면 작품 탐색에서도 기록해요.'
     : '방문 통계를 미국 분석 도구로 수집해요. 허용하면 스크롤·클릭 기록도 남겨요.';
 }
-/* 옵트아웃 지역 안내의 세부([자세히]로 펼침) — 받는 곳·항목·녹화 범위·가리는 것·거부의 효과. */
-export function noticeDetail(replayOptOut) {
+/* 옵트아웃 지역 안내의 세부([자세히]로 펼침) — 받는 곳·항목·녹화 범위·가리는 것·거부의 효과. meta = Meta 픽셀 조항 시행 뒤
+   (metaOn 의 날짜 부분) — 한국 시간대 첫 화면은 미선택에서도 픽셀이 붙으므로 받는 곳으로 밝힌다(투명성). */
+export function noticeDetail(replayOptOut, meta) {
   return '방문 통계(기기 식별값과 사용 이벤트)는 개인을 알아볼 수 없는 형태로 Amplitude와 Google Analytics(모두 미국)로 보냅니다. ' +
+    (meta ? '광고 성과 측정을 위해 첫 화면 방문과 설치 버튼 클릭 기록을 Meta(미국)로 보냅니다. ' : '') +
     (replayOptOut
       ? '첫 화면의 스크롤·클릭 기록은 Amplitude에 기록하고, 허용하면 작품 탐색에서의 스크롤·클릭도 기록합니다. '
       : '허용하면 첫 화면과 작품 탐색에서의 스크롤·클릭 기록도 Amplitude에 기록합니다. ') +
@@ -303,8 +361,14 @@ export function bannerText(version) {
     : '방문 통계를 미국 분석 도구로 보내도 될까요?';
 }
 /* 동의 요청의 세부 — 동의가 덮는 범위를 그대로 적는다. 2·3 은 녹화가 랜딩뿐이라 '첫 화면에서'라고 적었고, 4 부터 작품 탐색까지.
-   문구만 두 층으로 나눈 HP-585 는 범위·받는 곳이 그대로라 동의 버전을 올리지 않았다(이미 받은 동의 유지). */
+   문구만 두 층으로 나눈 HP-585 는 범위·받는 곳이 그대로라 동의 버전을 올리지 않았다(이미 받은 동의 유지). 5 부터 Meta(첫 화면만)와
+   목적(광고 성과 측정)을 밝힌다. */
 export function bannerDetail(version) {
+  if (version >= 5) {
+    return 'Replix는 사이트 개선과 광고 성과 측정을 위해 방문 통계를 수집합니다. 허용하면 기기 식별값과 사용 이벤트가 ' +
+      'Amplitude와 Google Analytics(모두 미국)로, 첫 화면 방문과 설치 버튼 클릭 기록이 Meta(미국)로, 첫 화면과 작품 탐색에서의 ' +
+      '화면 조작 기록(스크롤·클릭)이 Amplitude로 전송됩니다. 입력한 내용과 다른 이용자의 글·닉네임은 기록하지 않습니다.';
+  }
   if (version >= 4) {
     return 'Replix는 사이트 개선을 위해 방문 통계를 익명으로 수집합니다. 허용하면 기기 식별값과 사용 이벤트가 ' +
       'Amplitude와 Google Analytics(모두 미국)로, 첫 화면과 작품 탐색에서의 화면 조작 기록(스크롤·클릭)이 Amplitude로 ' +
@@ -344,6 +408,8 @@ var _replay = null;      /* 붙어 있는 세션 리플레이 플러그인 — �
 var _ga = 'idle';         /* 'idle' | 'loading' — gtag 는 dataLayer 가 큐라서 로드 완료를 기다릴 필요가 없다 */
 var _gaBlocked = false;   /* 이 페이지에서 철회한 뒤면 true — gtag 가 메모리에 쥔 옛 client id 가 재허용 뒤 이어지지 않게
                              이 페이지에서는 다시 켜지 않는다. 다음 로드부터 새 쿠키로 시작한다. */
+var _meta = 'idle';       /* 'idle' | 'loading' — fbq 도 로드 전 호출을 자기 큐에 쌓는다 */
+var _metaBlocked = false; /* 이 페이지에서 철회한 뒤면 true — fbevents.js 는 떼어 낼 수 없어 이 페이지에서는 더 부르지 않는다 */
 var _revoked = false;     /* 이 페이지에서 거부(철회)했는가 — 재허용 때만 새 device_id 를 받는다(옵트아웃 수집 → 허용은 그대로) */
 var _debug = false;       /* 로컬 호스트에서도 보내는 디버그 표시(DEBUG_KEY) — 부트 때 읽는다 */
 var _internal = false;    /* 팀 브라우저 표시(INTERNAL_KEY) — 부트 때 읽는다 */
@@ -502,11 +568,38 @@ function gaTrack(name, props) {
     window.gtag('event', name, p);
   }
 }
+/* Meta 픽셀을 붙인다 — 수집 중·첫 화면·시행일·주소와 리퍼러가 깨끗할 때(metaPageSafe)·팀 브라우저가 아닐 때·이 페이지에서 철회하지
+   않았을 때만. Meta 공식 설치 코드의 큐 함수를 그대로 만들고, 자동 설정을 끈 뒤 init·PageView 를 큐에 넣고 나서 스크립트를 주입한다. */
+function ensureMeta() {
+  if (_meta !== 'idle' || _metaBlocked || _internal || !collecting() || !metaOn(location.hostname, location.pathname, Date.now()) ||
+      !metaPageSafe(location.origin, location.search, document.referrer)) return;
+  _meta = 'loading';
+  var n = window.fbq;
+  if (!n) {
+    n = window.fbq = function () { if (n.callMethod) n.callMethod.apply(n, arguments); else n.queue.push(arguments); };
+    if (!window._fbq) window._fbq = n;
+    n.push = n; n.loaded = true; n.version = '2.0'; n.queue = [];
+  }
+  n.disablePushState = true;                        /* 주소 변화(pushState)마다 자동 PageView 를 보내지 않는다 */
+  n('set', 'autoConfig', false, META_PIXEL_ID);     /* 버튼 글자·메타데이터 자동 수집 끔 — init 앞이어야 듣는다 */
+  n('init', META_PIXEL_ID);                         /* 고급 매칭 값(이메일 등)은 넘기지 않는다 */
+  n('track', 'PageView');
+  var s = document.createElement('script');
+  s.src = META_URL; s.async = true;
+  /* 차단(광고 차단기 등)이면 큐에만 쌓이고 나가지 않는다 — fail-open. */
+  document.head.appendChild(s);
+}
+function metaOk() { return _meta !== 'idle' && !_metaBlocked && collecting() && typeof window.fbq === 'function'; }
+function metaTrack(name, props) {
+  var ev = metaOk() ? metaEvent(name, props) : null;
+  if (ev) window.fbq.apply(null, ev);
+}
 /** 이벤트 1건. 이름·속성은 트래킹 플랜 §6 에 있는 것만 — 작품·회차 ID·검색어는 어떤 속성에도 싣지 않는다(§2). */
 export function track(name, props) {
   send(function (a) { a.track(name, Object.assign(commonProps(), props || {})); });
   ensureGa();   /* 첫 화면·작품 탐색은 부트 때 이미 붙어 no-op 이다. 그 밖의 페이지(/discord/)는 허용한 방문자의 첫 클릭에서야 붙인다 */
   gaTrack(name, props);
+  metaTrack(name, props);   /* 픽셀은 첫 화면 부트·허용 때만 붙인다(ensureMeta) — 여기서는 붙이지 않고, 붙어 있을 때만 보낸다 */
 }
 /** page_viewed. 동의 전이면 기억만 해 두고 허용 직후 1회 보낸다. */
 export function page(props) { _lastPage = props || {}; track('page_viewed', _lastPage); }
@@ -531,9 +624,14 @@ function revoke() {
   /* GA: 전송을 즉시 막고(gtag 공식 차단 스위치), 이 페이지에서는 다시 켜지 않는다(_gaBlocked 주석). */
   window['ga-disable-' + GA_ID] = true;
   if (_ga !== 'idle') _gaBlocked = true;
+  /* Meta 픽셀: 공식 전송 보류(consent revoke)를 걸고, 이 페이지에서는 더 부르지 않는다(_metaBlocked). */
+  if (_meta !== 'idle') {
+    _metaBlocked = true;
+    try { if (typeof window.fbq === 'function') window.fbq('consent', 'revoke'); } catch (_) { /* 스크립트 내부 오류 — 아래에서 쿠키는 지운다 */ }
+  }
   document.cookie.split(';').forEach(function (c) {
     var n = c.split('=')[0].trim();
-    if (/^AMP_/i.test(n) || /^_ga/.test(n)) expireCookie(n);
+    if (/^AMP_/i.test(n) || /^_ga/.test(n) || /^_fb[pc]$/.test(n)) expireCookie(n);
   });
   try { Object.keys(localStorage).forEach(function (k) { if (/^AMP_/i.test(k)) localStorage.removeItem(k); }); } catch (_) {}
   /* SDK·플러그인이 만든 IndexedDB(AMP_diagnostics_* 등)도 지운다. databases() 가 없는 브라우저는 건너뛴다. */
@@ -562,6 +660,7 @@ export function setConsent(decision) {
       loadSdk();
     }
     ensureGa();   /* page_viewed 보다 먼저 — 허용 직후의 페이지뷰가 GA 에도 1회 간다 */
+    ensureMeta(); /* 첫 화면이면 픽셀도 — PageView 는 ensureMeta 가 1회 보낸다(옵트아웃으로 이미 붙어 있었으면 no-op) */
     /* 옵트아웃으로 이미 수집 중이었으면 이 페이지의 page_viewed 는 나갔다 — 두 번 세지 않는다 */
     if (_lastPage && !wasCollecting) track('page_viewed', _lastPage);
   } else {
@@ -606,7 +705,8 @@ export function showBanner() {
     '<div class="rx-consent-actions"><button type="button" class="rx-deny">거부</button>' +
     '<button type="button" class="rx-allow">허용</button></div>' +
     '<p class="rx-consent-detail" id="rx-consent-detail" hidden>' +
-    (notice ? noticeDetail(replayOptOutNow()) : bannerDetail(nowVersion())) + ' <a href="/privacy">개인정보처리방침</a></p>';
+    (notice ? noticeDetail(replayOptOutNow(), metaOn(location.hostname, '/', Date.now())) : bannerDetail(nowVersion())) +
+    ' <a href="/privacy">개인정보처리방침</a></p>';
   el.querySelector('.rx-allow').addEventListener('click', function () { setConsent('granted'); });
   el.querySelector('.rx-deny').addEventListener('click', function () { setConsent('denied'); });
   el.querySelector('.rx-more').addEventListener('click', function () {
@@ -627,7 +727,7 @@ function boot() {
   /* 첫 화면·작품 탐색만 로드하자마자 붙이고 배너를 띄운다. 그 밖의 페이지(/discord/)는 동의를 묻지 않고, 이미 허용한
      방문자의 클릭이 생겨야 send·track 이 SDK·GA 를 붙인다 — 미선택 수집(옵트아웃)은 처리방침의 범위 밖이다(fullSurface). */
   var full = fullSurface(location.pathname);
-  if (full && collecting()) { loadSdk(); ensureGa(); }   /* 허용했거나, 옵트아웃 지역의 미선택 */
+  if (full && collecting()) { loadSdk(); ensureGa(); ensureMeta(); }   /* 허용했거나, 옵트아웃 지역의 미선택. 픽셀은 첫 화면만(ensureMeta 가 가른다) */
   if (full && _consent === null) showBanner();
   /* 설치 CTA·랜딩 링크·분석 설정은 data 속성으로 전 표면 공통 계측 — 각 모듈이 버튼 위치를 알 필요가 없고,
      카탈로그(React)도 마크업에 속성만 붙이면 된다. capture 단계라 새 탭 이동 전에 잡힌다. */
