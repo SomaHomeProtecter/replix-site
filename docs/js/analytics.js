@@ -79,11 +79,14 @@ export var GA_ID = 'G-MVDJ0Z60LJ';
 export var GA_FROM = Date.parse('2026-10-01T00:00:00+09:00');
 export var GA_URL = 'https://www.googletagmanager.com/gtag/js?id=';
 export var GA_CONFIG = { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false };
-/* page_location 에 남기는 쿼리 — UTM 다섯. 우리가 광고 주소에 붙이는 캠페인 단위 값이라 방문자를 가리키지 않는다.
+/* page_location 에 남기는 쿼리 — GA4 표준 캠페인 값 여섯(utm 다섯 + utm_id). 광고 주소에 붙는 캠페인 단위 값이라 방문자를 가리키지 않는다.
+   utm_id 는 Meta 가 붙인다 — 광고 주소에 빠진 utm 항목을 자동으로 채워 utm_term(광고 세트 번호)·utm_id(캠페인 번호)가 따라온다
+   (2026-10-21 광고 D 방문 7명 모두). 이 목록에 없으면 metaPageSafe 가 광고로 온 방문마다 픽셀을 빼서, 첫날 Lead·SendToPc 가
+   Meta 에 한 건도 닿지 않았다(HP-690).
    광고 클릭 식별값(gclid·gbraid·wbraid·fbclid — 광고 플랫폼이 클릭마다 붙이는 값)은 남기지 않는다. 처리방침이 밝힌 GA 수집 항목은
    '방문한 페이지(작품·회차 번호를 뺀 경로)'라 클릭 단위 식별값까지 덮지 않는다(HP-615 리뷰). 그래서 유튜브(Google Ads) 광고도
    최종 주소에 utm 을 직접 붙여야 GA 가 캠페인으로 가른다. 그 밖(작품·회차 번호, 초대·로그인 왕복 값, 팀 표시)은 지금처럼 지운다(§2). */
-export var GA_CAMPAIGN_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+export var GA_CAMPAIGN_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utm_id'];
 /* GA 쪽 이름을 따로 정한 이벤트 속성. 유입 경로 예약어 중 여기 없는 것은 GA 에 아예 싣지 않는다(gaParams). */
 export var GA_PARAM_RENAME = { source: 'click_source' };
 export var GA_TRAFFIC_PARAMS = ['source', 'medium', 'campaign', 'term', 'content'];
@@ -94,7 +97,8 @@ export var GA_TRAFFIC_PARAMS = ['source', 'medium', 'campaign', 'term', 'content
      작성지침도 "개정 전 또는 개정 즉시 공지"다). 운영만 날짜를 본다. ⚠️ 공고가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
    · **첫 화면 `/` 에서만**(metaOn). 픽셀은 전체 주소(dl)와 리퍼러(rl)를 그대로 보내고 GA 의 page_location 처럼 덮어쓸 방법이 없다 —
      작품 탐색은 해시에 작품·회차 번호가 실리고(§2 금지), 그 밖의 페이지는 처리방침이 밝힌 픽셀 범위('첫 화면') 밖이다.
-     같은 이유로 첫 화면이라도 주소에 광고 캠페인 쿼리(utm) 밖의 값이 있거나, 같은 출처 리퍼러에 쿼리가 있으면(/bye?v=…&d=…
+     같은 이유로 첫 화면이라도 주소에 광고 캠페인 쿼리(GA_CAMPAIGN_PARAMS — Meta 가 자동으로 붙이는 utm_term·utm_id 포함) 밖의
+     값이 있거나, 같은 출처 리퍼러에 쿼리가 있으면(/bye?v=…&d=…
      에서 넘어온 경우 등) 그 로드에서는 붙이지 않는다(metaPageSafe). 광고 클릭 식별값·팀 표시는 부트 첫 줄이 이미 지웠다.
    · **팀 브라우저(INTERNAL_KEY 표시)는 보내지 않는다.** GA 는 'Internal Traffic' 필터로 거르지만 Meta 데이터 세트에는 그런
      필터가 없어, 팀의 설치 버튼 확인 클릭이 그대로 광고 최적화 신호(Lead)가 된다.

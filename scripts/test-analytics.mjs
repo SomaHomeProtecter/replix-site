@@ -331,8 +331,13 @@ assert.match(read('docs/js/main.js'), /import '\.\/float-cta\.js';/);
 //    광고 클릭 식별값(gclid·gbraid·wbraid·fbclid)은 처리방침의 GA 수집 항목('방문한 페이지') 밖이라 남기지 않는다.
 const AD = '?utm_source=meta&utm_medium=paid_social&utm_campaign=test&utm_content=a&gclid=TEST&foo=bar';
 const AD_KEPT = '?utm_source=meta&utm_medium=paid_social&utm_campaign=test&utm_content=a';
-assert.deepEqual(a.GA_CAMPAIGN_PARAMS, ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'],
-  'UTM 다섯만 — 늘리면 처리방침의 GA 수집 항목과 트래킹 플랜 §10 도');
+assert.deepEqual(a.GA_CAMPAIGN_PARAMS, ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utm_id'],
+  'GA4 표준 캠페인 값 여섯만(utm_id 는 HP-690) — 늘리면 처리방침의 GA 수집 항목과 트래킹 플랜 §10 도');
+// HP-690: Meta 는 광고 주소에 빠진 utm 항목을 자동으로 채운다 — 2026-10-21 광고 D 방문자 7명 모두 우리가 넣은 넷 뒤에
+// utm_term(광고 세트 번호)·utm_id(캠페인 번호)가 붙어 왔다. 캠페인 번호도 캠페인 단위 값이라 GA 에 남긴다.
+const META_AD = '?utm_source=meta&utm_medium=paid_social&utm_campaign=reels_1021&utm_content=d&utm_term=52582296118776&utm_id=52582296118976';
+assert.equal(a.campaignQuery(META_AD), META_AD, 'Meta 가 채운 utm_term·utm_id 까지 캠페인 값 그대로');
+assert.equal(a.gaPage('https://replix.tv', '/', '', 'https://instagram.com/', META_AD).page_location, 'https://replix.tv/' + META_AD);
 assert.equal(a.campaignQuery(AD), AD_KEPT, '캠페인 값은 남기고 그 밖(광고 클릭 식별값 gclid, foo)은 지운다');
 assert.equal(a.gaPage('https://replix.tv', '/', '', '', AD).page_location, 'https://replix.tv/' + AD_KEPT);
 assert.equal(a.gaPage('https://replix.tv', '/catalog/', '#/title/123/ep/4', '', '?utm_source=youtube&gbraid=G1&wbraid=W1&utm_term=k').page_location,
@@ -566,6 +571,11 @@ assert.equal(a.metaOn('localhost', '/', 0), true, '운영이 아닌 곳은 날�
 // 주소·리퍼러 — 픽셀이 그대로 싣는 값에 처리방침 밖의 값이 없을 때만.
 assert.equal(a.metaPageSafe('https://replix.tv', '', ''), true);
 assert.equal(a.metaPageSafe('https://replix.tv', '?utm_source=meta&utm_medium=paid_social&utm_campaign=c', 'https://l.instagram.com/'), true, '광고 캠페인 쿼리·다른 출처 리퍼러는 된다');
+assert.equal(a.metaPageSafe('https://replix.tv', META_AD, 'https://instagram.com/'), true,
+  'Meta 가 자동으로 붙인 utm_term·utm_id 가 있어도 붙는다 — utm_id 가 목록 밖이던 첫날은 광고 방문마다 픽셀이 빠졌다(HP-690)');
+assert.equal(a.metaPageSafe('https://replix.tv', a.stripClickIds(META_AD + '&fbclid=IwAR0TEST').rest, 'https://instagram.com/'), true,
+  '부트가 fbclid 를 지운 뒤의 광고 주소도 붙는다');
+assert.equal(a.metaPageSafe('https://replix.tv', META_AD + '&foo=bar', 'https://instagram.com/'), false, '그 밖의 값이 하나라도 있으면 지금처럼 붙이지 않는다');
 assert.equal(a.metaPageSafe('https://replix.tv', '?utm_source=meta&foo=bar', ''), false, 'utm 밖의 쿼리가 있으면 이 로드는 붙이지 않는다');
 assert.equal(a.metaPageSafe('https://replix.tv', '?utm_source=a&utm_source=b', ''), false, '중복 키도 아니다(campaignQuery 와 글자까지 같아야)');
 assert.equal(a.metaPageSafe('https://replix.tv', '', 'https://replix.tv/bye/?v=1.2.0&d=3'), false, '같은 출처 리퍼러의 쿼리(삭제 설문의 버전·설치 일수)가 rl 로 새지 않게');
