@@ -352,9 +352,9 @@ assert.equal(a.campaignQuery('?utm_campaign=%EA%B0%80%EC%9D%84+%ED%8A%B9%EA%B0%8
 assert.equal(a.campaignQuery('?xutm_source=a&utm_source2=b'), '', '키는 정확히 같아야 한다');
 assert.equal(a.campaignQuery(''), '');
 assert.equal(a.campaignQuery(undefined), '');
-assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, document\.referrer, location\.search\)/,
-  '로드 때 config 의 page_location 에 캠페인 쿼리 — 세션 첫 hit 부터 실린다');
-assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, '', location\.search\)/, 'page_view 마다 같은 주소');
+assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, document\.referrer, location\.search, _gaClick\)/,
+  '로드 때 config 의 page_location 에 캠페인 쿼리(+ 받아 둔 Google 광고 클릭 식별값) — 세션 첫 hit 부터 실린다');
+assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, '', location\.search, _gaClick\)/, 'page_view 마다 같은 주소');
 
 // ② GA 는 이벤트 파라미터 source·medium·campaign·term·content 를 세션 유입 경로로 해석한다 — catalog_engaged{source: 'nav'} 가
 //    세션 소스 'nav' 로 잡혔다(실측 22세션). GA 로 보낼 때만 이름을 바꾸고, Amplitude 는 기존 차트를 깨지 않게 그대로 둔다.
@@ -600,14 +600,44 @@ assert.doesNotMatch(src, /'init', META_PIXEL_ID, /, '고급 매칭(init 의 셋�
 assert.match(src, /function ensureMeta\(\) \{\s*if \(_meta !== 'idle' \|\| _metaBlocked \|\| _internal \|\| !collecting\(\) \|\| !metaOn\(/, '픽셀도 collecting() 게이트 뒤');
 assert.match(src, /function revoke\(\) \{[\s\S]*?_metaBlocked = true;[\s\S]{0,160}window\.fbq\('consent', 'revoke'\)/, '철회 시 픽셀 전송 보류·이 페이지에서 다시 부르지 않음');
 assert.match(src, /\/\^_fb\[pc\]\$\//, '철회 시 _fbp·_fbc 쿠키 삭제');
-// 처리방침과 코드의 시행일 — 머리의 지금 개정(첫 줄)이 META_FROM 과 같아야 한다.
+// 처리방침과 코드의 시행일 — Meta 픽셀 개정(2026-10-20)은 HP-691 개정 뒤로 '이전 개정'이 됐다. 그 시행일이 META_FROM 과 같아야 한다.
 const metaEffective = new Date(a.META_FROM + 9 * 3600 * 1000).toISOString().slice(0, 10);
-assert.match(privacy, new RegExp(`<p class="doc-meta">공고일 2026-10-20, 시행일 ${metaEffective}</p>\\s*<p class="doc-meta">이번 개정은 웹사이트 첫 화면에 광고 성과 측정 도구인 Meta 픽셀`),
-  `privacy.html 머리의 지금 개정 시행일이 ${metaEffective} 여야 한다`);
+assert.match(privacy, new RegExp(`<p class="doc-meta">이전 개정: 공고일 2026-10-20 · 시행일 ${metaEffective} — 웹사이트 첫 화면에 광고 성과 측정 도구인 Meta 픽셀`),
+  `privacy.html 의 Meta 픽셀 개정 시행일이 ${metaEffective} 여야 한다`);
 assert.match(privacy, /<tr><td>Meta Platforms, Inc\./, '6항 국외 이전 표에 Meta');
 assert.match(privacy, /_fbp/, '처리방침이 Meta 쿠키를 밝힌다(자동 수집 장치)');
 assert.match(privacy, /광고 성과 측정 및 광고 노출 최적화\(웹사이트의 Google Analytics·Meta 픽셀 정보\)/, '2항 목적');
 assert.match(privacy, /작품 탐색과 익스텐션에서는 Meta 픽셀을\s+쓰지 않습니다/, '1항 — 픽셀 범위(첫 화면만)');
+
+// ═══ HP-691 Google 광고 클릭 식별값 → GA 페이지 주소에만 ═══════════════════════════════════════
+// 유튜브(Google Ads)가 GA4 전환(설치 버튼 클릭)을 광고 클릭에 이으려면 GA 수집 요청 주소에 gclid 가 있어야 한다.
+// 주소창에서는 지금처럼 지우고(Amplitude 귀속·리플레이·Meta 는 못 본다), 부트가 지우기 전에 받아 둔 Google 것만 GA 에 싣는다.
+assert.deepEqual(a.GA_CLICK_ID_PARAMS, ['gbraid', 'gclid', 'wbraid'], 'Google 광고 클릭 식별값 셋만 — 늘리면 처리방침 1·5·6항 GA 항목도');
+for (const k of a.GA_CLICK_ID_PARAMS) assert.ok(a.CLICK_ID_PARAMS.includes(k), `${k} 는 주소창에서는 여전히 지운다(CLICK_ID_PARAMS)`);
+assert.deepEqual(a.gaClickParts('?gclid=A1&utm_source=youtube&gclid=A2&wbraid=&fbclid=F&gbraid=B%2B1&dclid=D'), ['gclid=A1', 'gbraid=B%2B1'],
+  'Google 것만, 처음 나온 순서·첫 값을 글자 그대로 — 빈 값·dclid·다른 플랫폼 값은 뺀다');
+assert.deepEqual(a.gaClickParts(''), []);
+assert.deepEqual(a.gaClickParts(undefined), []);
+assert.equal(a.gaPage('https://replix.tv', '/', '', '', '?utm_source=youtube&utm_medium=paid_video&gclid=X', ['gclid=X']).page_location,
+  'https://replix.tv/?utm_source=youtube&utm_medium=paid_video&gclid=X', '캠페인 쿼리 뒤에 Google 광고 클릭 식별값');
+assert.equal(a.gaPage('https://replix.tv', '/', '', '', '', ['gclid=X']).page_location, 'https://replix.tv/?gclid=X', 'utm 이 없어도 붙는다');
+assert.equal(a.gaPage('https://replix.tv', '/catalog/', '#/title/123/ep/4', '', '', ['gbraid=Y']).page_location,
+  'https://replix.tv/catalog/?gbraid=Y#/title', '해시 앞에 붙고, 작품·회차 번호는 그대로 빠진다');
+assert.equal(a.gaPage('https://replix.tv', '/', '', '', '?gclid=X').page_location, 'https://replix.tv/',
+  '받아 둔 값(clicks)을 주지 않으면 주소의 gclid 는 싣지 않는다 — 캠페인 쿼리는 여전히 클릭 식별값을 거른다');
+const GCLICK_BEFORE = Date.parse('2026-10-20T23:59:59+09:00');
+assert.equal(a.GA_CLICK_FROM, Date.parse('2026-10-21T00:00:00+09:00'), '시행일 — 바꾸면 privacy.html 머리의 시행일도 같이(아래에서 대조한다)');
+assert.equal(a.gaClickOn('replix.tv', GCLICK_BEFORE), false, '시행일 전 운영에서는 받아 두지 않는다');
+assert.equal(a.gaClickOn('replix.tv', a.GA_CLICK_FROM), true);
+assert.equal(a.gaClickOn('localhost', 0), true, '운영이 아닌 곳은 날짜와 무관(로컬은 collecting 의 디버그 표시가 따로 막는다)');
+assert.match(src, /if \(gaClickOn\(location\.hostname, Date\.now\(\)\)\) _gaClick = gaClickParts\(f\.rest\);\s*var c = stripClickIds\(f\.rest\);/,
+  '주소에서 지우기 바로 전에 받아 둔다(부트 첫 줄 — SDK·리플레이·픽셀이 붙기 전)');
+const gclickEffective = new Date(a.GA_CLICK_FROM + 9 * 3600 * 1000).toISOString().slice(0, 10);
+assert.match(privacy, new RegExp(`<p class="doc-meta">공고일 2026-10-21, 시행일 ${gclickEffective}</p>\\s*<p class="doc-meta">이번 개정은 웹사이트에 Google 광고`),
+  `privacy.html 머리의 지금 개정 시행일이 ${gclickEffective} 여야 한다`);
+assert.match(privacy, /Google 광고를 눌러 들어온 경우 그 광고 클릭\s+식별값/, '1항 GA 수집 항목');
+assert.match(privacy, /Google Analytics: 기기 식별값·방문 페이지·Google 광고 클릭 식별값·이벤트/, '5항 처리 위탁 표');
+assert.match(privacy, /Google 광고 클릭\s+식별값\(Google 광고로 들어온 경우\)/, '6항 국외 이전 표');
 
 // 부트한 모듈로 확인 — 작은 브라우저 흉내 위에서 analytics.js 를 실제로 띄워 픽셀 스크립트 주입과 fbq 호출(큐)을 본다.
 // fbevents.js 는 실제로 받지 않으므로 fbq 호출은 Meta 공식 큐(fbq.queue)에 그대로 남는다.
@@ -632,7 +662,7 @@ assert.match(privacy, /작품 탐색과 익스텐션에서는 Meta 픽셀을\s+�
     Object.assign(globalThis, {
       window: globalThis, localStorage: store, innerWidth: 1440,
       location: { hostname: host, pathname: path, search, hash: '', origin: `https://${host}`, protocol: 'https:' },
-      history: { state: null, replaceState() {} },
+      history: { state: null, replaceState(_s, _t, url) { const u = new URL(url, `https://${host}`); globalThis.location.search = u.search; globalThis.location.hash = u.hash; } },
       addEventListener() {}, dispatchEvent() {},
       document: {
         referrer,
@@ -711,6 +741,23 @@ assert.match(privacy, /작품 탐색과 익스텐션에서는 Meta 픽셀을\s+�
   assert.ok(!pixelLoaded(c), 'utm 밖의 쿼리가 있는 로드는 건너뛴다');
   c = await bootCase({ referrer: 'https://replix.tv/bye/?v=1.2.0&d=3' });
   assert.ok(!pixelLoaded(c), '같은 출처 리퍼러에 쿼리가 있는 로드는 건너뛴다');
+  // HP-691 — Google 광고 클릭 식별값은 GA 페이지 주소에만. 주소창은 지워져 픽셀(dl)·Amplitude 귀속은 보지 못한다.
+  const gaConfig = () => { const e = (globalThis.dataLayer || []).find((x) => x[0] === 'config'); return e ? e[2] : null; };
+  const AD_YT = '?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_1022&gclid=G1&fbclid=F1&wbraid=W1';
+  const YT_KEPT = '?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_1022';
+  c = await bootCase({ search: AD_YT, now: a.GA_CLICK_FROM });
+  assert.equal(globalThis.location.search, YT_KEPT, '주소창에서는 광고 클릭 식별값을 모두 지운다 — Amplitude 귀속·리플레이가 보는 주소');
+  assert.equal(gaConfig().page_location, 'https://replix.tv/' + YT_KEPT + '&gclid=G1&wbraid=W1',
+    'GA config 의 page_location 에만 Google 것(gclid·wbraid)이 실린다 — fbclid 는 없다');
+  assert.ok(pixelLoaded(c), '지워진 주소라 픽셀도 붙는다(픽셀의 dl 에는 gclid 가 없다)');
+  c.withNow(() => c.api.page({}));
+  const pageSets = globalThis.dataLayer.filter((x) => x[0] === 'set' && x[1] && x[1].page_location);
+  assert.equal(pageSets[pageSets.length - 1][1].page_location, 'https://replix.tv/' + YT_KEPT + '&gclid=G1&wbraid=W1', 'page_view 의 page_location 에도 같은 값');
+  c = await bootCase({ search: AD_YT, now: Date.parse('2026-10-20T12:00:00+09:00') });
+  assert.equal(gaConfig().page_location, 'https://replix.tv/' + YT_KEPT, '처리방침 시행일 전 운영에서는 GA 에도 싣지 않는다');
+  assert.equal(globalThis.location.search, YT_KEPT, '(주소창은 그 전에도 지운다 — HP-628)');
+  c = await bootCase({ search: AD_YT, now: a.GA_CLICK_FROM, consent: 'denied' });
+  assert.equal(gaConfig(), null, '거부하면 GA 자체가 없다 — 받아 둔 값도 어디로도 가지 않는다');
   for (const k of KEYS) delete globalThis[k];
 }
 
