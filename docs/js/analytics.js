@@ -23,6 +23,9 @@
    ⑨ Google 광고 클릭 식별값(HP-691)은 **GA 의 페이지 주소에만** 싣는다 — 부트가 광고 클릭 식별값을 주소에서 지우기 전에
       gclid·gbraid·wbraid 만 받아 두고, 처리방침 시행일(GA_CLICK_FROM)부터 gaPage 가 page_location 에 붙인다. Google Ads 가
       GA4 전환(설치 버튼 클릭)을 유튜브 광고 클릭에 잇게 하려는 것이다. 주소창·Amplitude·리플레이·Meta 픽셀은 지금처럼 보지 못한다.
+   ⑩ 웹 스토어 링크 캠페인(HP-697)은 계측이 아니라 **링크 주소**다 — 광고로 들어온 방문이면 스토어 링크의 utm_campaign 에
+      `<utm_source>.<utm_campaign>.<utm_content>` 를 싣는다. 스토어 자체 GA4 가 설치를 이 값으로 귀속해 어느 광고가 설치를 낳았는지
+      가른다. 동의와 무관하고(우리 쪽 요청·브라우저 저장 없음), 광고 클릭 식별값·utm_term·utm_id 는 싣지 않는다. 아래 STORE_HOST 참조.
    카탈로그(React)는 이 파일을 /js/analytics.js 로 따로 로드해 window.ReplixAnalytics 로만 부른다.
    node 에서 import 하면 부트하지 않는다(scripts/test-analytics.mjs 가 순수 함수를 검사한다). */
 export var CONSENT_KEY = 'replix_web_analytics_consent_v1';
@@ -145,6 +148,28 @@ export var CLICK_ID_PARAMS = ['dclid', 'fbclid', 'gbraid', 'gclid', 'ko_click_id
    ⚠️ 날짜를 옮기면 privacy.html 머리의 시행일과 같이(테스트가 대조). */
 export var GA_CLICK_ID_PARAMS = ['gbraid', 'gclid', 'wbraid'];
 export var GA_CLICK_FROM = Date.parse('2026-10-21T00:00:00+09:00');
+/* ─── 웹 스토어 링크 캠페인(HP-697, 2026-10-22 조현빈 승인) ──────────────────
+   크롬 웹 스토어 등록 정보에는 스토어 자체의 GA4 속성이 있고, 설치(install)를 스토어 주소의 utm_source·utm_medium·utm_campaign
+   으로 귀속한다. 스토어 링크는 utm_source=replix.tv·utm_medium=<버튼 위치>(트래킹 플랜 §12, HP-615)만 달고 있어 랜딩을 거친 설치가
+   모두 'replix.tv / hero · (referral)' 하나로 뭉쳤다 — 유튜브 광고와 인스타그램 광고 중 어느 쪽이 설치를 낳았는지 가를 수 없었다.
+   그래서 광고로 들어온 방문이면 그 캠페인을 스토어 링크의 utm_campaign 에 싣는다. utm_source·utm_medium 은 지금 그대로 둔다.
+   · **값은 `<utm_source>.<utm_campaign>.<utm_content>`**(storeCampaign). 자리는 고정 — 빈 자리는 비워 두고 뒤쪽 빈 자리만 뺀다
+     (인스타그램 프로필 링크 = 'instagram..link_in_bio'). 자리를 당기면 'youtube.x' 의 x 가 캠페인인지 광고 소재(content)인지
+     값만 보고 알 수 없다. utm_source 가 없으면 싣지 않는다 — 어디서 왔는지가 이 값의 첫째 쓸모다.
+   · **세 키만 이름으로 골라 읽는다.** utm_medium 은 그 자리를 버튼 위치가 쓰고, utm_term·utm_id(Meta 가 붙이는 광고 세트·캠페인
+     번호)는 캠페인 이름으로 충분하다. 광고 클릭 식별값(gclid·fbclid 등)은 클릭 단위 값이라 GA 페이지 주소에만 간다(HP-691) —
+     스토어 주소로는 어떤 경로로도 가지 않는다.
+   · **글자를 거른다.** 자리마다 영문·숫자·_·- 만 남기고(마침표는 자리 구분자라 뺀다) STORE_PART_MAX 자에서 자른다 — 주소창의
+     아무 글자나 스토어 주소에 끼워 넣지 못하게(%26 으로 싼 & 도 풀어서 거른다). 합쳐도 98자로 GA4 이벤트 매개변수 값 한도(100자) 안이다.
+   · **어디서 읽나.** 지금 주소의 쿼리, 없으면 같은 출처 리퍼러의 쿼리. 첫 화면의 utm 은 앵커 이동에는 주소창에 남지만 작품 탐색·
+     /discord/ 로 옮기면 사라진다 — 같은 출처 이동이면 브라우저가 리퍼러에 전체 주소(쿼리 포함)를 주므로 한 번 옮긴 경우까지 잇는다.
+     브라우저 저장소(sessionStorage 등)에 남기지 않는다: 광고 성과 측정용으로 브라우저에 두는 값은 수집 게이트(collecting) 뒤에
+     두고, 거부하면 지우고, 처리방침에 이름을 밝혀 왔다(AMP_·_ga·_fbp) — 이 값만 그 밖에 둘 이유가 없다.
+   · **동의와 무관.** §12 의 utm 처럼 링크 주소일 뿐 — 우리 쪽에서 나가는 요청도, 브라우저에 남기는 값도 없다. GA·Amplitude·Meta
+     픽셀로 가는 값은 그대로다. */
+export var STORE_HOST = 'chromewebstore.google.com';
+export var STORE_CAMPAIGN_PARAMS = ['utm_source', 'utm_campaign', 'utm_content'];
+export var STORE_PART_MAX = 32;
 /* ─── 옵트아웃(HP-466) ───────────────────────────────────────────
    · **두 표면 모두.** 처음엔 랜딩만이었다가 같은 날 고경우 결정으로 작품 탐색도 넣었다. 작품 탐색은 로그인(Keycloak)이
      있지만 웹 이벤트에 회원 식별값을 싣지 않으므로 '식별하지 않는다'는 조건이 그대로다 — 아래 넷째 항목이 이걸 지킨다.
@@ -340,6 +365,43 @@ export function gaPage(origin, pathname, hash, referrer, search, clicks) {
     } catch (_) { /* 주소가 아니면 싣지 않는다 */ }
   }
   return out;
+}
+/* 쿼리 하나 → 스토어 캠페인 값. 세 키(STORE_CAMPAIGN_PARAMS)를 첫 값으로 읽어 — campaignQuery 와 달리 원래 글자가 아니라 풀어서
+   거른다(%26·%3D 로 싼 &·= 가 남지 않게) — 자리 고정으로 잇는다. utm_source 가 없거나 걸러서 비면 ''. */
+function storeCampaignOf(search) {
+  var q;
+  try { q = new URLSearchParams(String(search || '').replace(/^\?/, '')); } catch (_) { return ''; }
+  var parts = STORE_CAMPAIGN_PARAMS.map(function (k) {
+    return String(q.get(k) || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, STORE_PART_MAX);
+  });
+  if (!parts[0]) return '';
+  while (!parts[parts.length - 1]) parts.pop();   /* 뒤쪽 빈 자리만 뺀다 — 가운데 빈 자리는 남겨 자리를 지킨다 */
+  return parts.join('.');
+}
+/* 스토어 링크에 실을 utm_campaign(HP-697). 지금 주소(search)에서, 없으면 같은 출처(origin) 리퍼러의 쿼리에서 — 다른 출처 리퍼러는
+   그 사이트 자신의 캠페인이라 보지 않는다(브라우저 기본 정책은 출처만 주지만 전체 주소를 주는 사이트도 있다). 광고로 오지 않았으면 ''. */
+export function storeCampaign(search, referrer, origin) {
+  var own = storeCampaignOf(search);
+  if (own || !referrer) return own;
+  try {
+    var u = new URL(referrer);
+    return u.origin === origin ? storeCampaignOf(u.search) : '';
+  } catch (_) { return ''; }
+}
+/* 스토어 링크 주소에 utm_campaign 을 싣는다 — 우리 스토어 링크(STORE_HOST + utm_source=replix.tv)만. 다른 쿼리는 원래 글자
+   그대로(utm_source·utm_medium 을 다시 싸지 않는다) 두고 utm_campaign 만 빼고 맨 뒤에 하나 더한다 — 몇 번을 불러도 하나다.
+   campaign 이 비었거나 storeCampaign 의 글자 형식 밖이면(잘못 부른 경우) href 를 그대로 돌려준다. */
+export function storeHref(href, campaign) {
+  var s = String(href || '');
+  if (!/^[A-Za-z0-9_.-]{1,100}$/.test(campaign || '')) return s;
+  try {
+    var u = new URL(s);
+    if (u.hostname !== STORE_HOST || u.searchParams.get('utm_source') !== 'replix.tv') return s;
+  } catch (_) { return s; /* 상대 주소·주소가 아닌 값 — 스토어 링크가 아니다 */ }
+  var cut = s.indexOf('#'), base = cut < 0 ? s : s.slice(0, cut), q = base.indexOf('?');
+  var kept = base.slice(q + 1).split('&').filter(function (part) { return part && part.split('=')[0] !== 'utm_campaign'; });
+  kept.push('utm_campaign=' + campaign);
+  return base.slice(0, q) + '?' + kept.join('&') + (cut < 0 ? '' : s.slice(cut));
 }
 /* 허용은 지금 버전으로 받은 것만 유효(범위·받는 곳이 늘면 다시 묻는다). 거부는 버전과 무관하게 계속 존중한다 —
    옵트아웃에서 옛 거부가 풀리면 거부한 사람을 수집하게 된다(HP-466). */
@@ -758,6 +820,35 @@ export function showBanner() {
 /* [hidden] 속성은 CSS display 선언에 진다(notes/docs.md '고칠 때 알아 둘 것') — style 로 직접 끈다. */
 function hideBanner() { if (_banner) _banner.style.display = 'none'; }
 
+/* ═══ 웹 스토어 링크 캠페인(HP-697) ══════════════════════════════════
+   값은 부트 때 한 번 정한다 — 페이지가 떠 있는 동안 쿼리는 바뀌지 않는다(작품 탐색은 해시 라우트, 주소창 정리는 부트 첫 줄 syncFlags).
+   언제 바꾸나 — 둘 다 한다:
+   ① 부트 때 문서의 스토어 링크를 한 번에. 링크를 따라가는 길이 클릭만이 아니다 — 가운데 클릭, 오른쪽 메뉴의 '새 탭에서 열기'·
+      '링크 주소 복사', 탭 막대로 끌어 놓기, 읽기 프로그램의 링크 목록. 이벤트 처리기는 이 가운데 몇을 놓치지만 주소가 미리 바뀌어
+      있으면 어느 길로 가도 같다. 랜딩·/discord/ 의 스토어 링크는 모두 정적 마크업이라 여기서 끝난다.
+   ② 누르는 순간(capture)에 그 링크를. 작품 탐색(React)은 화면을 옮길 때마다 링크를 새로 그려 부트 뒤에 생긴 링크가 있다 —
+      pointerdown(마우스 모든 버튼·터치·끌기 — 새 탭·메뉴·끌어 놓기보다 앞), click(키보드 Enter·보조 기술), contextmenu(키보드로 연
+      메뉴)에서 이동 전에 바꾼다. 휴대폰 안내 시트(install-guide.js)는 버블 단계에서 누른 버튼의 주소를 '웹 스토어에서 PC로 보내기'
+      링크에 옮겨 적으므로 거기에도 같은 값이 실린다.
+   설치 계측(install_cta_clicked)은 부트의 [data-cta] 위임이 지금처럼 센다 — 바뀌는 것은 링크 주소뿐이다. */
+var STORE_LINK = 'a[href*="//' + STORE_HOST + '/"]';
+var _storeCampaign = '';
+function tagStoreLink(el) {
+  if (!el || !el.getAttribute) return;
+  var href = el.getAttribute('href'), next = storeHref(href, _storeCampaign);
+  if (next !== href) el.setAttribute('href', next);
+}
+function wireStoreLinks() {
+  _storeCampaign = storeCampaign(location.search, document.referrer, location.origin);
+  if (!_storeCampaign) return;   /* 광고로 오지 않은 방문 — 링크는 지금 그대로 */
+  try { [].forEach.call(document.querySelectorAll(STORE_LINK), tagStoreLink); } catch (_) { /* 문서를 못 훑으면 ②만 */ }
+  ['pointerdown', 'click', 'contextmenu'].forEach(function (type) {
+    document.addEventListener(type, function (ev) {
+      tagStoreLink(ev.target && ev.target.closest ? ev.target.closest(STORE_LINK) : null);
+    }, true);
+  });
+}
+
 /* ═══ 부트 ═══════════════════════════════════════════════════════ */
 function boot() {
   syncFlags();
@@ -779,6 +870,8 @@ function boot() {
     var s = hit('[data-analytics-settings]');
     if (s) { ev.preventDefault(); showBanner(); }
   }, true);
+  /* 스토어 링크 캠페인(HP-697) — 동의와 무관하게 모든 방문에. 실패해도 링크가 지금 그대로일 뿐, 계측 부트를 막지 않는다. */
+  try { wireStoreLinks(); } catch (_) { /* fail-open */ }
   /* 떠나는 순간의 이벤트(같은 탭 링크 클릭·직전 section_viewed)는 SDK 의 1초 배치 flush 보다 페이지가 먼저 사라진다.
      SDK 는 그것을 localStorage 큐에 남겨 다음 SDK 페이지가 보내게 하지만, /privacy·/terms 처럼 SDK 가 없는 곳으로 가면
      다음 방문까지 밀린다(2026-09-21 실측: /terms 이동 뒤 AMP_unsent 에 그대로 남음) — pagehide 에서 beacon 으로 비운다.
