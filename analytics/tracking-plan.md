@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v25 (Amplitude + Google Analytics + Meta 픽셀)
+# replix.tv 웹 — 트래킹 플랜 v26 (Amplitude + Google Analytics + Meta 픽셀)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -318,7 +318,7 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 > 시행 시점: 개정 전 처리방침 11항은 "시행 7일 전(중대한 변경은 30일 전) 공지"를 약속했다. 법정 의무가 아닌 자체 약속이라
 > 고경우 지시("법적인 것만 따진다")에 따라 같은 개정에서 11항을 "시행 전 또는 시행과 동시에 공지"로 고치고 공고와 동시에 시행했다.
 
-## 12. 웹 스토어 링크 UTM (HP-615)
+## 12. 웹 스토어 링크 UTM (HP-615 · HP-697)
 
 모든 크롬 웹 스토어 링크에 `?utm_source=replix.tv&utm_medium=<위치>` 를 붙인다 — 스토어 개발자 대시보드가 replix.tv 에서 넘어온
 방문을 위치별로 가르게 하는 값이다. 동의와 무관하다: 링크에 박힌 고정 값이고 우리 쪽에서 나가는 요청이 없다(스토어가 자기 방문을 센다).
@@ -342,9 +342,34 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | 삭제 설문 `/bye` '다시 설치하기' | `bye` | `docs/bye/index.html` |
 
 - 작품 탐색은 `catalog/app/src/store-pure.js` `storeUrl(medium)` 로만 만든다. 정적 페이지는 같은 형식을 글자로 적는다(`&amp;`).
-- 휴대폰 설치 안내 시트의 웹 스토어 링크는 누른 버튼의 주소를 그대로 쓰므로 같은 `utm_medium` 이 실린다.
+- 휴대폰 설치 안내 시트의 웹 스토어 링크는 누른 버튼의 주소를 그대로 쓰므로 같은 `utm_medium` 이 실린다(아래 `utm_campaign` 도).
 - 새 스토어 링크를 붙이면 이 표와 `scripts/test-analytics.mjs` 의 표를 같이 고친다 — 검사가 `docs/` 의 모든 HTML 을 훑어 utm 이 빠진 링크를 잡는다.
 - ⚠️ 스토어 대시보드에서 이 값이 어떻게 보이는지는 이 저장소에서 확인할 수 없다 — 대시보드 화면은 사람이 확인한다.
+
+### 광고 캠페인을 스토어 링크로 넘기기 (HP-697)
+
+크롬 웹 스토어 등록 정보에는 스토어 자체의 GA4 속성이 있고, 설치(`install`)를 스토어 주소의 `utm_source`·`utm_medium`·`utm_campaign` 으로
+귀속한다. 위 표의 링크에는 캠페인이 없어 랜딩을 거친 설치가 모두 `replix.tv / hero`·`(referral)` 하나로 뭉쳤다 — 유튜브 광고와 인스타그램
+광고 중 어느 쪽이 설치를 낳았는지 가를 수 없었다. 2026-10-22(조현빈 승인)부터 광고로 들어온 방문이면 그 캠페인을 스토어 링크의
+`utm_campaign` 에 싣는다. `utm_source=replix.tv`·`utm_medium=<위치>` 는 위 표 그대로다.
+
+| 항목 | 값 |
+| --- | --- |
+| 값 | `<utm_source>.<utm_campaign>.<utm_content>`(`analytics.js` `storeCampaign`). **자리는 고정** — 빈 자리는 비워 두고 뒤쪽 빈 자리만 뺀다. 자리를 당기면 `youtube.x` 의 `x` 가 캠페인인지 광고 소재(content)인지 값만 보고 알 수 없다. `utm_source` 가 없으면 싣지 않는다 |
+| 예 | 유튜브 광고 `?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_pc_1022&utm_content=d30`(+`gclid`·`gad_source`·`gad_campaignid`) → `youtube.yt_pc_1022.d30` · Meta 광고 `?utm_source=meta&utm_medium=paid_social&utm_campaign=reels_1021&utm_content=d&utm_term=…&utm_id=…` → `meta.reels_1021.d` · 인스타그램 프로필 링크 `?utm_source=instagram&utm_medium=profile&utm_content=link_in_bio` → `instagram..link_in_bio` · utm 없음 → 링크 그대로. 스토어 주소는 `…?utm_source=replix.tv&utm_medium=hero&utm_campaign=youtube.yt_pc_1022.d30` 꼴 |
+| 싣지 않는 것 | `utm_medium`(그 자리는 버튼 위치) · `utm_term`·`utm_id`(Meta 가 붙이는 광고 세트·캠페인 번호) · 광고 클릭 식별값(`gclid`·`gbraid`·`wbraid`·`fbclid` 등 — 클릭 단위 값은 GA 페이지 주소에만, §10·HP-691) · 그 밖의 쿼리. 세 키(`STORE_CAMPAIGN_PARAMS`)만 이름으로 골라 읽는다 |
+| 거르기 | 자리마다 풀어서(`%26` 으로 싼 `&` 까지) 영문·숫자·`_`·`-` 만 남기고(마침표는 자리 구분자라 뺀다) 32자(`STORE_PART_MAX`)에서 자른다 — 합쳐도 98자, GA4 이벤트 매개변수 값 한도(100자) 안. 주소창의 아무 글자나 스토어 주소에 끼워 넣지 못하게. 걸러서 `utm_source` 가 비면(한글만 등) 싣지 않는다 |
+| 읽는 곳 | 지금 주소의 쿼리, 없으면 **같은 출처 리퍼러**의 쿼리. 첫 화면의 utm 은 앵커 이동(`#faq` 등)에는 주소창에 남지만 작품 탐색·`/discord/` 로 옮기면 사라진다 — 같은 출처 이동이면 브라우저가 리퍼러에 쿼리까지 주므로 한 번 옮긴 경우까지 잇는다. 두 번 옮기거나(작품 탐색 → 로그인 왕복 등) 다른 출처에서 바로 들어오면 싣지 않는다 |
+| 저장 | **없다** — sessionStorage 등 브라우저 저장소에 남기지 않는다. 광고 성과 측정용으로 브라우저에 두는 값은 수집 게이트(`collecting`) 뒤에 두고, 거부하면 지우고, 처리방침에 이름을 밝혀 왔다(`AMP_`·`_ga`·`_fbp`, §3·§13) — 세션 동안 들고 다니려면 그 셋을 갖춘 뒤에 한다 |
+| 언제 바꾸나 | ① 부트 때 문서의 스토어 링크를 한 번에 — 가운데 클릭·오른쪽 메뉴('새 탭에서 열기'·'링크 주소 복사')·끌어 놓기처럼 클릭 처리기가 놓치는 길로 따라가도 같은 주소다. 첫 화면·`/discord/` 의 링크는 정적 마크업이라 여기서 끝난다 ② `pointerdown`·`click`·`contextmenu`(capture) 때 그 링크를 — 작품 탐색처럼 부트 뒤에 그려진 링크. 우리 스토어 링크(스토어 호스트 + `utm_source=replix.tv`)만 바꾸고, 다른 쿼리는 원래 글자 그대로 둔 채 `utm_campaign` 하나만 바꾸거나 맨 뒤에 더한다(`storeHref` — 여러 번 눌러도 하나) |
+| 범위 | `analytics.js` 를 싣는 페이지 — 첫 화면·작품 탐색·`/discord/`. `/invite`·`/together`·`/bye` 는 계측 파일을 싣지 않아 위 표 그대로다(§2) |
+| 동의 | 무관 — 위 utm 과 같이 링크 주소일 뿐이다. 우리 쪽에서 나가는 요청도, 브라우저에 남기는 값도 없다. `install_cta_clicked`·`install_guide_action` 과 GA·Amplitude·Meta 픽셀로 가는 값은 그대로다 |
+
+> ⚠️ 링크 주소를 읽는 쪽에는 이 값이 보인다 — 세션 리플레이의 화면 기록, 그리고 켜져 있다면 GA 향상된 측정의 바깥 링크 클릭
+> (`link_url` — 꺼 두어야 한다, §10). 둘 다 페이지 주소의 utm(GA `page_location`·리플레이의 페이지 주소)으로 이미 받는 캠페인과 같은 정보다.
+>
+> ⚠️ 스토어 GA4 에서 이 값이 캠페인으로 잡히는지(설치 이벤트의 귀속)는 이 저장소에서 확인할 수 없다 — 배포 뒤 광고 주소로 들어와
+> 설치 버튼을 눌러 보고 스토어 GA4 화면에서 사람이 확인한다.
 
 ## 13. Meta 픽셀 — 첫 화면만 (HP-542)
 
@@ -397,3 +422,4 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v23 | 2026-10-20 | Meta 픽셀(§13, HP-542) — GA 와 같은 수집 게이트 뒤에 첫 화면 `/` 에서만, 운영 2026-10-20 시행(처리방침 2026-10-20 공고). `PageView`(로드 1회)·`Lead`(= `install_cta_clicked`)·`SendToPc{action}`(= `install_guide_action` 의 PC로 보내기 네 행동)만, `autoConfig`·`disablePushState` 끔, 고급 매칭 없음, 팀 브라우저 제외, 철회 시 `consent revoke`·`_fbp` 삭제. GA 를 광고 성과 측정에도 쓴다(§10). 동의 버전 **5**(운영은 2026-10-20 전까지 4 유효) — 조현빈(Claude Code) |
 | v24 | 2026-10-21 | 광고 캠페인 쿼리에 `utm_id` 를 더했다(§10·§13, HP-690). Meta 가 광고 주소에 빠진 utm 항목을 자동으로 채워 `utm_term`(광고 세트 번호)·`utm_id`(캠페인 번호)를 붙이는데, `utm_id` 가 `GA_CAMPAIGN_PARAMS` 밖이라 `metaPageSafe` 가 광고로 온 모든 방문에서 픽셀을 붙이지 않았다 — 2026-10-21 광고 D 방문자 7명 모두 이 주소였고, Amplitude 의 설치 버튼 7명·PC로 보내기 4명이 Meta 에는 0건이었다. `utm_id` 는 캠페인 단위 값이라 방문자를 가리키지 않아 처리방침 수집 항목(방문한 페이지)은 그대로다. GA `page_location` 에도 남는다(GA4 표준 캠페인 ID). 이벤트·동의 버전은 그대로 — 조현빈(Claude Code) |
 | v25 | 2026-10-21 | Google 광고 클릭 식별값을 GA 페이지 주소에만(§2·§10, HP-691). 부트가 광고 클릭 식별값을 주소에서 지우기 전에 `gclid`·`gbraid`·`wbraid` 만 받아 두고(`GA_CLICK_ID_PARAMS`·`gaClickParts`) `gaPage` 가 `page_location` 에 붙인다 — 유튜브 광고의 GA4 전환(설치 버튼 클릭)을 Google Ads 가 광고 클릭에 잇게 하려는 것. 운영은 처리방침 개정 시행일 `GA_CLICK_FROM`(2026-10-21, 공고와 동시 — 조현빈 결정)부터. 주소창·Amplitude·리플레이·Meta 픽셀은 그대로 보지 못한다. 이벤트·동의 버전은 그대로 — 조현빈(Claude Code) |
+| v26 | 2026-10-22 | 광고 캠페인을 스토어 링크로(§12, HP-697). 스토어 자체 GA4 가 랜딩을 거친 설치를 모두 `replix.tv / hero`·`(referral)` 로만 보여 어느 광고가 설치를 낳았는지 가를 수 없었다 — 광고로 들어온 방문이면 스토어 링크에 `utm_campaign=<utm_source>.<utm_campaign>.<utm_content>`(자리 고정, 자리마다 영문·숫자·`_`·`-` 32자까지)를 더한다. `utm_source=replix.tv`·`utm_medium=<위치>` 는 그대로, `utm_medium`·`utm_term`·`utm_id`·광고 클릭 식별값은 싣지 않는다. 지금 주소, 없으면 같은 출처 리퍼러에서 읽고 브라우저에 저장하지 않는다. 부트 때 문서의 스토어 링크를, 그 뒤에 그려진 링크는 누르는 순간(capture) 바꾼다. 동의와 무관(링크 주소), 계측 이벤트·동의 버전은 그대로 — 조현빈(Claude Code) |
