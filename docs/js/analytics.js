@@ -15,13 +15,25 @@
    ⑦ 수집 범위(HP-615): 옵트아웃·리플레이·배너는 처리방침이 이름을 들어 밝힌 두 표면(첫 화면 `/`·작품 탐색)에서만이다
       (fullSurface). 그 밖의 페이지(/discord/)는 이 파일을 실어도 이미 [허용]한 방문자의 클릭만 보낸다. 로컬 호스트는
       디버그 표시 없이는 보내지 않고(sendAllowed), 팀 브라우저는 버리지 않고 traffic_type=internal 로 표시만 한다.
+   ⑧ Meta 픽셀(HP-542)은 **GA 와 같은 수집 게이트(collecting) 뒤에, 처리방침 시행일(META_FROM)부터, 첫 화면 `/` 에서만** 붙인다.
+      Meta 광고가 'PC 설치 의도'(설치 버튼 클릭 = Lead)로 최적화하게 하려는 것이다. 첫 화면만인 이유: 작품 탐색은 해시에
+      작품·회차 번호가 실리는데 픽셀은 전체 주소(dl)를 그대로 보내고 GA 처럼 덮어쓸 수 없다. 자동 설정(autoConfig — 버튼
+      글자·페이지 메타데이터 자동 수집)과 주소 변화 자동 PageView(disablePushState)는 끈다 — 처리방침이 밝힌 항목(방문·설치
+      버튼 클릭·PC로 보내기)만 나가게. 고급 매칭(이메일·전화번호 해시)은 쓰지 않는다. 아래 META_PIXEL_ID 주석 참조.
+   ⑨ Google 광고 클릭 식별값(HP-691)은 **GA 의 페이지 주소에만** 싣는다 — 부트가 광고 클릭 식별값을 주소에서 지우기 전에
+      gclid·gbraid·wbraid 만 받아 두고, 처리방침 시행일(GA_CLICK_FROM)부터 gaPage 가 page_location 에 붙인다. Google Ads 가
+      GA4 전환(설치 버튼 클릭)을 유튜브 광고 클릭에 잇게 하려는 것이다. 주소창·Amplitude·리플레이·Meta 픽셀은 지금처럼 보지 못한다.
+   ⑩ 웹 스토어 링크 캠페인(HP-697)은 계측이 아니라 **링크 주소**다 — 광고로 들어온 방문이면 스토어 링크의 utm_campaign 에
+      `<utm_source>.<utm_campaign>.<utm_content>` 를 싣는다. 스토어 자체 GA4 가 설치를 이 값으로 귀속해 어느 광고가 설치를 낳았는지
+      가른다. 동의와 무관하고(우리 쪽 요청·브라우저 저장 없음), 광고 클릭 식별값·utm_term·utm_id 는 싣지 않는다. 아래 STORE_HOST 참조.
    카탈로그(React)는 이 파일을 /js/analytics.js 로 따로 로드해 window.ReplixAnalytics 로만 부른다.
    node 에서 import 하면 부트하지 않는다(scripts/test-analytics.mjs 가 순수 함수를 검사한다). */
 export var CONSENT_KEY = 'replix_web_analytics_consent_v1';
 /* 동의 버전 — 수집 범위나 받는 곳이 바뀌면 올려 다시 묻는다. 2 = 랜딩 세션 리플레이(HP-457), 3 = Google Analytics(HP-465),
-   4 = 작품 탐색까지 리플레이(2026-10-01 고경우). 운영에서는 각 시행일 전까지 앞 버전이 유효하다 — consentVersion() 이 가른다.
+   4 = 작품 탐색까지 리플레이(2026-10-01 고경우),
+   5 = Meta 픽셀·광고 성과 측정(2026-10-20 조현빈). 운영에서는 각 시행일 전까지 앞 버전이 유효하다 — consentVersion() 이 가른다.
    거부는 버전과 무관하게 계속 존중한다(parseConsent). */
-export var CONSENT_VERSION = 4;
+export var CONSENT_VERSION = 5;
 export var SDK_URL = 'https://cdn.amplitude.com/libs/analytics-browser-2.45.8-min.js.gz';
 /* 익스텐션 config.js 와 같은 두 프로젝트(쓰기 전용 클라이언트 키 — 읽기·삭제 불가). 표면은 surface 속성으로 가른다. */
 export var API_KEYS = { prod: '6f7bcf8fc37e9f93d442f943c23b6861', dev: 'fa98652a9c62152eaab56eb423b707ab' };
@@ -66,19 +78,48 @@ export var SR_CONFIG = { sampleRate: 1, storeType: 'memory', privacyConfig: { de
      세션 소스 'nav' 로 잡혔다(2026-10-13 GA 리포트 22세션) — gtag 는 ep.source 로 그대로 보내고 GA 서버가 유입 경로로 해석한다.
      같은 계열(medium·campaign·term·content)도 GA 쪽 이름을 정하기 전에는 싣지 않는다. Amplitude 는 기존 차트를 깨지 않게 그대로 둔다.
    · ⚠️ GA 관리 화면의 **향상된 측정은 꺼 둔다**(이탈 클릭이 넷플릭스 재생 주소를, 사이트 검색이 검색어를 싣는다).
-     이건 코드로 막을 수 없는 원격 설정이다(트래킹 플랜 §7). */
+     이건 코드로 막을 수 없는 원격 설정이다(트래킹 플랜 §7).
+   · **광고 성과 측정에도 쓴다**(2026-10-20 조현빈, HP-542). GA4 전환을 Google Ads 로 가져가 광고 성과를 잰다 — 처리방침 2·6항의
+     목적에 '광고 성과 측정'을 더했다(META_FROM 과 같은 개정). 보내는 값·설정은 그대로다(Google 신호·광고 개인화는 계속 끈다). */
 export var GA_ID = 'G-MVDJ0Z60LJ';
 export var GA_FROM = Date.parse('2026-10-01T00:00:00+09:00');
 export var GA_URL = 'https://www.googletagmanager.com/gtag/js?id=';
 export var GA_CONFIG = { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false };
-/* page_location 에 남기는 쿼리 — UTM 다섯. 우리가 광고 주소에 붙이는 캠페인 단위 값이라 방문자를 가리키지 않는다.
-   광고 클릭 식별값(gclid·gbraid·wbraid·fbclid — 광고 플랫폼이 클릭마다 붙이는 값)은 남기지 않는다. 처리방침이 밝힌 GA 수집 항목은
-   '방문한 페이지(작품·회차 번호를 뺀 경로)'라 클릭 단위 식별값까지 덮지 않는다(HP-615 리뷰). 그래서 유튜브(Google Ads) 광고도
-   최종 주소에 utm 을 직접 붙여야 GA 가 캠페인으로 가른다. 그 밖(작품·회차 번호, 초대·로그인 왕복 값, 팀 표시)은 지금처럼 지운다(§2). */
-export var GA_CAMPAIGN_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+/* page_location 에 남기는 쿼리 — GA4 표준 캠페인 값 여섯(utm 다섯 + utm_id). 광고 주소에 붙는 캠페인 단위 값이라 방문자를 가리키지 않는다.
+   utm_id 는 Meta 가 붙인다 — 광고 주소에 빠진 utm 항목을 자동으로 채워 utm_term(광고 세트 번호)·utm_id(캠페인 번호)가 따라온다
+   (2026-10-21 광고 D 방문 7명 모두). 이 목록에 없으면 metaPageSafe 가 광고로 온 방문마다 픽셀을 빼서, 첫날 Lead·SendToPc 가
+   Meta 에 한 건도 닿지 않았다(HP-690).
+   이 캠페인 쿼리에는 광고 클릭 식별값(gclid·gbraid·wbraid·fbclid — 광고 플랫폼이 클릭마다 붙이는 값)을 남기지 않는다 — 클릭 단위
+   식별값은 처리방침이 GA 수집 항목으로 따로 밝혀야 한다(HP-615 리뷰). Google 것 셋은 그렇게 밝힌 2026-10-21 개정부터 gaPage 가
+   따로 붙인다(GA_CLICK_ID_PARAMS, HP-691). 유튜브(Google Ads) 광고 주소에도 utm 을 직접 붙인다 — Amplitude 가 광고를 가르는 값은
+   utm 뿐이다. 그 밖(작품·회차 번호, 초대·로그인 왕복 값, 팀 표시)은 지금처럼 지운다(§2). */
+export var GA_CAMPAIGN_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utm_id'];
 /* GA 쪽 이름을 따로 정한 이벤트 속성. 유입 경로 예약어 중 여기 없는 것은 GA 에 아예 싣지 않는다(gaParams). */
 export var GA_PARAM_RENAME = { source: 'click_source' };
 export var GA_TRAFFIC_PARAMS = ['source', 'medium', 'campaign', 'term', 'content'];
+/* ─── Meta 픽셀(HP-542) ───────────────────────────────────────────
+   데이터 세트 'Replix 웹 (replix.tv)'. Meta 광고가 설치 의도로 최적화하고 성과를 재게 한다.
+   · **같은 게이트 뒤에만.** collecting()(허용 / 한국 시간대 미선택, 로컬은 디버그 표시) — GA 와 같다. 거부하면 어디서든 안 붙는다.
+   · **시행일부터.** 2026-10-20 공고, 2026-10-21 시행(처리방침 1·2·3·6항, 조현빈 결정 — GA 때처럼 법정 사전 공지 기간은 없고 개인정보위
+     작성지침도 "개정 전 또는 개정 즉시 공지"다). 운영만 날짜를 본다. ⚠️ 공고가 밀리면 이 날짜와 privacy.html 의 시행일을 함께 민다.
+   · **첫 화면 `/` 에서만**(metaOn). 픽셀은 전체 주소(dl)와 리퍼러(rl)를 그대로 보내고 GA 의 page_location 처럼 덮어쓸 방법이 없다 —
+     작품 탐색은 해시에 작품·회차 번호가 실리고(§2 금지), 그 밖의 페이지는 처리방침이 밝힌 픽셀 범위('첫 화면') 밖이다.
+     같은 이유로 첫 화면이라도 주소에 광고 캠페인 쿼리(GA_CAMPAIGN_PARAMS — Meta 가 자동으로 붙이는 utm_term·utm_id 포함) 밖의
+     값이 있거나, 같은 출처 리퍼러에 쿼리가 있으면(/bye?v=…&d=…
+     에서 넘어온 경우 등) 그 로드에서는 붙이지 않는다(metaPageSafe). 광고 클릭 식별값·팀 표시는 부트 첫 줄이 이미 지웠다.
+   · **팀 브라우저(INTERNAL_KEY 표시)는 보내지 않는다.** GA 는 'Internal Traffic' 필터로 거르지만 Meta 데이터 세트에는 그런
+     필터가 없어, 팀의 설치 버튼 확인 클릭이 그대로 광고 최적화 신호(Lead)가 된다.
+   · **보내는 것은 셋뿐**(metaEvent): 로드 때 PageView 1회, install_cta_clicked → 표준 이벤트 Lead(속성 없음),
+     install_guide_action 의 PC로 보내기 행동 → 맞춤 이벤트 SendToPc{action}. 그 밖의 이벤트·속성은 싣지 않는다.
+   · **자동 수집을 끈다.** autoConfig(버튼 글자·페이지 메타데이터·구조화 데이터 자동 수집)와 disablePushState(주소 변화마다
+     자동 PageView). 고급 매칭(이메일·전화번호)은 쓰지 않는다 — init 에 사용자 값을 넘기지 않는다.
+   · **거부하면 멈춘다.** fbevents.js 는 떼어 낼 방법이 없어 fbq('consent', 'revoke')(Meta 공식 전송 보류)로 막고, 이 페이지에서는
+     더 이상 fbq 를 부르지 않으며(_metaBlocked — GA 의 _gaBlocked 와 같은 이유), _fbp·_fbc 쿠키를 지운다. 다음 로드부터는 게이트가 막는다. */
+export var META_PIXEL_ID = '1791551955320987';
+export var META_FROM = Date.parse('2026-10-20T00:00:00+09:00');
+export var META_URL = 'https://connect.facebook.net/en_US/fbevents.js';
+/* install_guide_action 중 'PC로 보내기'에 해당하는 행동 — opened(시트 열림)·open_catalog(작품 탐색으로)은 보내지 않는다. */
+export var META_SEND_ACTIONS = ['copy_link', 'share', 'mail', 'open_store'];
 /* ─── 로컬·팀 트래픽(HP-615) ──────────────────────────────────────
    팀·개발 트래픽이 실데이터에 섞였다(2026-10-13: 작품 탐색 조회 268회 중 245회가 팀으로 보이는 18명, GA 에 localhost 14세션).
    · **로컬 호스트는 보내지 않는다** — 개발 중 확인이 필요하면 ?replix_analytics_debug=1 로 이 브라우저에 표시를 남긴다(=0 이면 해제).
@@ -93,10 +134,42 @@ export var DEBUG_KEY = 'replix_analytics_debug';
 /* ─── 광고 클릭 식별값(HP-628) ──────────────────────────────────────
    광고 플랫폼이 클릭마다 주소에 붙이는 값(구글 gclid·gbraid·wbraid·dclid, 메타 fbclid, 틱톡·X·링크드인·레딧·카카오·MS 의
    것). Amplitude Browser SDK 의 웹 귀속은 이 11종을 주소에서 읽어 사용자 속성(`gclid`·`initial_gclid` …)으로 보낸다
-   (2.45.8 코드 확인, 2026-10-14 운영 수집 요청 실측). 처리방침의 수집 항목에 없어 **부트 때 주소에서 지운다** — SDK·GA·
-   리플레이 모두 이 값을 보지 못한다. 우리는 광고 플랫폼 전환 태그(픽셀)를 쓰지 않아 지워도 잃는 측정이 없다. 수집 범위
-   조사(HP-627) 결과에 따라 처리방침에 적고 다시 모을지 정한다. */
+   (2.45.8 코드 확인, 2026-10-14 운영 수집 요청 실측). Amplitude 처리방침 수집 항목에 없어 **부트 때 주소에서 지운다** — SDK·
+   리플레이는 이 값을 보지 못한다. GA 는 지우기 전에 받아 둔 Google 것 셋만 페이지 주소로 받는다(아래 GA_CLICK_ID_PARAMS, HP-691).
+   Meta 픽셀(HP-542)도 붙기 전에 지워져 fbclid 로 만드는 _fbc 쿠키가 생기지 않는다 — 처리방침의 픽셀 수집 항목에 없어서다.
+   그래서 Meta 의 광고 귀속은 _fbp 와 Meta 자체 연결에만 기대고, 클릭 단위 귀속은 약해진다. */
 export var CLICK_ID_PARAMS = ['dclid', 'fbclid', 'gbraid', 'gclid', 'ko_click_id', 'li_fat_id', 'msclkid', 'rdt_cid', 'ttclid', 'twclid', 'wbraid'];
+/* ─── Google 광고 클릭 식별값 → GA 페이지 주소에만(HP-691) ────────────────────────
+   유튜브(Google Ads) 광고를 설치 버튼 클릭(GA4 주요 이벤트 install_cta_clicked)으로 최적화하려면 Google Ads 가 그 전환을 광고
+   클릭에 이어야 하고, 그 고리가 GA 수집 요청 주소(dl)의 gclid 다 — 지우기만 하면 GA4 에서 가져간 전환이 Google Ads 에 0 으로 보인다.
+   그래서 부트(syncFlags)가 주소에서 지우기 전에 Google 것 셋만 받아 두고 gaPage 의 page_location 에만 붙인다. 주소창은 지금처럼
+   지우므로 Amplitude 웹 귀속·리플레이·Meta 픽셀(dl)은 보지 못한다. dclid(디스플레이·동영상 360)와 다른 플랫폼의 값은 지금처럼 버린다.
+   처리방침 1·5·6항 GA 수집 항목에 '광고 클릭 식별값'을 더한 개정(2026-10-21 공고·시행, 조현빈 결정)부터 — 운영만 날짜를 본다.
+   ⚠️ 날짜를 옮기면 privacy.html 머리의 시행일과 같이(테스트가 대조). */
+export var GA_CLICK_ID_PARAMS = ['gbraid', 'gclid', 'wbraid'];
+export var GA_CLICK_FROM = Date.parse('2026-10-21T00:00:00+09:00');
+/* ─── 웹 스토어 링크 캠페인(HP-697, 2026-10-22 조현빈 승인) ──────────────────
+   크롬 웹 스토어 등록 정보에는 스토어 자체의 GA4 속성이 있고, 설치(install)를 스토어 주소의 utm_source·utm_medium·utm_campaign
+   으로 귀속한다. 스토어 링크는 utm_source=replix.tv·utm_medium=<버튼 위치>(트래킹 플랜 §12, HP-615)만 달고 있어 랜딩을 거친 설치가
+   모두 'replix.tv / hero · (referral)' 하나로 뭉쳤다 — 유튜브 광고와 인스타그램 광고 중 어느 쪽이 설치를 낳았는지 가를 수 없었다.
+   그래서 광고로 들어온 방문이면 그 캠페인을 스토어 링크의 utm_campaign 에 싣는다. utm_source·utm_medium 은 지금 그대로 둔다.
+   · **값은 `<utm_source>.<utm_campaign>.<utm_content>`**(storeCampaign). 자리는 고정 — 빈 자리는 비워 두고 뒤쪽 빈 자리만 뺀다
+     (인스타그램 프로필 링크 = 'instagram..link_in_bio'). 자리를 당기면 'youtube.x' 의 x 가 캠페인인지 광고 소재(content)인지
+     값만 보고 알 수 없다. utm_source 가 없으면 싣지 않는다 — 어디서 왔는지가 이 값의 첫째 쓸모다.
+   · **세 키만 이름으로 골라 읽는다.** utm_medium 은 그 자리를 버튼 위치가 쓰고, utm_term·utm_id(Meta 가 붙이는 광고 세트·캠페인
+     번호)는 캠페인 이름으로 충분하다. 광고 클릭 식별값(gclid·fbclid 등)은 클릭 단위 값이라 GA 페이지 주소에만 간다(HP-691) —
+     스토어 주소로는 어떤 경로로도 가지 않는다.
+   · **글자를 거른다.** 자리마다 영문·숫자·_·- 만 남기고(마침표는 자리 구분자라 뺀다) STORE_PART_MAX 자에서 자른다 — 주소창의
+     아무 글자나 스토어 주소에 끼워 넣지 못하게(%26 으로 싼 & 도 풀어서 거른다). 합쳐도 98자로 GA4 이벤트 매개변수 값 한도(100자) 안이다.
+   · **어디서 읽나.** 지금 주소의 쿼리, 없으면 같은 출처 리퍼러의 쿼리. 첫 화면의 utm 은 앵커 이동에는 주소창에 남지만 작품 탐색·
+     /discord/ 로 옮기면 사라진다 — 같은 출처 이동이면 브라우저가 리퍼러에 전체 주소(쿼리 포함)를 주므로 한 번 옮긴 경우까지 잇는다.
+     브라우저 저장소(sessionStorage 등)에 남기지 않는다: 광고 성과 측정용으로 브라우저에 두는 값은 수집 게이트(collecting) 뒤에
+     두고, 거부하면 지우고, 처리방침에 이름을 밝혀 왔다(AMP_·_ga·_fbp) — 이 값만 그 밖에 둘 이유가 없다.
+   · **동의와 무관.** §12 의 utm 처럼 링크 주소일 뿐 — 우리 쪽에서 나가는 요청도, 브라우저에 남기는 값도 없다. GA·Amplitude·Meta
+     픽셀로 가는 값은 그대로다. */
+export var STORE_HOST = 'chromewebstore.google.com';
+export var STORE_CAMPAIGN_PARAMS = ['utm_source', 'utm_campaign', 'utm_content'];
+export var STORE_PART_MAX = 32;
 /* ─── 옵트아웃(HP-466) ───────────────────────────────────────────
    · **두 표면 모두.** 처음엔 랜딩만이었다가 같은 날 고경우 결정으로 작품 탐색도 넣었다. 작품 탐색은 로그인(Keycloak)이
      있지만 웹 이벤트에 회원 식별값을 싣지 않으므로 '식별하지 않는다'는 조건이 그대로다 — 아래 넷째 항목이 이걸 지킨다.
@@ -167,6 +240,21 @@ export function stripClickIds(search) {
   });
   return { rest: kept.length ? '?' + kept.join('&') : '', found: found };
 }
+/* GA 페이지 주소에 붙일 Google 광고 클릭 식별값(GA_CLICK_ID_PARAMS) — 처음 나온 순서·첫 값을 원래 글자 그대로, 값 없는 키는
+   뺀다. ['gclid=…', …] 꼴로 돌려주고 gaPage 가 캠페인 쿼리 뒤에 잇는다(HP-691). */
+export function gaClickParts(search) {
+  var kept = [], seen = [];
+  String(search || '').replace(/^\?/, '').split('&').forEach(function (part) {
+    var eq = part.indexOf('='), key = eq < 0 ? part : part.slice(0, eq);
+    if (eq < 0 || eq === part.length - 1 || GA_CLICK_ID_PARAMS.indexOf(key) < 0 || seen.indexOf(key) >= 0) return;
+    seen.push(key); kept.push(part);
+  });
+  return kept;
+}
+/* 받아 둘 때인가 — 운영은 처리방침 시행일(GA_CLICK_FROM)부터. 운영이 아닌 곳은 날짜와 무관(로컬은 collecting 의 디버그 표시가 따로 막는다). */
+export function gaClickOn(hostname, nowMs) {
+  return envOf(hostname) !== 'prod' || nowMs >= GA_CLICK_FROM;
+}
 /* 거부 뒤 전송 관문(HP-628). SDK 의 수집 거부(setOptOut)는 새 이벤트만 막고, 이미 메모리 큐에 든 묶음은 1초 묶음 전송으로 그대로
    보낸다 — 처리방침 6항 "철회하면 아직 전송되지 않은 기록과 분석용 식별값이 즉시 삭제됩니다"와 반대다(2026-10-14 실측: 거부 0.5~0.7초
    뒤 1건). 그래서 **보내는 순간** allowed() 를 다시 보고, 아니면 보내지 않고 null 을 돌려준다 — SDK 는 전송 결과 null 을 '예상 못 한
@@ -231,15 +319,43 @@ export function replayFor(consent, optOut, surface, replayOptOut) {
 export function gaOn(hostname, nowMs) { return envOf(hostname) !== 'prod' || nowMs >= GA_FROM; }
 /* 지금 유효한 동의 버전. 시행일마다 앞 버전으로 받은 동의는 무효가 되어 새 문구로 다시 묻는다. */
 export function consentVersion(hostname, nowMs) {
-  if (envOf(hostname) !== 'prod' || nowMs >= GA_FROM) return CONSENT_VERSION;
+  if (envOf(hostname) !== 'prod' || nowMs >= META_FROM) return CONSENT_VERSION;
+  if (nowMs >= GA_FROM) return 4;
   return replayInForce(hostname, nowMs) ? 2 : 1;
 }
-/* GA 에 싣는 페이지 값 — 주소는 cleanPath(작품·회차 번호 없음) + 광고 캠페인 쿼리(campaignQuery), 제목은 표면 이름으로
-   고정(문서 제목에 작품명이 들어가도 새지 않게), 리퍼러는 외부면 출처만·같은 출처면 정리된 경로(검색어·초대 토큰이 실리지 않게). */
-export function gaPage(origin, pathname, hash, referrer, search) {
+/* Meta 픽셀을 붙이는 페이지·때인가 — 첫 화면 `/` 만, 운영은 시행일부터(그 밖은 항상). 수집 게이트(collecting)는 따로 본다. */
+export function metaOn(hostname, pathname, nowMs) {
+  return /^\/(index\.html)?$/.test(pathname || '/') && (envOf(hostname) !== 'prod' || nowMs >= META_FROM);
+}
+/* 픽셀이 그대로 싣는 주소(dl)·리퍼러(rl)에 처리방침 밖의 값이 없는가. 주소의 쿼리는 광고 캠페인 값(utm)만이어야 하고(campaignQuery 와
+   글자까지 같아야 한다 — 다른 키·중복·빈 값이 있으면 아니다), 같은 출처 리퍼러에는 쿼리가 없어야 한다(브라우저는 같은 출처면 전체 주소를
+   준다 — /bye?v=…&d=… 등). 다른 출처 리퍼러는 브라우저 기본 정책이 출처만 넘긴다. 아니면 이 로드에서는 픽셀을 붙이지 않는다. */
+export function metaPageSafe(origin, search, referrer) {
+  var q = String(search || '');
+  if (q === '?') q = '';
+  if (campaignQuery(q) !== q) return false;
+  if (!referrer) return true;
+  try {
+    var u = new URL(referrer);
+    return u.origin !== origin || !u.search;
+  } catch (_) { return false; }
+}
+/* 계측 이벤트 → 픽셀 호출. [메서드, 이름, 속성?] 또는 null(보내지 않음). 속성은 PC로 보내기의 action 하나뿐이다. */
+export function metaEvent(name, props) {
+  if (name === 'install_cta_clicked') return ['track', 'Lead'];
+  var action = props && props.action;
+  if (name === 'install_guide_action' && META_SEND_ACTIONS.indexOf(action) >= 0) return ['trackCustom', 'SendToPc', { action: action }];
+  return null;
+}
+/* GA 에 싣는 페이지 값 — 주소는 cleanPath(작품·회차 번호 없음) + 광고 캠페인 쿼리(campaignQuery) + Google 광고 클릭 식별값
+   (clicks — 부트가 주소에서 지우기 전에 받아 둔 gaClickParts 결과, HP-691), 제목은 표면 이름으로 고정(문서 제목에 작품명이
+   들어가도 새지 않게), 리퍼러는 외부면 출처만·같은 출처면 정리된 경로(검색어·초대 토큰이 실리지 않게). */
+export function gaPage(origin, pathname, hash, referrer, search, clicks) {
   var path = cleanPath(pathname, hash), cut = path.indexOf('#');
+  var query = campaignQuery(search), extra = (clicks || []).join('&');
+  if (extra) query = query ? query + '&' + extra : '?' + extra;
   var out = {
-    page_location: origin + (cut < 0 ? path : path.slice(0, cut)) + campaignQuery(search) + (cut < 0 ? '' : path.slice(cut)),
+    page_location: origin + (cut < 0 ? path : path.slice(0, cut)) + query + (cut < 0 ? '' : path.slice(cut)),
     page_title: surfaceOf(pathname) === 'web_catalog' ? 'Replix 작품 탐색' : 'Replix 랜딩',
   };
   if (referrer) {
@@ -249,6 +365,43 @@ export function gaPage(origin, pathname, hash, referrer, search) {
     } catch (_) { /* 주소가 아니면 싣지 않는다 */ }
   }
   return out;
+}
+/* 쿼리 하나 → 스토어 캠페인 값. 세 키(STORE_CAMPAIGN_PARAMS)를 첫 값으로 읽어 — campaignQuery 와 달리 원래 글자가 아니라 풀어서
+   거른다(%26·%3D 로 싼 &·= 가 남지 않게) — 자리 고정으로 잇는다. utm_source 가 없거나 걸러서 비면 ''. */
+function storeCampaignOf(search) {
+  var q;
+  try { q = new URLSearchParams(String(search || '').replace(/^\?/, '')); } catch (_) { return ''; }
+  var parts = STORE_CAMPAIGN_PARAMS.map(function (k) {
+    return String(q.get(k) || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, STORE_PART_MAX);
+  });
+  if (!parts[0]) return '';
+  while (!parts[parts.length - 1]) parts.pop();   /* 뒤쪽 빈 자리만 뺀다 — 가운데 빈 자리는 남겨 자리를 지킨다 */
+  return parts.join('.');
+}
+/* 스토어 링크에 실을 utm_campaign(HP-697). 지금 주소(search)에서, 없으면 같은 출처(origin) 리퍼러의 쿼리에서 — 다른 출처 리퍼러는
+   그 사이트 자신의 캠페인이라 보지 않는다(브라우저 기본 정책은 출처만 주지만 전체 주소를 주는 사이트도 있다). 광고로 오지 않았으면 ''. */
+export function storeCampaign(search, referrer, origin) {
+  var own = storeCampaignOf(search);
+  if (own || !referrer) return own;
+  try {
+    var u = new URL(referrer);
+    return u.origin === origin ? storeCampaignOf(u.search) : '';
+  } catch (_) { return ''; }
+}
+/* 스토어 링크 주소에 utm_campaign 을 싣는다 — 우리 스토어 링크(STORE_HOST + utm_source=replix.tv)만. 다른 쿼리는 원래 글자
+   그대로(utm_source·utm_medium 을 다시 싸지 않는다) 두고 utm_campaign 만 빼고 맨 뒤에 하나 더한다 — 몇 번을 불러도 하나다.
+   campaign 이 비었거나 storeCampaign 의 글자 형식 밖이면(잘못 부른 경우) href 를 그대로 돌려준다. */
+export function storeHref(href, campaign) {
+  var s = String(href || '');
+  if (!/^[A-Za-z0-9_.-]{1,100}$/.test(campaign || '')) return s;
+  try {
+    var u = new URL(s);
+    if (u.hostname !== STORE_HOST || u.searchParams.get('utm_source') !== 'replix.tv') return s;
+  } catch (_) { return s; /* 상대 주소·주소가 아닌 값 — 스토어 링크가 아니다 */ }
+  var cut = s.indexOf('#'), base = cut < 0 ? s : s.slice(0, cut), q = base.indexOf('?');
+  var kept = base.slice(q + 1).split('&').filter(function (part) { return part && part.split('=')[0] !== 'utm_campaign'; });
+  kept.push('utm_campaign=' + campaign);
+  return base.slice(0, q) + '?' + kept.join('&') + (cut < 0 ? '' : s.slice(cut));
 }
 /* 허용은 지금 버전으로 받은 것만 유효(범위·받는 곳이 늘면 다시 묻는다). 거부는 버전과 무관하게 계속 존중한다 —
    옵트아웃에서 옛 거부가 풀리면 거부한 사람을 수집하게 된다(HP-466). */
@@ -288,9 +441,11 @@ export function noticeText(replayOptOut) {
     ? '방문 통계와 첫 화면의 스크롤·클릭 기록을 미국 분석 도구로 수집해요. 허용하면 작품 탐색에서도 기록해요.'
     : '방문 통계를 미국 분석 도구로 수집해요. 허용하면 스크롤·클릭 기록도 남겨요.';
 }
-/* 옵트아웃 지역 안내의 세부([자세히]로 펼침) — 받는 곳·항목·녹화 범위·가리는 것·거부의 효과. */
-export function noticeDetail(replayOptOut) {
+/* 옵트아웃 지역 안내의 세부([자세히]로 펼침) — 받는 곳·항목·녹화 범위·가리는 것·거부의 효과. meta = Meta 픽셀 조항 시행 뒤
+   (metaOn 의 날짜 부분) — 한국 시간대 첫 화면은 미선택에서도 픽셀이 붙으므로 받는 곳으로 밝힌다(투명성). */
+export function noticeDetail(replayOptOut, meta) {
   return '방문 통계(기기 식별값과 사용 이벤트)는 개인을 알아볼 수 없는 형태로 Amplitude와 Google Analytics(모두 미국)로 보냅니다. ' +
+    (meta ? '광고 성과 측정을 위해 첫 화면 방문과 설치 버튼 클릭 기록을 Meta(미국)로 보냅니다. ' : '') +
     (replayOptOut
       ? '첫 화면의 스크롤·클릭 기록은 Amplitude에 기록하고, 허용하면 작품 탐색에서의 스크롤·클릭도 기록합니다. '
       : '허용하면 첫 화면과 작품 탐색에서의 스크롤·클릭 기록도 Amplitude에 기록합니다. ') +
@@ -303,8 +458,14 @@ export function bannerText(version) {
     : '방문 통계를 미국 분석 도구로 보내도 될까요?';
 }
 /* 동의 요청의 세부 — 동의가 덮는 범위를 그대로 적는다. 2·3 은 녹화가 랜딩뿐이라 '첫 화면에서'라고 적었고, 4 부터 작품 탐색까지.
-   문구만 두 층으로 나눈 HP-585 는 범위·받는 곳이 그대로라 동의 버전을 올리지 않았다(이미 받은 동의 유지). */
+   문구만 두 층으로 나눈 HP-585 는 범위·받는 곳이 그대로라 동의 버전을 올리지 않았다(이미 받은 동의 유지). 5 부터 Meta(첫 화면만)와
+   목적(광고 성과 측정)을 밝힌다. */
 export function bannerDetail(version) {
+  if (version >= 5) {
+    return 'Replix는 사이트 개선과 광고 성과 측정을 위해 방문 통계를 수집합니다. 허용하면 기기 식별값과 사용 이벤트가 ' +
+      'Amplitude와 Google Analytics(모두 미국)로, 첫 화면 방문과 설치 버튼 클릭 기록이 Meta(미국)로, 첫 화면과 작품 탐색에서의 ' +
+      '화면 조작 기록(스크롤·클릭)이 Amplitude로 전송됩니다. 입력한 내용과 다른 이용자의 글·닉네임은 기록하지 않습니다.';
+  }
   if (version >= 4) {
     return 'Replix는 사이트 개선을 위해 방문 통계를 익명으로 수집합니다. 허용하면 기기 식별값과 사용 이벤트가 ' +
       'Amplitude와 Google Analytics(모두 미국)로, 첫 화면과 작품 탐색에서의 화면 조작 기록(스크롤·클릭)이 Amplitude로 ' +
@@ -344,9 +505,12 @@ var _replay = null;      /* 붙어 있는 세션 리플레이 플러그인 — �
 var _ga = 'idle';         /* 'idle' | 'loading' — gtag 는 dataLayer 가 큐라서 로드 완료를 기다릴 필요가 없다 */
 var _gaBlocked = false;   /* 이 페이지에서 철회한 뒤면 true — gtag 가 메모리에 쥔 옛 client id 가 재허용 뒤 이어지지 않게
                              이 페이지에서는 다시 켜지 않는다. 다음 로드부터 새 쿠키로 시작한다. */
+var _meta = 'idle';       /* 'idle' | 'loading' — fbq 도 로드 전 호출을 자기 큐에 쌓는다 */
+var _metaBlocked = false; /* 이 페이지에서 철회한 뒤면 true — fbevents.js 는 떼어 낼 수 없어 이 페이지에서는 더 부르지 않는다 */
 var _revoked = false;     /* 이 페이지에서 거부(철회)했는가 — 재허용 때만 새 device_id 를 받는다(옵트아웃 수집 → 허용은 그대로) */
 var _debug = false;       /* 로컬 호스트에서도 보내는 디버그 표시(DEBUG_KEY) — 부트 때 읽는다 */
 var _internal = false;    /* 팀 브라우저 표시(INTERNAL_KEY) — 부트 때 읽는다 */
+var _gaClick = [];        /* 부트가 주소에서 지우기 전에 받아 둔 Google 광고 클릭 식별값(HP-691) — GA 페이지 주소에만 싣는다 */
 
 function nowVersion() { return consentVersion(location.hostname, Date.now()); }
 function timeZone() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) { return ''; } }
@@ -367,7 +531,9 @@ function syncFlags() {
     if (localStorage.getItem(INTERNAL_KEY) === '1') _internal = true;
     if (localStorage.getItem(DEBUG_KEY) === '1') _debug = true;
   } catch (_) { /* 저장소를 못 읽으면 쿼리로 받은 값만 */ }
-  /* 광고 클릭 식별값도 여기서 지운다 — SDK·GA·리플레이가 붙기 전(부트 첫 줄)이라 어느 것도 이 값을 보지 못한다(HP-628). */
+  /* 광고 클릭 식별값도 여기서 지운다 — SDK·리플레이·Meta 픽셀이 붙기 전(부트 첫 줄)이라 이 값을 보지 못한다(HP-628).
+     GA 는 지우기 전에 Google 것만 받아 두었다가 페이지 주소로 받는다(HP-691, 처리방침 시행일부터). */
+  if (gaClickOn(location.hostname, Date.now())) _gaClick = gaClickParts(f.rest);
   var c = stripClickIds(f.rest);
   if (f.found || c.found) {
     try { history.replaceState(history.state, '', location.pathname + c.rest + location.hash); } catch (_) { /* 주소창은 그대로 둔다 */ }
@@ -477,7 +643,7 @@ function ensureGa() {
   var dev = envOf(location.hostname) !== 'prod';
   /* traffic_type 은 config 에 실어 이 페이지의 모든 수집 요청에 붙는다(수집 요청의 tt=internal — 2026-10-13 확인). */
   var cfg = Object.assign({}, GA_CONFIG,
-    gaPage(location.origin, location.pathname, location.hash, document.referrer, location.search),
+    gaPage(location.origin, location.pathname, location.hash, document.referrer, location.search, _gaClick),
     { cookie_flags: 'SameSite=Lax' + (location.protocol === 'https:' ? ';Secure' : '') },
     internalNow() ? { traffic_type: 'internal' } : {},
     dev ? { debug_mode: true } : {});
@@ -495,18 +661,45 @@ function gaTrack(name, props) {
   if (!gaOk()) return;
   var p = Object.assign({ surface: surfaceOf(location.pathname) }, gaParams(props));
   if (name === 'page_viewed') {
-    var pg = gaPage(location.origin, location.pathname, location.hash, '', location.search);
+    var pg = gaPage(location.origin, location.pathname, location.hash, '', location.search, _gaClick);
     window.gtag('set', { page_location: pg.page_location, page_title: pg.page_title });
     window.gtag('event', 'page_view', p);
   } else {
     window.gtag('event', name, p);
   }
 }
+/* Meta 픽셀을 붙인다 — 수집 중·첫 화면·시행일·주소와 리퍼러가 깨끗할 때(metaPageSafe)·팀 브라우저가 아닐 때·이 페이지에서 철회하지
+   않았을 때만. Meta 공식 설치 코드의 큐 함수를 그대로 만들고, 자동 설정을 끈 뒤 init·PageView 를 큐에 넣고 나서 스크립트를 주입한다. */
+function ensureMeta() {
+  if (_meta !== 'idle' || _metaBlocked || _internal || !collecting() || !metaOn(location.hostname, location.pathname, Date.now()) ||
+      !metaPageSafe(location.origin, location.search, document.referrer)) return;
+  _meta = 'loading';
+  var n = window.fbq;
+  if (!n) {
+    n = window.fbq = function () { if (n.callMethod) n.callMethod.apply(n, arguments); else n.queue.push(arguments); };
+    if (!window._fbq) window._fbq = n;
+    n.push = n; n.loaded = true; n.version = '2.0'; n.queue = [];
+  }
+  n.disablePushState = true;                        /* 주소 변화(pushState)마다 자동 PageView 를 보내지 않는다 */
+  n('set', 'autoConfig', false, META_PIXEL_ID);     /* 버튼 글자·메타데이터 자동 수집 끔 — init 앞이어야 듣는다 */
+  n('init', META_PIXEL_ID);                         /* 고급 매칭 값(이메일 등)은 넘기지 않는다 */
+  n('track', 'PageView');
+  var s = document.createElement('script');
+  s.src = META_URL; s.async = true;
+  /* 차단(광고 차단기 등)이면 큐에만 쌓이고 나가지 않는다 — fail-open. */
+  document.head.appendChild(s);
+}
+function metaOk() { return _meta !== 'idle' && !_metaBlocked && collecting() && typeof window.fbq === 'function'; }
+function metaTrack(name, props) {
+  var ev = metaOk() ? metaEvent(name, props) : null;
+  if (ev) window.fbq.apply(null, ev);
+}
 /** 이벤트 1건. 이름·속성은 트래킹 플랜 §6 에 있는 것만 — 작품·회차 ID·검색어는 어떤 속성에도 싣지 않는다(§2). */
 export function track(name, props) {
   send(function (a) { a.track(name, Object.assign(commonProps(), props || {})); });
   ensureGa();   /* 첫 화면·작품 탐색은 부트 때 이미 붙어 no-op 이다. 그 밖의 페이지(/discord/)는 허용한 방문자의 첫 클릭에서야 붙인다 */
   gaTrack(name, props);
+  metaTrack(name, props);   /* 픽셀은 첫 화면 부트·허용 때만 붙인다(ensureMeta) — 여기서는 붙이지 않고, 붙어 있을 때만 보낸다 */
 }
 /** page_viewed. 동의 전이면 기억만 해 두고 허용 직후 1회 보낸다. */
 export function page(props) { _lastPage = props || {}; track('page_viewed', _lastPage); }
@@ -531,9 +724,14 @@ function revoke() {
   /* GA: 전송을 즉시 막고(gtag 공식 차단 스위치), 이 페이지에서는 다시 켜지 않는다(_gaBlocked 주석). */
   window['ga-disable-' + GA_ID] = true;
   if (_ga !== 'idle') _gaBlocked = true;
+  /* Meta 픽셀: 공식 전송 보류(consent revoke)를 걸고, 이 페이지에서는 더 부르지 않는다(_metaBlocked). */
+  if (_meta !== 'idle') {
+    _metaBlocked = true;
+    try { if (typeof window.fbq === 'function') window.fbq('consent', 'revoke'); } catch (_) { /* 스크립트 내부 오류 — 아래에서 쿠키는 지운다 */ }
+  }
   document.cookie.split(';').forEach(function (c) {
     var n = c.split('=')[0].trim();
-    if (/^AMP_/i.test(n) || /^_ga/.test(n)) expireCookie(n);
+    if (/^AMP_/i.test(n) || /^_ga/.test(n) || /^_fb[pc]$/.test(n)) expireCookie(n);
   });
   try { Object.keys(localStorage).forEach(function (k) { if (/^AMP_/i.test(k)) localStorage.removeItem(k); }); } catch (_) {}
   /* SDK·플러그인이 만든 IndexedDB(AMP_diagnostics_* 등)도 지운다. databases() 가 없는 브라우저는 건너뛴다. */
@@ -562,6 +760,7 @@ export function setConsent(decision) {
       loadSdk();
     }
     ensureGa();   /* page_viewed 보다 먼저 — 허용 직후의 페이지뷰가 GA 에도 1회 간다 */
+    ensureMeta(); /* 첫 화면이면 픽셀도 — PageView 는 ensureMeta 가 1회 보낸다(옵트아웃으로 이미 붙어 있었으면 no-op) */
     /* 옵트아웃으로 이미 수집 중이었으면 이 페이지의 page_viewed 는 나갔다 — 두 번 세지 않는다 */
     if (_lastPage && !wasCollecting) track('page_viewed', _lastPage);
   } else {
@@ -606,7 +805,8 @@ export function showBanner() {
     '<div class="rx-consent-actions"><button type="button" class="rx-deny">거부</button>' +
     '<button type="button" class="rx-allow">허용</button></div>' +
     '<p class="rx-consent-detail" id="rx-consent-detail" hidden>' +
-    (notice ? noticeDetail(replayOptOutNow()) : bannerDetail(nowVersion())) + ' <a href="/privacy">개인정보처리방침</a></p>';
+    (notice ? noticeDetail(replayOptOutNow(), metaOn(location.hostname, '/', Date.now())) : bannerDetail(nowVersion())) +
+    ' <a href="/privacy">개인정보처리방침</a></p>';
   el.querySelector('.rx-allow').addEventListener('click', function () { setConsent('granted'); });
   el.querySelector('.rx-deny').addEventListener('click', function () { setConsent('denied'); });
   el.querySelector('.rx-more').addEventListener('click', function () {
@@ -620,6 +820,35 @@ export function showBanner() {
 /* [hidden] 속성은 CSS display 선언에 진다(notes/docs.md '고칠 때 알아 둘 것') — style 로 직접 끈다. */
 function hideBanner() { if (_banner) _banner.style.display = 'none'; }
 
+/* ═══ 웹 스토어 링크 캠페인(HP-697) ══════════════════════════════════
+   값은 부트 때 한 번 정한다 — 페이지가 떠 있는 동안 쿼리는 바뀌지 않는다(작품 탐색은 해시 라우트, 주소창 정리는 부트 첫 줄 syncFlags).
+   언제 바꾸나 — 둘 다 한다:
+   ① 부트 때 문서의 스토어 링크를 한 번에. 링크를 따라가는 길이 클릭만이 아니다 — 가운데 클릭, 오른쪽 메뉴의 '새 탭에서 열기'·
+      '링크 주소 복사', 탭 막대로 끌어 놓기, 읽기 프로그램의 링크 목록. 이벤트 처리기는 이 가운데 몇을 놓치지만 주소가 미리 바뀌어
+      있으면 어느 길로 가도 같다. 랜딩·/discord/ 의 스토어 링크는 모두 정적 마크업이라 여기서 끝난다.
+   ② 누르는 순간(capture)에 그 링크를. 작품 탐색(React)은 화면을 옮길 때마다 링크를 새로 그려 부트 뒤에 생긴 링크가 있다 —
+      pointerdown(마우스 모든 버튼·터치·끌기 — 새 탭·메뉴·끌어 놓기보다 앞), click(키보드 Enter·보조 기술), contextmenu(키보드로 연
+      메뉴)에서 이동 전에 바꾼다. 휴대폰 안내 시트(install-guide.js)는 버블 단계에서 누른 버튼의 주소를 '웹 스토어에서 PC로 보내기'
+      링크에 옮겨 적으므로 거기에도 같은 값이 실린다.
+   설치 계측(install_cta_clicked)은 부트의 [data-cta] 위임이 지금처럼 센다 — 바뀌는 것은 링크 주소뿐이다. */
+var STORE_LINK = 'a[href*="//' + STORE_HOST + '/"]';
+var _storeCampaign = '';
+function tagStoreLink(el) {
+  if (!el || !el.getAttribute) return;
+  var href = el.getAttribute('href'), next = storeHref(href, _storeCampaign);
+  if (next !== href) el.setAttribute('href', next);
+}
+function wireStoreLinks() {
+  _storeCampaign = storeCampaign(location.search, document.referrer, location.origin);
+  if (!_storeCampaign) return;   /* 광고로 오지 않은 방문 — 링크는 지금 그대로 */
+  try { [].forEach.call(document.querySelectorAll(STORE_LINK), tagStoreLink); } catch (_) { /* 문서를 못 훑으면 ②만 */ }
+  ['pointerdown', 'click', 'contextmenu'].forEach(function (type) {
+    document.addEventListener(type, function (ev) {
+      tagStoreLink(ev.target && ev.target.closest ? ev.target.closest(STORE_LINK) : null);
+    }, true);
+  });
+}
+
 /* ═══ 부트 ═══════════════════════════════════════════════════════ */
 function boot() {
   syncFlags();
@@ -627,7 +856,7 @@ function boot() {
   /* 첫 화면·작품 탐색만 로드하자마자 붙이고 배너를 띄운다. 그 밖의 페이지(/discord/)는 동의를 묻지 않고, 이미 허용한
      방문자의 클릭이 생겨야 send·track 이 SDK·GA 를 붙인다 — 미선택 수집(옵트아웃)은 처리방침의 범위 밖이다(fullSurface). */
   var full = fullSurface(location.pathname);
-  if (full && collecting()) { loadSdk(); ensureGa(); }   /* 허용했거나, 옵트아웃 지역의 미선택 */
+  if (full && collecting()) { loadSdk(); ensureGa(); ensureMeta(); }   /* 허용했거나, 옵트아웃 지역의 미선택. 픽셀은 첫 화면만(ensureMeta 가 가른다) */
   if (full && _consent === null) showBanner();
   /* 설치 CTA·랜딩 링크·분석 설정은 data 속성으로 전 표면 공통 계측 — 각 모듈이 버튼 위치를 알 필요가 없고,
      카탈로그(React)도 마크업에 속성만 붙이면 된다. capture 단계라 새 탭 이동 전에 잡힌다. */
@@ -641,6 +870,8 @@ function boot() {
     var s = hit('[data-analytics-settings]');
     if (s) { ev.preventDefault(); showBanner(); }
   }, true);
+  /* 스토어 링크 캠페인(HP-697) — 동의와 무관하게 모든 방문에. 실패해도 링크가 지금 그대로일 뿐, 계측 부트를 막지 않는다. */
+  try { wireStoreLinks(); } catch (_) { /* fail-open */ }
   /* 떠나는 순간의 이벤트(같은 탭 링크 클릭·직전 section_viewed)는 SDK 의 1초 배치 flush 보다 페이지가 먼저 사라진다.
      SDK 는 그것을 localStorage 큐에 남겨 다음 SDK 페이지가 보내게 하지만, /privacy·/terms 처럼 SDK 가 없는 곳으로 가면
      다음 방문까지 밀린다(2026-09-21 실측: /terms 이동 뒤 AMP_unsent 에 그대로 남음) — pagehide 에서 beacon 으로 비운다.

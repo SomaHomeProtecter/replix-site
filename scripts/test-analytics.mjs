@@ -34,9 +34,11 @@ assert.equal(a.deviceClass(390), 'mobile');
 assert.equal(a.deviceClass(800), 'tablet');
 assert.equal(a.deviceClass(1440), 'desktop');
 
-assert.equal(a.CONSENT_VERSION, 4, '2 = 랜딩 세션 리플레이(HP-457), 3 = Google Analytics(HP-465), 4 = 작품 탐색 리플레이(HP-457 확대)');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 4 })), 'granted');
-assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 4 })), 'denied');
+assert.equal(a.CONSENT_VERSION, 5, '2 = 랜딩 세션 리플레이(HP-457), 3 = Google Analytics(HP-465), 4 = 작품 탐색 리플레이(HP-457 확대), 5 = Meta 픽셀·광고 성과 측정(HP-542)');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 5 })), 'granted');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 5 })), 'denied');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 4 })), null, '받는 곳(Meta)·목적(광고 성과 측정)이 늘었다 — 4 로 받은 허용은 다시 묻는다');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 4 }), 4), 'granted', 'Meta 시행일 전 운영에서는 4 가 유효하다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 3 })), null, '녹화 범위가 작품 탐색으로 늘었다 — 3 으로 받은 허용은 다시 묻는다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 2 })), null, '받는 곳이 늘었다 — 2 로 받은 동의는 다시 묻는다');
 assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 1 })), null, '범위가 늘었다 — 1 로 받은 동의는 다시 묻는다');
@@ -95,7 +97,7 @@ assert.equal(a.gaOn('replix.tv', GA_AFTER), true);
 assert.equal(a.gaOn('localhost', 0), true, '로컬은 검증할 수 있게 항상 켠다(내부 트래픽으로 표시)');
 assert.equal(a.consentVersion('replix.tv', GA_BEFORE), 1, '시행 전에는 처음 문구(1)');
 assert.equal(a.consentVersion('replix.tv', GA_AFTER), 4, 'GA·작품 탐색 녹화를 밝힌 문구로 다시 묻는다');
-assert.equal(a.consentVersion('localhost', 0), 4);
+assert.equal(a.consentVersion('localhost', 0), 5, '로컬은 늘 지금 버전');
 assert.match(a.bannerDetail(4), /Google Analytics/);
 assert.match(a.bannerDetail(4), /작품 탐색/, '4 는 녹화 범위(작품 탐색)를 밝힌다');
 assert.doesNotMatch(a.bannerDetail(3), /작품 탐색/, '3 은 랜딩 녹화만');
@@ -174,7 +176,7 @@ for (const s of [a.noticeText(true), a.noticeText(false), a.bannerText(1), a.ban
   assert.ok(s.length <= 70, `요약은 70자 이하 — 길어지면 배너가 다시 첫 화면을 덮는다(${s.length}자: ${s})`);
   assert.match(s, /미국/, '요약에 어디로(미국)를 남긴다');
 }
-for (const d of [a.noticeDetail(true), a.noticeDetail(false), a.bannerDetail(4)]) {
+for (const d of [a.noticeDetail(true), a.noticeDetail(false), a.noticeDetail(true, true), a.bannerDetail(4), a.bannerDetail(5)]) {
   assert.match(d, /Amplitude와 Google Analytics\(모두 미국\)/, '세부가 받는 곳 이름과 국가를 밝힌다');
 }
 
@@ -241,7 +243,7 @@ assert.match(src, /@media \(max-width:560px\)\{#rx-consent\{left:0;right:0;botto
 // 두 층 배너의 마크업(HP-585) — 세부는 처음엔 접혀 있고, 처리방침 링크는 세부 끝에, 거부 버튼은 접힌 상태에서도 늘 보인다.
 assert.match(src, /class="rx-more" aria-expanded="false" aria-controls="rx-consent-detail">자세히</, '[자세히]는 펼침 상태를 보조 기술에 알린다');
 assert.match(src, /<p class="rx-consent-detail" id="rx-consent-detail" hidden>/, '세부는 처음엔 접혀 있다');
-assert.match(src, /noticeDetail\(replayOptOutNow\(\)\) : bannerDetail\(nowVersion\(\)\)\) \+ ' <a href="\/privacy">개인정보처리방침<\/a>/,
+assert.match(src, /noticeDetail\(replayOptOutNow\(\), metaOn\(location\.hostname, '\/', Date\.now\(\)\)\) : bannerDetail\(nowVersion\(\)\)\) \+\s*' <a href="\/privacy">개인정보처리방침<\/a>/,
   '세부가 시행 여부·동의 버전을 따르고, 끝에 처리방침 링크가 있다');
 assert.match(src, /<div class="rx-consent-actions"><button type="button" class="rx-deny">거부<\/button>/, '거부 버튼은 요약 옆에 늘 보인다(사후 통제권)');
 const bannerCss = /var BANNER_CSS = ([\s\S]*?);\n/.exec(src)[1];
@@ -329,8 +331,13 @@ assert.match(read('docs/js/main.js'), /import '\.\/float-cta\.js';/);
 //    광고 클릭 식별값(gclid·gbraid·wbraid·fbclid)은 처리방침의 GA 수집 항목('방문한 페이지') 밖이라 남기지 않는다.
 const AD = '?utm_source=meta&utm_medium=paid_social&utm_campaign=test&utm_content=a&gclid=TEST&foo=bar';
 const AD_KEPT = '?utm_source=meta&utm_medium=paid_social&utm_campaign=test&utm_content=a';
-assert.deepEqual(a.GA_CAMPAIGN_PARAMS, ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'],
-  'UTM 다섯만 — 늘리면 처리방침의 GA 수집 항목과 트래킹 플랜 §10 도');
+assert.deepEqual(a.GA_CAMPAIGN_PARAMS, ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utm_id'],
+  'GA4 표준 캠페인 값 여섯만(utm_id 는 HP-690) — 늘리면 처리방침의 GA 수집 항목과 트래킹 플랜 §10 도');
+// HP-690: Meta 는 광고 주소에 빠진 utm 항목을 자동으로 채운다 — 2026-10-21 광고 D 방문자 7명 모두 우리가 넣은 넷 뒤에
+// utm_term(광고 세트 번호)·utm_id(캠페인 번호)가 붙어 왔다. 캠페인 번호도 캠페인 단위 값이라 GA 에 남긴다.
+const META_AD = '?utm_source=meta&utm_medium=paid_social&utm_campaign=reels_1021&utm_content=d&utm_term=52582296118776&utm_id=52582296118976';
+assert.equal(a.campaignQuery(META_AD), META_AD, 'Meta 가 채운 utm_term·utm_id 까지 캠페인 값 그대로');
+assert.equal(a.gaPage('https://replix.tv', '/', '', 'https://instagram.com/', META_AD).page_location, 'https://replix.tv/' + META_AD);
 assert.equal(a.campaignQuery(AD), AD_KEPT, '캠페인 값은 남기고 그 밖(광고 클릭 식별값 gclid, foo)은 지운다');
 assert.equal(a.gaPage('https://replix.tv', '/', '', '', AD).page_location, 'https://replix.tv/' + AD_KEPT);
 assert.equal(a.gaPage('https://replix.tv', '/catalog/', '#/title/123/ep/4', '', '?utm_source=youtube&gbraid=G1&wbraid=W1&utm_term=k').page_location,
@@ -345,9 +352,9 @@ assert.equal(a.campaignQuery('?utm_campaign=%EA%B0%80%EC%9D%84+%ED%8A%B9%EA%B0%8
 assert.equal(a.campaignQuery('?xutm_source=a&utm_source2=b'), '', '키는 정확히 같아야 한다');
 assert.equal(a.campaignQuery(''), '');
 assert.equal(a.campaignQuery(undefined), '');
-assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, document\.referrer, location\.search\)/,
-  '로드 때 config 의 page_location 에 캠페인 쿼리 — 세션 첫 hit 부터 실린다');
-assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, '', location\.search\)/, 'page_view 마다 같은 주소');
+assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, document\.referrer, location\.search, _gaClick\)/,
+  '로드 때 config 의 page_location 에 캠페인 쿼리(+ 받아 둔 Google 광고 클릭 식별값) — 세션 첫 hit 부터 실린다');
+assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, '', location\.search, _gaClick\)/, 'page_view 마다 같은 주소');
 
 // ② GA 는 이벤트 파라미터 source·medium·campaign·term·content 를 세션 유입 경로로 해석한다 — catalog_engaged{source: 'nav'} 가
 //    세션 소스 'nav' 로 잡혔다(실측 22세션). GA 로 보낼 때만 이름을 바꾸고, Amplitude 는 기존 차트를 깨지 않게 그대로 둔다.
@@ -366,7 +373,7 @@ for (const p of ['/discord/', '/discord/index.html', '/invite/', '/together/', '
 assert.equal(a.optOutOn('replix.tv', GA_AFTER, 'Asia/Seoul', '/discord/'), false, '/discord/ 는 한국 시간대여도 옵트아웃이 아니다 — 허용한 방문자만');
 assert.equal(a.replayOn('replix.tv', '/discord/', AFTER), false, '/discord/ 는 녹화 범위 밖 — 허용해도 찍지 않는다');
 assert.equal(a.replayOn('localhost', '/discord/', 0), false);
-assert.match(src, /var full = fullSurface\(location\.pathname\);\s*if \(full && collecting\(\)\) \{ loadSdk\(\); ensureGa\(\); \}[^\n]*\n\s*if \(full && _consent === null\) showBanner\(\);/,
+assert.match(src, /var full = fullSurface\(location\.pathname\);\s*if \(full && collecting\(\)\) \{ loadSdk\(\); ensureGa\(\); ensureMeta\(\); \}[^\n]*\n\s*if \(full && _consent === null\) showBanner\(\);/,
   '그 밖의 페이지는 로드 때 SDK·GA·배너가 없다');
 assert.match(src, /function optOutNow\(\) \{ return optOutOn\(location\.hostname, Date\.now\(\), timeZone\(\), location\.pathname\); \}/, '옵트아웃 판정에 경로를 넘긴다');
 assert.match(src, /export function track\(name, props\) \{[\s\S]{0,200}ensureGa\(\);[\s\S]{0,260}gaTrack\(name, props\);/,
@@ -532,5 +539,356 @@ assert.ok(loadSdkSrc.indexOf('a.add(sendGatePlugin())') > 0 && loadSdkSrc.indexO
   '관문 플러그인은 init 앞에 붙인다 — init 뒤 첫 묶음 전송부터 관문을 지난다');
 assert.match(src, /setup: function \(config\) \{ gateTransport\(config, function \(\) \{ return !config\.optOut && collecting\(\); \}\);/,
   '관문은 SDK 거부 상태(optOut)와 우리 수집 상태(collecting)를 함께 본다');
+
+// ═══ Meta 픽셀(HP-542, 2026-10-20 조현빈) ═══════════════════════════════════════════
+// GA 와 같은 수집 게이트 뒤에, 운영은 처리방침 시행일(2026-10-20)부터, 첫 화면 `/` 에서만. 보내는 것은 PageView·Lead·SendToPc{action} 셋뿐.
+const META_BEFORE = Date.parse('2026-10-19T23:59:59+09:00');
+const META_AFTER = Date.parse('2026-10-20T00:00:00+09:00');
+assert.equal(a.META_PIXEL_ID, '1791551955320987', "데이터 세트 'Replix 웹 (replix.tv)'");
+assert.equal(a.META_FROM, META_AFTER, 'Meta 시행일 — 바꾸면 privacy.html 의 시행일도 같이(아래에서 대조한다)');
+assert.equal(a.META_URL, 'https://connect.facebook.net/en_US/fbevents.js');
+// 동의 버전 — 운영은 Meta 시행일 전까지 4 가 유효하고, 그 뒤 5 로 다시 묻는다.
+assert.equal(a.consentVersion('replix.tv', META_BEFORE), 4, 'Meta 시행일 전 운영은 4 — 이미 받은 허용이 그대로 유효');
+assert.equal(a.consentVersion('replix.tv', META_AFTER), 5, '시행일부터 Meta 를 밝힌 문구(5)로 다시 묻는다');
+assert.equal(a.consentVersion('www.replix.tv', META_AFTER), 5);
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 4 }), a.consentVersion('replix.tv', META_BEFORE)), 'granted');
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'granted', version: 4 }), a.consentVersion('replix.tv', META_AFTER)), null);
+assert.equal(a.parseConsent(JSON.stringify({ decision: 'denied', version: 4 }), a.consentVersion('replix.tv', META_AFTER)), 'denied', '거부는 버전이 바뀌어도 그대로');
+assert.match(a.bannerDetail(5), /Meta\(미국\)/, '동의 세부가 받는 곳(Meta)을 밝힌다');
+assert.match(a.bannerDetail(5), /광고 성과 측정/, '동의 세부가 목적(광고 성과 측정)을 밝힌다');
+assert.doesNotMatch(a.bannerDetail(4), /Meta/, '시행 전 문구에는 아직 없는 수신자를 적지 않는다');
+assert.match(a.noticeDetail(true, true), /Meta\(미국\)/, '한국 시간대 안내도 시행 뒤에는 Meta 를 밝힌다(미선택에서도 픽셀이 붙는다)');
+assert.doesNotMatch(a.noticeDetail(true, false), /Meta/, '시행 전 안내에는 적지 않는다');
+// 표면 — 첫 화면만. 작품 탐색은 해시에 작품·회차 번호가 실리고 픽셀은 전체 주소를 그대로 보낸다.
+assert.equal(a.metaOn('replix.tv', '/', META_AFTER), true);
+assert.equal(a.metaOn('replix.tv', '/index.html', META_AFTER), true);
+assert.equal(a.metaOn('replix.tv', '/', META_BEFORE), false, '시행일 전 운영에서는 붙이지 않는다');
+for (const p of ['/catalog/', '/catalog', '/discord/', '/invite/', '/together/', '/bye/', '/privacy', '/terms.html']) {
+  assert.equal(a.metaOn('replix.tv', p, META_AFTER), false, `${p}: 픽셀은 첫 화면만`);
+  assert.equal(a.metaOn('localhost', p, 0), false, `${p}: 로컬도 첫 화면만`);
+}
+assert.equal(a.metaOn('localhost', '/', 0), true, '운영이 아닌 곳은 날짜와 무관(로컬은 collecting 의 디버그 표시가 따로 막는다)');
+// 주소·리퍼러 — 픽셀이 그대로 싣는 값에 처리방침 밖의 값이 없을 때만.
+assert.equal(a.metaPageSafe('https://replix.tv', '', ''), true);
+assert.equal(a.metaPageSafe('https://replix.tv', '?utm_source=meta&utm_medium=paid_social&utm_campaign=c', 'https://l.instagram.com/'), true, '광고 캠페인 쿼리·다른 출처 리퍼러는 된다');
+assert.equal(a.metaPageSafe('https://replix.tv', META_AD, 'https://instagram.com/'), true,
+  'Meta 가 자동으로 붙인 utm_term·utm_id 가 있어도 붙는다 — utm_id 가 목록 밖이던 첫날은 광고 방문마다 픽셀이 빠졌다(HP-690)');
+assert.equal(a.metaPageSafe('https://replix.tv', a.stripClickIds(META_AD + '&fbclid=IwAR0TEST').rest, 'https://instagram.com/'), true,
+  '부트가 fbclid 를 지운 뒤의 광고 주소도 붙는다');
+assert.equal(a.metaPageSafe('https://replix.tv', META_AD + '&foo=bar', 'https://instagram.com/'), false, '그 밖의 값이 하나라도 있으면 지금처럼 붙이지 않는다');
+assert.equal(a.metaPageSafe('https://replix.tv', '?utm_source=meta&foo=bar', ''), false, 'utm 밖의 쿼리가 있으면 이 로드는 붙이지 않는다');
+assert.equal(a.metaPageSafe('https://replix.tv', '?utm_source=a&utm_source=b', ''), false, '중복 키도 아니다(campaignQuery 와 글자까지 같아야)');
+assert.equal(a.metaPageSafe('https://replix.tv', '', 'https://replix.tv/bye/?v=1.2.0&d=3'), false, '같은 출처 리퍼러의 쿼리(삭제 설문의 버전·설치 일수)가 rl 로 새지 않게');
+assert.equal(a.metaPageSafe('https://replix.tv', '', 'https://replix.tv/catalog/'), true, '쿼리 없는 같은 출처 리퍼러는 된다(리퍼러에는 해시가 없다)');
+assert.equal(a.metaPageSafe('https://replix.tv', '', 'not a url'), false);
+// 이벤트 대응 — PageView(로드 때 1회)·Lead·SendToPc{action} 만, 속성은 action 하나.
+assert.deepEqual(a.metaEvent('install_cta_clicked', { location: 'hero' }), ['track', 'Lead'], '설치 버튼 클릭 = Lead, 속성(location)은 싣지 않는다');
+for (const action of ['copy_link', 'share', 'mail', 'open_store']) {
+  assert.deepEqual(a.metaEvent('install_guide_action', { action, in_app: 'instagram' }), ['trackCustom', 'SendToPc', { action }],
+    `PC로 보내기(${action}) — in_app 은 싣지 않는다`);
+}
+for (const action of ['opened', 'open_catalog', undefined]) assert.equal(a.metaEvent('install_guide_action', { action }), null, `${action}: PC로 보내기가 아니다`);
+for (const name of ['page_viewed', 'nav_link_clicked', 'section_viewed', 'scroll_depth', 'faq_opened', 'catalog_engaged', 'login_started']) {
+  assert.equal(a.metaEvent(name, { target: 'catalog', location: 'nav' }), null, `${name}: Meta 로 보내지 않는다`);
+}
+// 소스 규칙 — 정적 태그 금지, 자동 설정 끔, 고급 매칭 없음, 거부 처리.
+assert.doesNotMatch(index, /connect\.facebook\.net|fbq\(/, '픽셀도 게이트 뒤 스크립트로만 로드한다(정적 태그 금지)');
+assert.doesNotMatch(read('docs/catalog/index.html'), /connect\.facebook\.net/, '작품 탐색 산출물에 픽셀 금지');
+assert.match(src, /n\.disablePushState = true;[\s\S]{0,200}n\('set', 'autoConfig', false, META_PIXEL_ID\);[\s\S]{0,200}n\('init', META_PIXEL_ID\);/,
+  'init 앞에 자동 설정(autoConfig)·주소 변화 PageView 를 끈다');
+assert.doesNotMatch(src, /'init', META_PIXEL_ID, /, '고급 매칭(init 의 셋째 인자)을 쓰지 않는다');
+assert.match(src, /function ensureMeta\(\) \{\s*if \(_meta !== 'idle' \|\| _metaBlocked \|\| _internal \|\| !collecting\(\) \|\| !metaOn\(/, '픽셀도 collecting() 게이트 뒤');
+assert.match(src, /function revoke\(\) \{[\s\S]*?_metaBlocked = true;[\s\S]{0,160}window\.fbq\('consent', 'revoke'\)/, '철회 시 픽셀 전송 보류·이 페이지에서 다시 부르지 않음');
+assert.match(src, /\/\^_fb\[pc\]\$\//, '철회 시 _fbp·_fbc 쿠키 삭제');
+// 처리방침과 코드의 시행일 — Meta 픽셀 개정(2026-10-20)은 HP-691 개정 뒤로 '이전 개정'이 됐다. 그 시행일이 META_FROM 과 같아야 한다.
+const metaEffective = new Date(a.META_FROM + 9 * 3600 * 1000).toISOString().slice(0, 10);
+assert.match(privacy, new RegExp(`<p class="doc-meta">이전 개정: 공고일 2026-10-20 · 시행일 ${metaEffective} — 웹사이트 첫 화면에 광고 성과 측정 도구인 Meta 픽셀`),
+  `privacy.html 의 Meta 픽셀 개정 시행일이 ${metaEffective} 여야 한다`);
+assert.match(privacy, /<tr><td>Meta Platforms, Inc\./, '6항 국외 이전 표에 Meta');
+assert.match(privacy, /_fbp/, '처리방침이 Meta 쿠키를 밝힌다(자동 수집 장치)');
+assert.match(privacy, /광고 성과 측정 및 광고 노출 최적화\(웹사이트의 Google Analytics·Meta 픽셀 정보\)/, '2항 목적');
+assert.match(privacy, /작품 탐색과 익스텐션에서는 Meta 픽셀을\s+쓰지 않습니다/, '1항 — 픽셀 범위(첫 화면만)');
+
+// ═══ HP-691 Google 광고 클릭 식별값 → GA 페이지 주소에만 ═══════════════════════════════════════
+// 유튜브(Google Ads)가 GA4 전환(설치 버튼 클릭)을 광고 클릭에 이으려면 GA 수집 요청 주소에 gclid 가 있어야 한다.
+// 주소창에서는 지금처럼 지우고(Amplitude 귀속·리플레이·Meta 는 못 본다), 부트가 지우기 전에 받아 둔 Google 것만 GA 에 싣는다.
+assert.deepEqual(a.GA_CLICK_ID_PARAMS, ['gbraid', 'gclid', 'wbraid'], 'Google 광고 클릭 식별값 셋만 — 늘리면 처리방침 1·5·6항 GA 항목도');
+for (const k of a.GA_CLICK_ID_PARAMS) assert.ok(a.CLICK_ID_PARAMS.includes(k), `${k} 는 주소창에서는 여전히 지운다(CLICK_ID_PARAMS)`);
+assert.deepEqual(a.gaClickParts('?gclid=A1&utm_source=youtube&gclid=A2&wbraid=&fbclid=F&gbraid=B%2B1&dclid=D'), ['gclid=A1', 'gbraid=B%2B1'],
+  'Google 것만, 처음 나온 순서·첫 값을 글자 그대로 — 빈 값·dclid·다른 플랫폼 값은 뺀다');
+assert.deepEqual(a.gaClickParts(''), []);
+assert.deepEqual(a.gaClickParts(undefined), []);
+assert.equal(a.gaPage('https://replix.tv', '/', '', '', '?utm_source=youtube&utm_medium=paid_video&gclid=X', ['gclid=X']).page_location,
+  'https://replix.tv/?utm_source=youtube&utm_medium=paid_video&gclid=X', '캠페인 쿼리 뒤에 Google 광고 클릭 식별값');
+assert.equal(a.gaPage('https://replix.tv', '/', '', '', '', ['gclid=X']).page_location, 'https://replix.tv/?gclid=X', 'utm 이 없어도 붙는다');
+assert.equal(a.gaPage('https://replix.tv', '/catalog/', '#/title/123/ep/4', '', '', ['gbraid=Y']).page_location,
+  'https://replix.tv/catalog/?gbraid=Y#/title', '해시 앞에 붙고, 작품·회차 번호는 그대로 빠진다');
+assert.equal(a.gaPage('https://replix.tv', '/', '', '', '?gclid=X').page_location, 'https://replix.tv/',
+  '받아 둔 값(clicks)을 주지 않으면 주소의 gclid 는 싣지 않는다 — 캠페인 쿼리는 여전히 클릭 식별값을 거른다');
+const GCLICK_BEFORE = Date.parse('2026-10-20T23:59:59+09:00');
+assert.equal(a.GA_CLICK_FROM, Date.parse('2026-10-21T00:00:00+09:00'), '시행일 — 바꾸면 privacy.html 머리의 시행일도 같이(아래에서 대조한다)');
+assert.equal(a.gaClickOn('replix.tv', GCLICK_BEFORE), false, '시행일 전 운영에서는 받아 두지 않는다');
+assert.equal(a.gaClickOn('replix.tv', a.GA_CLICK_FROM), true);
+assert.equal(a.gaClickOn('localhost', 0), true, '운영이 아닌 곳은 날짜와 무관(로컬은 collecting 의 디버그 표시가 따로 막는다)');
+assert.match(src, /if \(gaClickOn\(location\.hostname, Date\.now\(\)\)\) _gaClick = gaClickParts\(f\.rest\);\s*var c = stripClickIds\(f\.rest\);/,
+  '주소에서 지우기 바로 전에 받아 둔다(부트 첫 줄 — SDK·리플레이·픽셀이 붙기 전)');
+const gclickEffective = new Date(a.GA_CLICK_FROM + 9 * 3600 * 1000).toISOString().slice(0, 10);
+assert.match(privacy, new RegExp(`<p class="doc-meta">공고일 2026-10-21, 시행일 ${gclickEffective}</p>\\s*<p class="doc-meta">이번 개정은 웹사이트에 Google 광고`),
+  `privacy.html 머리의 지금 개정 시행일이 ${gclickEffective} 여야 한다`);
+assert.match(privacy, /Google 광고를 눌러 들어온 경우 그 광고 클릭\s+식별값/, '1항 GA 수집 항목');
+assert.match(privacy, /Google Analytics: 기기 식별값·방문 페이지·Google 광고 클릭 식별값·이벤트/, '5항 처리 위탁 표');
+assert.match(privacy, /Google 광고 클릭\s+식별값\(Google 광고로 들어온 경우\)/, '6항 국외 이전 표');
+
+// ═══ HP-697 웹 스토어 링크 캠페인 ═══════════════════════════════════════════════════
+// 스토어 자체 GA4 는 설치를 스토어 주소의 utm 으로 귀속한다 — 랜딩을 거친 설치가 모두 'replix.tv / hero · (referral)' 로 뭉쳐 어느 광고가
+// 설치를 낳았는지 가를 수 없었다. 광고로 온 방문이면 utm_campaign = <utm_source>.<utm_campaign>.<utm_content>(자리 고정)를 싣고,
+// utm_source=replix.tv·utm_medium=<위치> 는 그대로 둔다. utm_term·utm_id·광고 클릭 식별값은 스토어 주소로 가지 않는다.
+const STORE_HERO = `${STORE_BASE}?utm_source=replix.tv&utm_medium=hero`;
+const YT_AD = '?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_pc_1022&utm_content=d30&gclid=G1&gad_source=1&gad_campaignid=2233';
+const META_AD_CLICK = META_AD + '&fbclid=IwAR0TEST';
+assert.deepEqual(a.STORE_CAMPAIGN_PARAMS, ['utm_source', 'utm_campaign', 'utm_content'], '세 키만 이름으로 골라 읽는다 — 목록 밖 값은 어떤 경로로도 실리지 않는다');
+assert.equal(a.storeCampaign(YT_AD), 'youtube.yt_pc_1022.d30', '유튜브 광고 — Google 이 붙인 gclid·gad_* 는 싣지 않는다');
+assert.equal(a.storeCampaign(META_AD_CLICK), 'meta.reels_1021.d', 'Meta 광고 — 자동으로 붙는 utm_term·utm_id 와 fbclid 는 싣지 않는다');
+for (const v of ['52582296118776', '52582296118976', 'IwAR0TEST', 'paid_social', 'utm_term', 'utm_id', 'fbclid']) {
+  assert.ok(!a.storeHref(STORE_HERO, a.storeCampaign(META_AD_CLICK)).includes(v), `${v}: 스토어 주소로 가지 않는다`);
+}
+for (const v of ['gclid', 'G1', 'gad_', '2233', 'paid_video']) assert.ok(!a.storeHref(STORE_HERO, a.storeCampaign(YT_AD)).includes(v), `${v}: 스토어 주소로 가지 않는다`);
+assert.equal(a.storeCampaign('?utm_source=instagram&utm_medium=profile&utm_content=link_in_bio'), 'instagram..link_in_bio',
+  '캠페인이 없으면 그 자리를 비워 둔다 — 자리가 고정이라 link_in_bio 가 캠페인이 아니라 광고 소재(content)임을 값만 보고 안다');
+assert.equal(a.storeCampaign('?utm_source=youtube&utm_campaign=yt_pc_1022'), 'youtube.yt_pc_1022', '뒤쪽 빈 자리는 뺀다');
+assert.equal(a.storeCampaign('?utm_source=youtube&utm_content='), 'youtube');
+assert.equal(a.storeCampaign('?utm_campaign=x&utm_content=y'), '', 'utm_source 가 없으면 싣지 않는다');
+for (const q of ['', '?', '?foo=bar', '?w=81234567&t=SECRET', '?gclid=G1&fbclid=F1', '?replix_internal=1', undefined]) {
+  assert.equal(a.storeCampaign(q), '', `${q}: 광고로 오지 않은 방문 — 링크는 그대로`);
+}
+assert.equal(a.storeCampaign('?utm_source=youtube&utm_source=meta&utm_campaign=a&utm_campaign=b'), 'youtube.a', '같은 키는 첫 값만(campaignQuery 와 같다)');
+// 거르기 — 자리마다 영문·숫자·_·- 만, 32자까지. 풀어서 거르므로 %26·%3D·%23 으로 싼 &·=·# 로 키를 끼워 넣지 못한다.
+const evil = a.storeCampaign('?utm_source=you%3Cscript%3Etube&utm_campaign=x%26utm_source%3Dhack%23frag&utm_content=' + 'A'.repeat(500));
+assert.equal(evil, 'youscripttube.xutm_sourcehackfrag.' + 'A'.repeat(32));
+assert.match(evil, /^[A-Za-z0-9_.-]+$/);
+for (const part of evil.split('.')) assert.ok(part.length <= a.STORE_PART_MAX, '자리마다 32자까지');
+const evilUrl = new URL(a.storeHref(STORE_HERO, evil));
+assert.deepEqual([...evilUrl.searchParams.keys()], ['utm_source', 'utm_medium', 'utm_campaign'], '끼워 넣은 키가 생기지 않는다');
+assert.equal(evilUrl.searchParams.get('utm_source'), 'replix.tv');
+assert.equal(evilUrl.hash, '');
+assert.equal(a.storeCampaign('?utm_source=a.b&utm_campaign=fall+sale&utm_content=%EA%B0%80%EC%9D%84'), 'ab.fallsale',
+  '마침표(자리 구분자)·공백·한글은 빠지고, 걸러서 빈 자리는 빈 자리로');
+assert.equal(a.storeCampaign('?utm_source=%EC%9D%B8%EC%8A%A4%ED%83%80&utm_campaign=c'), '', '걸러서 utm_source 가 비면 싣지 않는다');
+assert.equal(a.storeCampaign('?utm_source=%E0%A4%A&utm_campaign=c'), 'A.c', '깨진 %-인코딩도 던지지 않고 거른다');
+assert.ok(a.storeCampaign(`?utm_source=${'a'.repeat(99)}&utm_campaign=${'b'.repeat(99)}&utm_content=${'c'.repeat(99)}`).length <= 98,
+  '합쳐도 98자 — GA4 이벤트 매개변수 값 한도(100자) 안');
+// 같은 출처 리퍼러 — 첫 화면(utm) → 작품 탐색·/discord/ 처럼 한 번 옮기면 주소의 utm 은 사라지고 리퍼러에 남는다. 저장소는 쓰지 않는다.
+assert.equal(a.storeCampaign('', 'https://replix.tv/' + META_AD, 'https://replix.tv'), 'meta.reels_1021.d', '같은 출처 리퍼러의 캠페인');
+assert.equal(a.storeCampaign(YT_AD, 'https://replix.tv/' + META_AD, 'https://replix.tv'), 'youtube.yt_pc_1022.d30', '지금 주소가 먼저');
+assert.equal(a.storeCampaign('', 'https://blog.example.com/?utm_source=newsletter&utm_campaign=x', 'https://replix.tv'), '',
+  '다른 출처 리퍼러는 그 사이트 자신의 캠페인이다 — 보지 않는다');
+assert.equal(a.storeCampaign('', 'https://replix.tv/catalog/', 'https://replix.tv'), '');
+assert.equal(a.storeCampaign('', 'https://replix.tv/bye/?v=1.2.0&d=3', 'https://replix.tv'), '', '같은 출처라도 utm 이 없으면 없다');
+assert.equal(a.storeCampaign('', 'not a url', 'https://replix.tv'), '');
+// 링크 주소 — utm_source·utm_medium 은 원래 글자 그대로, utm_campaign 만 바꾸거나 맨 뒤에 하나 더한다.
+assert.equal(a.storeHref(STORE_HERO, 'youtube.yt_pc_1022.d30'), STORE_HERO + '&utm_campaign=youtube.yt_pc_1022.d30');
+assert.equal(a.storeHref(a.storeHref(STORE_HERO, 'meta.reels_1021.d'), 'meta.reels_1021.d'), STORE_HERO + '&utm_campaign=meta.reels_1021.d',
+  '여러 번 눌러도 utm_campaign 은 하나');
+assert.equal(a.storeHref(STORE_HERO + '&utm_campaign=old&utm_campaign=older', 'youtube.x'), STORE_HERO + '&utm_campaign=youtube.x', '이미 있던 utm_campaign 은 바꾼다');
+assert.equal(a.storeHref(STORE_HERO, ''), STORE_HERO, '광고로 오지 않았으면 지금 그대로');
+for (const bad of ['a&b=c', 'a b', 'x'.repeat(101), undefined, null]) assert.equal(a.storeHref(STORE_HERO, bad), STORE_HERO, `형식 밖 값(${bad})은 싣지 않는다`);
+for (const other of ['https://replix.tv/catalog/', '/catalog/', 'https://example.com/?utm_source=replix.tv', STORE_BASE,
+  `${STORE_BASE}?utm_source=other&utm_medium=hero`, 'https://www.themoviedb.org/', 'mailto:help@replix.tv', '', undefined]) {
+  assert.equal(a.storeHref(other, 'youtube.x'), String(other ?? ''), `${other}: 우리 스토어 링크(utm_source=replix.tv)가 아니면 그대로`);
+}
+assert.equal(a.storeHref(storeUrl('catalog_feedback', '/reviews'), 'meta.r'),
+  `${STORE_BASE}/reviews?utm_source=replix.tv&utm_medium=catalog_feedback&utm_campaign=meta.r`, '작품 탐색 링크(storeUrl)도 같다');
+assert.equal(a.storeHref(STORE_HERO + '#reviews', 'meta.r'), STORE_HERO + '&utm_campaign=meta.r#reviews', '해시는 뒤에 그대로');
+// 소스 규칙 — 동의 분기 밖에서 부트가 잇고, 캠페인을 브라우저에 저장하지 않는다.
+assert.match(src, /\n  try \{ wireStoreLinks\(\); \} catch \(_\) \{/, '부트가 스토어 링크를 잇는다 — 동의 분기 밖(동의와 무관), 실패해도 계측 부트를 막지 않는다');
+assert.match(src, /_storeCampaign = storeCampaign\(location\.search, document\.referrer, location\.origin\);/, '지금 주소, 없으면 같은 출처 리퍼러');
+assert.match(src, /\['pointerdown', 'click', 'contextmenu'\]\.forEach\(function \(type\) \{\s*document\.addEventListener\(type, [\s\S]{0,140}\}, true\);/,
+  '누르는 순간(capture)에도 — 부트 뒤에 그려진 작품 탐색 링크');
+assert.doesNotMatch(src, /sessionStorage\./, '캠페인을 브라우저 저장소에 남기지 않는다(HP-697 — 광고 성과 측정용 저장은 수집 게이트·처리방침 뒤에만)');
+
+// 부트한 모듈로 확인 — 작은 브라우저 흉내 위에서 analytics.js 를 실제로 띄워 픽셀 스크립트 주입과 fbq 호출(큐)을 본다.
+// fbevents.js 는 실제로 받지 않으므로 fbq 호출은 Meta 공식 큐(fbq.queue)에 그대로 남는다.
+{
+  const realNow = Date.now, realDTF = Intl.DateTimeFormat;
+  const KEYS = ['window', 'document', 'location', 'history', 'localStorage', 'addEventListener', 'dispatchEvent', 'innerWidth',
+    'fbq', '_fbq', 'dataLayer', 'gtag', 'amplitude', 'ReplixAnalytics'];
+  let n = 0;
+  // links = 문서에 이미 있는 <a> 흉내(fakeLink) — querySelectorAll 이 돌려준다. 문서 이벤트 처리기는 모아 두었다가 fire 로 부른다.
+  const bootCase = async ({ host = 'replix.tv', path = '/', search = '', referrer = '', consent = null, tz = 'Asia/Seoul', now = META_AFTER, internal = false, links = [] }) => {
+    for (const k of KEYS) delete globalThis[k];
+    const scripts = [];
+    const listeners = {};
+    const el = () => ({ style: {}, setAttribute() {}, addEventListener() {}, querySelector: () => el(), appendChild() {} });
+    const store = {};
+    Object.defineProperties(store, {
+      getItem: { value: (k) => (k in store ? store[k] : null) },
+      setItem: { value: (k, v) => { store[k] = String(v); } },
+      removeItem: { value: (k) => { delete store[k]; } },
+    });
+    if (consent) store[a.CONSENT_KEY] = JSON.stringify({ decision: consent, version: a.consentVersion(host, now) });
+    if (internal) store[a.INTERNAL_KEY] = '1';
+    let cookies = '_fbp=fb.1.1.1; AMP_x=1; other=1';
+    Object.assign(globalThis, {
+      window: globalThis, localStorage: store, innerWidth: 1440,
+      location: { hostname: host, pathname: path, search, hash: '', origin: `https://${host}`, protocol: 'https:' },
+      history: { state: null, replaceState(_s, _t, url) { const u = new URL(url, `https://${host}`); globalThis.location.search = u.search; globalThis.location.hash = u.hash; } },
+      addEventListener() {}, dispatchEvent() {},
+      document: {
+        referrer,
+        get cookie() { return cookies; },
+        set cookie(v) { if (/Max-Age=0/.test(v)) { const name = v.split('=')[0]; cookies = cookies.split('; ').filter((c) => !c.startsWith(name + '=')).join('; '); } },
+        createElement: () => el(),
+        head: { appendChild: (s) => { if (s.src) scripts.push(s.src); } },
+        body: { appendChild() {} },
+        querySelectorAll: (sel) => links.filter((l) => l.closest(sel) === l),
+        addEventListener(type, fn) { (listeners[type] = listeners[type] || []).push(fn); },
+      },
+    });
+    Date.now = () => now;
+    Intl.DateTimeFormat = function () { return { resolvedOptions: () => ({ timeZone: tz }) }; };
+    try { await import(`../docs/js/analytics.js?boot=${++n}`); } finally { Date.now = realNow; Intl.DateTimeFormat = realDTF; }
+    const calls = () => (globalThis.fbq ? globalThis.fbq.queue.map((args) => Array.from(args)) : []);
+    const withNow = (fn) => { Date.now = () => now; Intl.DateTimeFormat = function () { return { resolvedOptions: () => ({ timeZone: tz }) }; }; try { fn(); } finally { Date.now = realNow; Intl.DateTimeFormat = realDTF; } };
+    const fire = (type, target) => (listeners[type] || []).forEach((fn) => fn({ type, target, preventDefault() {} }));
+    return { scripts, calls, withNow, fire, cookies: () => cookies, api: globalThis.ReplixAnalytics };
+  };
+  // <a> 흉내 — closest 는 이 링크 하나만 본다(부모 없음). 스토어 링크 고르개(a[href*="…"])는 href 글자로 맞춘다.
+  const fakeLink = (href, attrs = {}) => {
+    const at = { href, ...attrs };
+    return {
+      getAttribute: (k) => (k in at ? at[k] : null),
+      setAttribute: (k, v) => { at[k] = String(v); },
+      closest(sel) {
+        const m = /^\[([a-z-]+)\]$/.exec(sel) || [];
+        if (m[1]) return m[1] in at ? this : null;
+        const h = /^a\[href\*="([^"]+)"\]$/.exec(sel);
+        return h && String(at.href).includes(h[1]) ? this : null;
+      },
+    };
+  };
+  const gaEvents = (name) => (globalThis.dataLayer || []).filter((x) => x[0] === 'event' && x[1] === name).map((x) => x[2]);
+  const pixelLoaded = (c) => c.scripts.includes(a.META_URL);
+  const INIT = [['set', 'autoConfig', false, a.META_PIXEL_ID], ['init', a.META_PIXEL_ID], ['track', 'PageView']];
+
+  // 한국 시간대 첫 화면 미선택(옵트아웃) — GA 와 같이 붙고, init 앞에 자동 설정을 끈다.
+  let c = await bootCase({});
+  assert.ok(pixelLoaded(c), '한국 시간대 첫 화면 미선택 = GA 와 같이 픽셀도 붙는다');
+  assert.equal(globalThis.fbq.disablePushState, true);
+  assert.deepEqual(c.calls(), INIT, '자동 설정 끔 → init(고급 매칭 없음) → PageView 1회');
+  c.withNow(() => {
+    c.api.track('install_cta_clicked', { location: 'hero' });
+    c.api.track('install_guide_action', { action: 'share', in_app: 'kakaotalk' });
+    c.api.track('install_guide_action', { action: 'opened', in_app: 'none' });
+    c.api.track('nav_link_clicked', { target: 'catalog', location: 'nav' });
+    c.api.track('section_viewed', { section: 'faq' });
+  });
+  assert.deepEqual(c.calls().slice(INIT.length), [['track', 'Lead'], ['trackCustom', 'SendToPc', { action: 'share' }]],
+    '보내는 것은 Lead·SendToPc{action} 뿐 — 다른 이벤트·속성은 Meta 로 가지 않는다');
+  // 같은 페이지에서 거부 — 전송 보류를 걸고, 그 뒤로는 부르지 않으며, _fbp 를 지운다.
+  c.withNow(() => {
+    c.api.setConsent('denied');
+    c.api.track('install_cta_clicked', { location: 'close' });
+    c.api.setConsent('granted');
+    c.api.track('install_cta_clicked', { location: 'close' });
+  });
+  assert.deepEqual(c.calls().slice(INIT.length + 2), [['consent', 'revoke']], '거부 뒤에는 consent revoke 하나뿐 — 같은 페이지 재허용에도 다시 켜지 않는다');
+  assert.doesNotMatch(c.cookies(), /_fbp=/, '거부하면 _fbp 쿠키를 지운다');
+  assert.equal(c.scripts.filter((s) => s === a.META_URL).length, 1, '재허용해도 픽셀 스크립트를 다시 주입하지 않는다');
+
+  // 거부했으면 어디서도 붙지 않는다 — 한국 시간대여도.
+  c = await bootCase({ consent: 'denied' });
+  assert.ok(!pixelLoaded(c) && !globalThis.fbq, '거부 = 픽셀 스크립트·fbq 없음');
+  c.withNow(() => c.api.track('install_cta_clicked', { location: 'hero' }));
+  assert.equal(globalThis.fbq, undefined, '거부 뒤 설치 클릭도 픽셀을 붙이지 않는다');
+  // 옵트인 지역 미선택 — 허용 전에는 없고, 허용하면 그때 붙는다.
+  c = await bootCase({ tz: 'Europe/Berlin' });
+  assert.ok(!pixelLoaded(c), '옵트인 지역 미선택 = 없음');
+  c.withNow(() => c.api.setConsent('granted'));
+  assert.ok(pixelLoaded(c), '[허용]하면 붙는다');
+  assert.deepEqual(c.calls(), INIT, '허용 직후 PageView 1회');
+  c = await bootCase({ tz: 'Europe/Berlin', consent: 'granted' });
+  assert.ok(pixelLoaded(c), '이미 허용한 방문자(지금 버전)');
+  c = await bootCase({ tz: 'Europe/Berlin', consent: 'granted', now: META_BEFORE });
+  assert.ok(!pixelLoaded(c), '시행일 전 운영 — 허용했어도 아직 없음');
+  assert.ok(c.scripts.some((s) => s.startsWith(a.GA_URL)), '(GA 는 그대로 붙는다 — 시행일만 다르다)');
+  // 첫 화면 밖은 허용했어도 없다.
+  for (const path of ['/catalog/', '/discord/']) {
+    c = await bootCase({ path, consent: 'granted' });
+    c.withNow(() => c.api.track('install_cta_clicked', { location: 'catalog_nav' }));
+    assert.ok(!pixelLoaded(c) && !globalThis.fbq, `${path}: 픽셀 없음(설치 클릭이 있어도)`);
+  }
+  // 로컬은 디버그 표시 없이는 없고, 팀 브라우저는 보내지 않고, 처리방침 밖의 쿼리·리퍼러가 있으면 그 로드는 건너뛴다.
+  c = await bootCase({ host: 'localhost', consent: 'granted' });
+  assert.ok(!pixelLoaded(c), '로컬 = 디버그 표시 없이는 없음(sendAllowed)');
+  c = await bootCase({ internal: true });
+  assert.ok(!pixelLoaded(c), '팀 브라우저 표시 = 없음(Meta 에는 내부 트래픽 필터가 없다)');
+  assert.ok(c.scripts.some((s) => s.startsWith(a.GA_URL)), '(팀 브라우저도 GA 는 표시만 하고 보낸다)');
+  c = await bootCase({ search: '?utm_source=meta&ref=x' });
+  assert.ok(!pixelLoaded(c), 'utm 밖의 쿼리가 있는 로드는 건너뛴다');
+  c = await bootCase({ referrer: 'https://replix.tv/bye/?v=1.2.0&d=3' });
+  assert.ok(!pixelLoaded(c), '같은 출처 리퍼러에 쿼리가 있는 로드는 건너뛴다');
+  // HP-691 — Google 광고 클릭 식별값은 GA 페이지 주소에만. 주소창은 지워져 픽셀(dl)·Amplitude 귀속은 보지 못한다.
+  const gaConfig = () => { const e = (globalThis.dataLayer || []).find((x) => x[0] === 'config'); return e ? e[2] : null; };
+  const AD_YT = '?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_1022&gclid=G1&fbclid=F1&wbraid=W1';
+  const YT_KEPT = '?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_1022';
+  c = await bootCase({ search: AD_YT, now: a.GA_CLICK_FROM });
+  assert.equal(globalThis.location.search, YT_KEPT, '주소창에서는 광고 클릭 식별값을 모두 지운다 — Amplitude 귀속·리플레이가 보는 주소');
+  assert.equal(gaConfig().page_location, 'https://replix.tv/' + YT_KEPT + '&gclid=G1&wbraid=W1',
+    'GA config 의 page_location 에만 Google 것(gclid·wbraid)이 실린다 — fbclid 는 없다');
+  assert.ok(pixelLoaded(c), '지워진 주소라 픽셀도 붙는다(픽셀의 dl 에는 gclid 가 없다)');
+  c.withNow(() => c.api.page({}));
+  const pageSets = globalThis.dataLayer.filter((x) => x[0] === 'set' && x[1] && x[1].page_location);
+  assert.equal(pageSets[pageSets.length - 1][1].page_location, 'https://replix.tv/' + YT_KEPT + '&gclid=G1&wbraid=W1', 'page_view 의 page_location 에도 같은 값');
+  c = await bootCase({ search: AD_YT, now: Date.parse('2026-10-20T12:00:00+09:00') });
+  assert.equal(gaConfig().page_location, 'https://replix.tv/' + YT_KEPT, '처리방침 시행일 전 운영에서는 GA 에도 싣지 않는다');
+  assert.equal(globalThis.location.search, YT_KEPT, '(주소창은 그 전에도 지운다 — HP-628)');
+  c = await bootCase({ search: AD_YT, now: a.GA_CLICK_FROM, consent: 'denied' });
+  assert.equal(gaConfig(), null, '거부하면 GA 자체가 없다 — 받아 둔 값도 어디로도 가지 않는다');
+
+  // HP-697 — 스토어 링크 캠페인은 부트가 잇는다(동의와 무관). 설치 계측(install_cta_clicked → GA·Meta Lead)은 지금처럼 간다.
+  // ① Meta 광고로 온 첫 화면(한국 시간대 미선택) — 부트 때 문서의 스토어 링크를 바꾼다.
+  const hero = fakeLink(STORE_HERO, { 'data-cta': 'hero' });
+  const tmdb = fakeLink('https://www.themoviedb.org/', { 'data-link': 'tmdb', 'data-link-loc': 'footer' });
+  c = await bootCase({ search: META_AD_CLICK, links: [hero, tmdb] });
+  assert.equal(hero.getAttribute('href'), STORE_HERO + '&utm_campaign=meta.reels_1021.d',
+    '부트 때 바꾼다 — 가운데 클릭·오른쪽 메뉴·끌어 놓기로 따라가도 같은 주소');
+  assert.equal(tmdb.getAttribute('href'), 'https://www.themoviedb.org/', '스토어 링크가 아니면 그대로');
+  assert.equal(globalThis.location.search, META_AD, '(주소창은 지금처럼 — fbclid 만 지우고 utm 은 남는다)');
+  const before = c.calls().length;
+  c.withNow(() => { c.fire('pointerdown', hero); c.fire('click', hero); c.fire('click', hero); });
+  assert.equal(hero.getAttribute('href'), STORE_HERO + '&utm_campaign=meta.reels_1021.d', '여러 번 눌러도 utm_campaign 은 하나');
+  assert.deepEqual(c.calls().slice(before), [['track', 'Lead'], ['track', 'Lead']], 'install_cta_clicked → Meta Lead 는 지금처럼(클릭마다)');
+  assert.deepEqual(gaEvents('install_cta_clicked').map((p) => p.location), ['hero', 'hero'], 'GA 로 가는 install_cta_clicked{location} 도 그대로');
+  // 부트 뒤에 그려진 링크(작품 탐색의 React 화면 등) — 누르는 순간(capture) 이동 전에 바꾼다.
+  for (const type of ['pointerdown', 'click', 'contextmenu']) {
+    const late = fakeLink(storeUrl('close'), { 'data-cta': 'close' });
+    c.withNow(() => c.fire(type, late));
+    assert.equal(late.getAttribute('href'), storeUrl('close') + '&utm_campaign=meta.reels_1021.d', `${type}: 부트 뒤에 생긴 링크도 이동 전에`);
+  }
+  // ② utm 없는 방문 — 링크는 지금 그대로, 설치 계측도 그대로.
+  const plain = fakeLink(STORE_HERO, { 'data-cta': 'hero' });
+  c = await bootCase({ links: [plain] });
+  c.withNow(() => { c.fire('pointerdown', plain); c.fire('click', plain); });
+  assert.equal(plain.getAttribute('href'), STORE_HERO, '광고로 오지 않았으면 링크는 지금 그대로');
+  assert.deepEqual(c.calls().slice(INIT.length), [['track', 'Lead']], '설치 계측은 지금처럼');
+  assert.deepEqual(gaEvents('install_cta_clicked').map((p) => p.location), ['hero']);
+  // ③ 거부해도 링크 주소는 같다 — 계측이 아니라 링크 주소다(우리 쪽 요청·브라우저 저장 없음). 유튜브 광고의 gclid·gad_* 는 싣지 않는다.
+  const ytHero = fakeLink(STORE_HERO, { 'data-cta': 'hero' });
+  c = await bootCase({ search: YT_AD, consent: 'denied', links: [ytHero] });
+  assert.equal(ytHero.getAttribute('href'), STORE_HERO + '&utm_campaign=youtube.yt_pc_1022.d30', '거부한 방문도 링크 주소는 같다');
+  c.withNow(() => c.fire('click', ytHero));
+  assert.ok(!globalThis.dataLayer && !globalThis.fbq, '(거부 — 계측은 지금처럼 아무것도 보내지 않는다)');
+  // ④ 첫 화면(utm) → 작품 탐색 — 주소의 utm 은 사라지고 같은 출처 리퍼러에 남는다. 부트 뒤에 그려진 링크를 누르는 순간 바꾼다.
+  c = await bootCase({ path: '/catalog/', referrer: 'https://replix.tv/' + META_AD });
+  const nav = fakeLink(storeUrl('catalog_nav'), { 'data-cta': 'catalog_nav' });
+  c.withNow(() => { c.fire('pointerdown', nav); c.fire('click', nav); });
+  assert.equal(nav.getAttribute('href'), storeUrl('catalog_nav') + '&utm_campaign=meta.reels_1021.d', '작품 탐색 링크 — 같은 출처 리퍼러의 캠페인');
+  assert.deepEqual(gaEvents('install_cta_clicked').map((p) => p.location), ['catalog_nav'], '작품 탐색 설치 계측도 그대로');
+  c = await bootCase({ path: '/catalog/', referrer: 'https://l.instagram.com/' });
+  const nav2 = fakeLink(storeUrl('catalog_nav'), { 'data-cta': 'catalog_nav' });
+  c.withNow(() => c.fire('click', nav2));
+  assert.equal(nav2.getAttribute('href'), storeUrl('catalog_nav'), '다른 출처에서 바로 온 작품 탐색 — 그대로');
+  for (const k of KEYS) delete globalThis[k];
+}
 
 console.log('scripts/test-analytics.mjs: 통과');

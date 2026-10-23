@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v22 (Amplitude + Google Analytics)
+# replix.tv 웹 — 트래킹 플랜 v26 (Amplitude + Google Analytics + Meta 픽셀)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -12,7 +12,7 @@
 > **랜딩**은 2026-10-10 부터 미선택이어도(§9·§11), 작품 탐색·해외는 허용 뒤에만. 거부는 어디서나 no-op 이며, 거부·철회하면
 > 쿠키·미전송 큐·녹화를 지운다. 옵트아웃·리플레이·배너는 처리방침이 밝힌 두 표면(첫 화면 `/`·작품 탐색)에서만이고, `/discord/` 는
 > 이미 허용한 방문자의 설치·봇 추가 클릭만 보낸다(§11). **로컬 호스트는 디버그 표시 없이는 보내지 않고, 팀 브라우저는 `traffic_type=internal`
-> 로 표시만 한다**(§5·§7, HP-615).
+> 로 표시만 한다**(§5·§7, HP-615). **Meta 픽셀**은 같은 게이트 뒤에 첫 화면 `/` 에서만, 운영 2026-10-20 부터(§13, HP-542).
 
 ## 0. 왜 문서가 먼저인가
 
@@ -43,7 +43,7 @@
 | **우리 `contentId`·`episodeId`** | 공개 카탈로그라도 기기와 묶이면 "무엇을 봤나"가 된다. 인기 작품은 서버 로그·DB 로 답한다 |
 | **검색어** | 검색어는 곧 작품명이다 |
 | **IP 기반 위치** | 처리방침 수집 항목에 IP 가 없다. `trackingOptions.ipAddress = false`. 익스텐션(HTTP API)도 `ip` 를 싣지 않아 위치가 안 잡힌다 — 웹을 그 수준에 맞춘다 |
-| 전체 URL(쿼리·해시 원문) | `/invite?w=..&t=<토큰>`, `/catalog/#/title/<id>` — SDK 자동 페이지뷰·URL 보강을 끄고 `page_path` 를 직접 정제한다(§7). 예외 하나: GA `page_location` 의 **광고 캠페인 쿼리**(`utm_*` 다섯, §10) — 우리가 광고 주소에 붙이는 캠페인 단위 값이라 방문자를 가리키지 않는다. 광고 클릭 식별값(`gclid`·`gbraid`·`wbraid`·`fbclid` — 광고 플랫폼이 클릭마다 붙이는 값)은 처리방침이 밝힌 GA 수집 항목('방문한 페이지(작품·회차 번호를 뺀 경로)') 밖이라 남기지 않는다(HP-615). 2026-10-14 부터는 부트 때 주소에서 아예 지워(`CLICK_ID_PARAMS` 11종, `stripClickIds`) Amplitude 귀속·GA·리플레이 모두 보지 못한다 — Amplitude 웹 귀속이 이 값을 사용자 속성으로 보내고 있었다(HP-628) |
+| 전체 URL(쿼리·해시 원문) | `/invite?w=..&t=<토큰>`, `/catalog/#/title/<id>` — SDK 자동 페이지뷰·URL 보강을 끄고 `page_path` 를 직접 정제한다(§7). 예외 하나: GA `page_location` 의 **광고 캠페인 쿼리**(`utm_*` 다섯, §10) — 우리가 광고 주소에 붙이는 캠페인 단위 값이라 방문자를 가리키지 않는다. 광고 클릭 식별값(`gclid`·`gbraid`·`wbraid`·`fbclid` — 광고 플랫폼이 클릭마다 붙이는 값)은 처리방침이 밝힌 GA 수집 항목('방문한 페이지(작품·회차 번호를 뺀 경로)') 밖이라 남기지 않는다(HP-615). 2026-10-14 부터는 부트 때 주소에서 아예 지워(`CLICK_ID_PARAMS` 11종, `stripClickIds`) Amplitude 귀속·리플레이·Meta 픽셀은 보지 못한다 — Amplitude 웹 귀속이 이 값을 사용자 속성으로 보내고 있었다(HP-628). 예외 하나: **Google 것 셋(`gclid`·`gbraid`·`wbraid`)은 지우기 전에 받아 두었다가 GA `page_location` 에만** 싣는다(2026-10-21 처리방침 개정부터, §10, HP-691) |
 
 > `/invite`·`/together` 는 **계측하지 않는다.** 쿼리에 초대·연결 토큰이 실리고(README 계약 "분석 도구로 보내지 않는다"·"계측 없음"),
 > 주소와 화면(초대의 '넷플릭스에서 열기' 링크, 링크 복사 칸)에 토큰이 있어 녹화·GA 향상된 측정(바깥 링크 클릭의 `link_url`)에 실릴 수 있다. 설치 버튼은 스토어 링크의
@@ -55,13 +55,13 @@
 | 항목 | 값 |
 | --- | --- |
 | UI | 하단 고정 배너(`docs/js/analytics.js` `showBanner`). 랜딩·카탈로그 공통 — 스타일을 JS 가 들고 다닌다(두 표면의 CSS 체계가 다르다). **두 층**(HP-585, 2026-10-12): 늘 보이는 요약(`noticeText`·`bannerText`, 70자 이하 — 무엇·어디로(미국)·허용이 더하는 것) + [자세히]를 누르면 배너 안에서 펼쳐지는 세부(`noticeDetail`·`bannerDetail` — 받는 곳 이름·항목·가리는 것·거부의 효과)와 처리방침 링크. [거부]는 [허용]과 같은 크기·같은 채움. 접힌 높이는 휴대폰 390×664 에서 70px(11%) — 전문을 다 보이던 종전 배너는 202px(30%)였다 |
-| 저장 | `localStorage.replix_web_analytics_consent_v1 = { decision: 'granted'|'denied', decidedAt, version }` — 지금 유효한 버전은 `consentVersion()`(운영은 2026-10-01 전 1, 그 뒤 **4** · 로컬은 항상 4. 2·3 은 리플레이·GA 를 따로 시행하려던 계획의 값으로 남아 있다 — 같은 날 4 로 묶여 운영에서 유효한 적은 없다) |
+| 저장 | `localStorage.replix_web_analytics_consent_v1 = { decision: 'granted'|'denied', decidedAt, version }` — 지금 유효한 버전은 `consentVersion()`(운영은 2026-10-01 전 1, 2026-10-21 전 4, 그 뒤 **5** · 로컬은 항상 5. 2·3 은 리플레이·GA 를 따로 시행하려던 계획의 값으로 남아 있다 — 같은 날 4 로 묶여 운영에서 유효한 적은 없다) |
 | 미선택 | **한국 시간대, 두 표면 모두**(첫 화면 `/`·작품 탐색 — `fullSurface()`, 운영 2026-10-01~, §11): 안내 배너 + SDK·GA 로드, 이벤트 수집(리플레이는 §9). **그 밖**: 동의 요청 배너, SDK·쿠키·요청 0건. **그 밖의 페이지(`/discord/`)**: 시간대와 무관하게 배너도 요청도 없다 — 이미 허용한 방문자만 설치·봇 추가 클릭을 보낸다(HP-615·HP-671) |
 | 거부 | 배너 숨김. SDK·쿠키·요청 0건. **거부는 버전이 바뀌어도 계속 존중**(`parseConsent`) — 옵트아웃에서 옛 거부가 풀리면 거부한 사람을 수집하게 된다 |
 | 허용 | SDK 스크립트 주입 → (랜딩이면 리플레이 플러그인 주입·부착, §9) → `init` → 큐 flush · GA `gtag.js` 주입(§10) → 현재 페이지 `page_viewed`(GA 는 `page_view`) 1회 |
 | 철회 | 푸터 '분석 설정'(`[data-analytics-settings]`) → 배너 재표시 → 거부 시 리플레이 플러그인 제거 + `setOptOut(true)` + `AMP_*` 쿠키·`AMP_*` localStorage·`AMP_*` IndexedDB 삭제(IndexedDB 는 SDK 가 연결을 쥐고 있어 페이지를 떠날 때 실제로 지워진다). 거부 뒤에는 SDK 의 묶음 전송도 나가지 않는다 — `setOptOut` 은 새 이벤트만 막아 이미 메모리 큐에 든 묶음이 1초 뒤 그대로 나갔으므로(2026-10-14 실측), 보내는 순간 수집 상태를 다시 보는 관문(`gateTransport`, 플러그인 `replix-send-gate`)이 막는다(HP-628) |
 | 재허용 | 같은 페이지에서 거부 뒤 다시 허용하면 `setOptOut(false)` + `reset()` — **새 device_id**. 철회 전 식별값과 이어지지 않는다. 리플레이도 새 식별자로 다시 붙는다. **옵트아웃 수집 중 허용**은 철회가 아니므로 device_id 그대로, 리플레이만 더한다(`_revoked`) |
-| 버전 | `version` 이 바뀌면 다시 묻는다(범위·받는 곳이 바뀌었을 때 올린다). **2 = 랜딩 세션 리플레이**(HP-457) — 배너가 화면 조작 기록을 밝힌다 · **3 = Google Analytics**(HP-465) — 배너 세부가 Google 을 밝힌다(`bannerDetail`) · **4 = 작품 탐색까지 리플레이**(2026-10-01 고경우, §9) — 지금 값(`CONSENT_VERSION`). 문구만 두 층으로 나눈 HP-585 와 계측 정확도를 고친 HP-615 는 범위·받는 곳이 같아 올리지 않았다 — 이미 받은 허용·거부가 그대로 유효하다 |
+| 버전 | `version` 이 바뀌면 다시 묻는다(범위·받는 곳이 바뀌었을 때 올린다). **2 = 랜딩 세션 리플레이**(HP-457) — 배너가 화면 조작 기록을 밝힌다 · **3 = Google Analytics**(HP-465) — 배너 세부가 Google 을 밝힌다(`bannerDetail`) · **4 = 작품 탐색까지 리플레이**(2026-10-01 고경우, §9) · **5 = Meta 픽셀·광고 성과 측정**(2026-10-20 조현빈, §13) — 지금 값(`CONSENT_VERSION`), 운영은 `META_FROM`(2026-10-20) 부터. 문구만 두 층으로 나눈 HP-585 와 계측 정확도를 고친 HP-615 는 범위·받는 곳이 같아 올리지 않았다 — 이미 받은 허용·거부가 그대로 유효하다 |
 
 처리방침 §6 문안이 이 동작을 약속한다: "익스텐션 **또는 웹사이트(replix.tv)** 에서 명시적으로 동의한 경우에만 … 웹사이트 하단의 '분석 설정'에서 변경".
 
@@ -270,14 +270,16 @@
 
 Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 받는다. Amplitude 를 대체하지 않는다 —
 이벤트 정본·대시보드는 Amplitude 이고, GA 는 유입 경로 리포트·익숙한 화면용 사본이다. **커버리지는 Amplitude 와 같다**(동의한 방문만).
+2026-10-20 부터 GA4 전환을 Google Ads 로 가져가 **광고 성과 측정**에도 쓴다(처리방침 2·5·6항 목적 추가, HP-542) — 보내는 값·설정은 그대로다.
 
 | 항목 | 값 |
 | --- | --- |
 | 시행 | 운영 **2026-10-01 KST**(`GA_FROM`) — 공고(2026-10-01)와 동시(§9 시행 행 참조). 운영이 아닌 곳은 날짜와 무관하게 켜고 `traffic_type=internal`·`debug_mode` — 단 로컬 호스트는 디버그 표시가 있을 때만(§7, HP-615) |
 | 로드 | 동의 허용 뒤 `gtag/js?id=…` 를 동적 주입(정적 태그 금지 — 테스트가 고정). 두 표면(랜딩·작품 탐색) 모두 |
 | 이벤트 | `track()` 이 Amplitude 와 **같은 이름·속성**으로 GA 에도 보낸다(+`surface`). `page_viewed` 만 GA 표준 `page_view` 로 |
-| 덮어쓰는 값 | `page_location` = `origin + cleanPath()` + **광고 캠페인 쿼리**(`GA_CAMPAIGN_PARAMS` = `utm_source`·`utm_medium`·`utm_campaign`·`utm_content`·`utm_term` — 처음 나온 순서·첫 값을 원래 글자 그대로, 해시 앞. 광고 클릭 식별값·그 밖의 쿼리·작품 번호 없음) · `page_title` = 표면 이름 고정(`Replix 랜딩`·`Replix 작품 탐색`) · `page_referrer` = 외부면 출처만, 같은 출처면 정리된 경로(검색어·초대 토큰 차단) |
-| 캠페인 쿼리를 남기는 이유 | GA 는 **세션 첫 page_view 의 주소**에서 캠페인을 읽는다. 쿼리를 통째로 지우던 때(HP-615 전)는 유료 광고 세션 약 3,130건이 리퍼러만 보고 'Organic Social'(instagram.com·m.facebook.com)로 잡혔다(2026-10-13 광고 성과 분석). 로드 때 `config` 의 `page_location` 에 실어 세션 첫 hit 부터 붙는다 — 2026-10-13 로컬 실측: 첫 hit `en=page_view`·`_ss=1` 의 `dl` 에 utm 이 있고 그 밖의 쿼리(`foo`)는 없다. Google Ads 자동 태깅 값(`gclid`·`gbraid`·`wbraid`)은 싣지 않으므로(§2) **다음 광고(유튜브)도 최종 주소에 utm 을 직접 붙여야** GA 가 캠페인으로 가른다. Amplitude 도 2026-10-14 부터 광고 클릭 식별값을 받지 않는다 — 부트 때 주소에서 지운다(§2·§4, HP-628) |
+| 덮어쓰는 값 | `page_location` = `origin + cleanPath()` + **광고 캠페인 쿼리**(`GA_CAMPAIGN_PARAMS` = `utm_source`·`utm_medium`·`utm_campaign`·`utm_content`·`utm_term`·`utm_id` — 처음 나온 순서·첫 값을 원래 글자 그대로, 해시 앞) + **Google 광고 클릭 식별값**(`GA_CLICK_ID_PARAMS` = `gbraid`·`gclid`·`wbraid` — 부트가 주소에서 지우기 전에 받아 둔 것, 운영은 `GA_CLICK_FROM` 2026-10-21 부터, HP-691). 다른 광고 클릭 식별값(`fbclid`·`dclid` 등)·그 밖의 쿼리·작품 번호 없음 · `page_title` = 표면 이름 고정(`Replix 랜딩`·`Replix 작품 탐색`) · `page_referrer` = 외부면 출처만, 같은 출처면 정리된 경로(검색어·초대 토큰 차단) |
+| 캠페인 쿼리를 남기는 이유 | GA 는 **세션 첫 page_view 의 주소**에서 캠페인을 읽는다. 쿼리를 통째로 지우던 때(HP-615 전)는 유료 광고 세션 약 3,130건이 리퍼러만 보고 'Organic Social'(instagram.com·m.facebook.com)로 잡혔다(2026-10-13 광고 성과 분석). 로드 때 `config` 의 `page_location` 에 실어 세션 첫 hit 부터 붙는다 — 2026-10-13 로컬 실측: 첫 hit `en=page_view`·`_ss=1` 의 `dl` 에 utm 이 있고 그 밖의 쿼리(`foo`)는 없다. Google Ads 자동 태깅 값(`gclid`·`gbraid`·`wbraid`)은 2026-10-21 부터 GA 에만 싣는다(아래 행). 유튜브 광고 주소에도 **utm 을 직접 붙인다** — Amplitude 가 광고를 가르는 값은 utm 뿐이다. Amplitude 도 2026-10-14 부터 광고 클릭 식별값을 받지 않는다 — 부트 때 주소에서 지운다(§2·§4, HP-628) |
+| Google 광고 클릭 식별값(HP-691) | 유튜브(Google Ads) 광고를 설치 버튼 클릭(GA4 주요 이벤트 `install_cta_clicked`)으로 최적화하려면 Google Ads 가 그 전환을 광고 클릭에 이어야 하고, 그 고리가 GA 수집 요청 주소(`dl`)의 `gclid` 다 — 주소에서 지우기만 하면 GA4 에서 가져간 전환이 Google Ads 에 0 으로 보인다. 그래서 부트(`syncFlags`)가 지우기 직전에 Google 것 셋만 받아 두고(`gaClickParts`) `gaPage` 가 `page_location` 의 캠페인 쿼리 뒤에 붙인다(로드 때 `config`, `page_view` 때 `set` 모두). 주소창은 그대로 지워 Amplitude 귀속·리플레이·Meta 픽셀은 보지 못한다. 처리방침 1·5·6항 GA 수집 항목에 'Google 광고 클릭 식별값'(2026-10-21 공고·시행, 조현빈 결정). 동의 배너 문구·동의 버전은 그대로 — 배너는 GA 로 가는 항목을 나열하지 않는다. GA4 주요 이벤트 지정·Google Ads 연결은 Google Ads 쪽 설정이다(HP-542) |
 | 이벤트 속성 이름 | GA 로 보낼 때만 **`source` → `click_source`**(`GA_PARAM_RENAME`). `catalog_engaged{source: 'nav'}` 가 세션 소스 `nav` 로 잡혔다(2026-10-13 GA 리포트 22세션) — gtag 는 `ep.source=nav` 로 그대로 보내고(2026-10-13 로컬 확인) 해석은 GA 서버가 한다. 같은 계열인 `medium`·`campaign`·`term`·`content` 도 GA 쪽 이름을 정하기 전에는 GA 에 싣지 않는다(`gaParams` — 새 이벤트가 실수로 써도 유입 경로가 흔들리지 않게). Amplitude 는 기존 차트를 깨지 않게 `source` 그대로 |
 | 팀·개발 트래픽 | `traffic_type: 'internal'` 을 `config` 에 실어 이 페이지의 모든 수집 요청에 `tt=internal` 이 붙는다(2026-10-13 확인) — 팀 브라우저 표시(§5) 또는 운영이 아닌 곳. 버리지 않고 표시만 한다: GA 관리의 데이터 필터 'Internal Traffic' 이 **활성**이어야 리포트에서 빠진다(사람이 한다) |
 | 끈 것 | 자동 `page_view`(`send_page_view: false`) · Google 신호 · 광고 개인화 |
@@ -316,7 +318,7 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 > 시행 시점: 개정 전 처리방침 11항은 "시행 7일 전(중대한 변경은 30일 전) 공지"를 약속했다. 법정 의무가 아닌 자체 약속이라
 > 고경우 지시("법적인 것만 따진다")에 따라 같은 개정에서 11항을 "시행 전 또는 시행과 동시에 공지"로 고치고 공고와 동시에 시행했다.
 
-## 12. 웹 스토어 링크 UTM (HP-615)
+## 12. 웹 스토어 링크 UTM (HP-615 · HP-697)
 
 모든 크롬 웹 스토어 링크에 `?utm_source=replix.tv&utm_medium=<위치>` 를 붙인다 — 스토어 개발자 대시보드가 replix.tv 에서 넘어온
 방문을 위치별로 가르게 하는 값이다. 동의와 무관하다: 링크에 박힌 고정 값이고 우리 쪽에서 나가는 요청이 없다(스토어가 자기 방문을 센다).
@@ -340,9 +342,55 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | 삭제 설문 `/bye` '다시 설치하기' | `bye` | `docs/bye/index.html` |
 
 - 작품 탐색은 `catalog/app/src/store-pure.js` `storeUrl(medium)` 로만 만든다. 정적 페이지는 같은 형식을 글자로 적는다(`&amp;`).
-- 휴대폰 설치 안내 시트의 웹 스토어 링크는 누른 버튼의 주소를 그대로 쓰므로 같은 `utm_medium` 이 실린다.
+- 휴대폰 설치 안내 시트의 웹 스토어 링크는 누른 버튼의 주소를 그대로 쓰므로 같은 `utm_medium` 이 실린다(아래 `utm_campaign` 도).
 - 새 스토어 링크를 붙이면 이 표와 `scripts/test-analytics.mjs` 의 표를 같이 고친다 — 검사가 `docs/` 의 모든 HTML 을 훑어 utm 이 빠진 링크를 잡는다.
 - ⚠️ 스토어 대시보드에서 이 값이 어떻게 보이는지는 이 저장소에서 확인할 수 없다 — 대시보드 화면은 사람이 확인한다.
+
+### 광고 캠페인을 스토어 링크로 넘기기 (HP-697)
+
+크롬 웹 스토어 등록 정보에는 스토어 자체의 GA4 속성이 있고, 설치(`install`)를 스토어 주소의 `utm_source`·`utm_medium`·`utm_campaign` 으로
+귀속한다. 위 표의 링크에는 캠페인이 없어 랜딩을 거친 설치가 모두 `replix.tv / hero`·`(referral)` 하나로 뭉쳤다 — 유튜브 광고와 인스타그램
+광고 중 어느 쪽이 설치를 낳았는지 가를 수 없었다. 2026-10-22(조현빈 승인)부터 광고로 들어온 방문이면 그 캠페인을 스토어 링크의
+`utm_campaign` 에 싣는다. `utm_source=replix.tv`·`utm_medium=<위치>` 는 위 표 그대로다.
+
+| 항목 | 값 |
+| --- | --- |
+| 값 | `<utm_source>.<utm_campaign>.<utm_content>`(`analytics.js` `storeCampaign`). **자리는 고정** — 빈 자리는 비워 두고 뒤쪽 빈 자리만 뺀다. 자리를 당기면 `youtube.x` 의 `x` 가 캠페인인지 광고 소재(content)인지 값만 보고 알 수 없다. `utm_source` 가 없으면 싣지 않는다 |
+| 예 | 유튜브 광고 `?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_pc_1022&utm_content=d30`(+`gclid`·`gad_source`·`gad_campaignid`) → `youtube.yt_pc_1022.d30` · Meta 광고 `?utm_source=meta&utm_medium=paid_social&utm_campaign=reels_1021&utm_content=d&utm_term=…&utm_id=…` → `meta.reels_1021.d` · 인스타그램 프로필 링크 `?utm_source=instagram&utm_medium=profile&utm_content=link_in_bio` → `instagram..link_in_bio` · utm 없음 → 링크 그대로. 스토어 주소는 `…?utm_source=replix.tv&utm_medium=hero&utm_campaign=youtube.yt_pc_1022.d30` 꼴 |
+| 싣지 않는 것 | `utm_medium`(그 자리는 버튼 위치) · `utm_term`·`utm_id`(Meta 가 붙이는 광고 세트·캠페인 번호) · 광고 클릭 식별값(`gclid`·`gbraid`·`wbraid`·`fbclid` 등 — 클릭 단위 값은 GA 페이지 주소에만, §10·HP-691) · 그 밖의 쿼리. 세 키(`STORE_CAMPAIGN_PARAMS`)만 이름으로 골라 읽는다 |
+| 거르기 | 자리마다 풀어서(`%26` 으로 싼 `&` 까지) 영문·숫자·`_`·`-` 만 남기고(마침표는 자리 구분자라 뺀다) 32자(`STORE_PART_MAX`)에서 자른다 — 합쳐도 98자, GA4 이벤트 매개변수 값 한도(100자) 안. 주소창의 아무 글자나 스토어 주소에 끼워 넣지 못하게. 걸러서 `utm_source` 가 비면(한글만 등) 싣지 않는다 |
+| 읽는 곳 | 지금 주소의 쿼리, 없으면 **같은 출처 리퍼러**의 쿼리. 첫 화면의 utm 은 앵커 이동(`#faq` 등)에는 주소창에 남지만 작품 탐색·`/discord/` 로 옮기면 사라진다 — 같은 출처 이동이면 브라우저가 리퍼러에 쿼리까지 주므로 한 번 옮긴 경우까지 잇는다. 두 번 옮기거나(작품 탐색 → 로그인 왕복 등) 다른 출처에서 바로 들어오면 싣지 않는다 |
+| 저장 | **없다** — sessionStorage 등 브라우저 저장소에 남기지 않는다. 광고 성과 측정용으로 브라우저에 두는 값은 수집 게이트(`collecting`) 뒤에 두고, 거부하면 지우고, 처리방침에 이름을 밝혀 왔다(`AMP_`·`_ga`·`_fbp`, §3·§13) — 세션 동안 들고 다니려면 그 셋을 갖춘 뒤에 한다 |
+| 언제 바꾸나 | ① 부트 때 문서의 스토어 링크를 한 번에 — 가운데 클릭·오른쪽 메뉴('새 탭에서 열기'·'링크 주소 복사')·끌어 놓기처럼 클릭 처리기가 놓치는 길로 따라가도 같은 주소다. 첫 화면·`/discord/` 의 링크는 정적 마크업이라 여기서 끝난다 ② `pointerdown`·`click`·`contextmenu`(capture) 때 그 링크를 — 작품 탐색처럼 부트 뒤에 그려진 링크. 우리 스토어 링크(스토어 호스트 + `utm_source=replix.tv`)만 바꾸고, 다른 쿼리는 원래 글자 그대로 둔 채 `utm_campaign` 하나만 바꾸거나 맨 뒤에 더한다(`storeHref` — 여러 번 눌러도 하나) |
+| 범위 | `analytics.js` 를 싣는 페이지 — 첫 화면·작품 탐색·`/discord/`. `/invite`·`/together`·`/bye` 는 계측 파일을 싣지 않아 위 표 그대로다(§2) |
+| 동의 | 무관 — 위 utm 과 같이 링크 주소일 뿐이다. 우리 쪽에서 나가는 요청도, 브라우저에 남기는 값도 없다. `install_cta_clicked`·`install_guide_action` 과 GA·Amplitude·Meta 픽셀로 가는 값은 그대로다 |
+
+> ⚠️ 링크 주소를 읽는 쪽에는 이 값이 보인다 — 세션 리플레이의 화면 기록, 그리고 켜져 있다면 GA 향상된 측정의 바깥 링크 클릭
+> (`link_url` — 꺼 두어야 한다, §10). 둘 다 페이지 주소의 utm(GA `page_location`·리플레이의 페이지 주소)으로 이미 받는 캠페인과 같은 정보다.
+>
+> ⚠️ 스토어 GA4 에서 이 값이 캠페인으로 잡히는지(설치 이벤트의 귀속)는 이 저장소에서 확인할 수 없다 — 배포 뒤 광고 주소로 들어와
+> 설치 버튼을 눌러 보고 스토어 GA4 화면에서 사람이 확인한다.
+
+## 13. Meta 픽셀 — 첫 화면만 (HP-542)
+
+데이터 세트 'Replix 웹 (replix.tv)'(`META_PIXEL_ID` = `1791551955320987`). Meta 광고가 **PC 설치 의도**(설치 버튼 클릭)로 최적화하고
+성과를 재게 한다. 이벤트 정본은 여전히 Amplitude 다 — 픽셀은 광고 플랫폼에 주는 최소 신호다. 2026-10-20 조현빈 결정.
+
+| 항목 | 값 |
+| --- | --- |
+| 시행 | 운영 **2026-10-20 00:00 KST**(`META_FROM`) — 처리방침 1·2·3·6항 개정, 이번에 한해 공고와 동시 시행(2026-10-20, 조현빈 결정). 운영이 아닌 곳은 날짜와 무관(로컬은 디버그 표시가 있을 때만, §7). ⚠️ 날짜를 옮기면 코드 상수와 `privacy.html` 시행일을 **같이**(테스트가 대조) |
+| 게이트 | GA 와 같은 `collecting()` — 허용, 또는 한국 시간대 미선택(옵트아웃, §11). 거부는 어디서나 없음. 추가로 ① **첫 화면 `/`·`/index.html` 만**(`metaOn`) ② 주소의 쿼리가 광고 캠페인 값(`GA_CAMPAIGN_PARAMS` — Meta 가 자동으로 붙이는 `utm_term`·`utm_id` 포함)뿐이고 같은 출처 리퍼러에 쿼리가 없을 때만(`metaPageSafe`) ③ 팀 브라우저 표시(`replix_internal`)가 없을 때만 |
+| 왜 첫 화면만 | 픽셀은 전체 주소(`dl`)와 리퍼러(`rl`)를 그대로 보내고 GA 의 `page_location` 처럼 덮어쓸 수 없다. 작품 탐색은 해시에 작품·회차 번호가 실린다(§2). 그 밖의 페이지는 처리방침이 밝힌 픽셀 범위('첫 화면') 밖 |
+| 왜 ②·③ | ② `/bye?v=…&d=…` 에서 첫 화면으로 오면 브라우저가 같은 출처 리퍼러를 전체 주소로 주고 픽셀이 `rl` 로 싣는다 — 그 로드는 건너뛴다. Meta 는 광고 주소에 빠진 utm 항목을 자동으로 채워 `utm_term`(광고 세트 번호)·`utm_id`(캠페인 번호)를 붙인다 — `utm_id` 가 목록 밖이던 2026-10-21 첫날에는 광고로 온 방문마다 픽셀이 빠져 Lead·SendToPc 가 Meta 에 한 건도 닿지 않았다(HP-690). 광고 클릭 식별값·팀/디버그 표시는 부트 첫 줄이 이미 지운다(§2). ③ GA 는 'Internal Traffic' 필터로 거르지만 Meta 데이터 세트에는 그런 필터가 없어 팀의 확인 클릭이 그대로 Lead 가 된다 |
+| 로드 | 게이트를 지나면 Meta 공식 설치 코드의 큐 함수(`fbq`)를 만들고 `fbq.disablePushState = true` → `fbq('set', 'autoConfig', false, ID)` → `fbq('init', ID)`(고급 매칭 값 없음) → `fbq('track', 'PageView')` 1회 → `fbevents.js` 동적 주입(정적 태그 금지 — 테스트가 고정). 첫 화면 부트(`boot`)와 [허용](`setConsent`)에서만 붙인다 |
+| 이벤트 | `track()` 이 그대로 넘긴다(`metaEvent`) — **`install_cta_clicked` → 표준 `Lead`(속성 없음)** · **`install_guide_action{action: copy_link \| share \| mail \| open_store}` → 맞춤 `SendToPc{action}`**. 그 밖의 이벤트(`opened`·`open_catalog` 포함)와 속성(`location`·`in_app` 등)은 보내지 않는다 |
+| 끈 것 | `autoConfig`(버튼 글자·페이지 메타데이터·구조화 데이터 자동 수집) · `disablePushState`(주소 변화마다 자동 PageView) · 고급 매칭(이메일·전화번호 해시) |
+| 쿠키 | `_fbp`(픽셀이 만든다). `_fbc` 는 `fbclid` 로 만드는데 부트가 주소에서 먼저 지워 생기지 않는다(§2, HP-628) — Meta 의 클릭 단위 귀속은 그만큼 약하다 |
+| 철회 | `fbq('consent', 'revoke')`(Meta 공식 전송 보류) + `_fbp`·`_fbc` 쿠키 삭제. `fbevents.js` 는 떼어 낼 수 없어 이 페이지에서는 더 부르지 않는다(`_metaBlocked`, 같은 페이지 재허용에도) — 다음 로드부터는 게이트가 막는다 |
+| 금지 목록 | §2 그대로 — 작품·회차 ID·검색어·전체 URL(첫 화면 밖)·토큰·회원 식별값은 싣지 않는다 |
+
+> ⚠️ **Meta 이벤트 관리자의 원격 설정은 이 저장소에서 확인할 수 없다.** 자동 고급 매칭처럼 데이터 세트 쪽에서 켜고 끄는 수집이 있다 —
+> 코드가 끈 수집(고급 매칭·자동 이벤트)이 원격에서 켜져 있지 않은지 사람이 이벤트 관리자 화면에서 확인한다(메뉴 이름은 추측하지 않는다).
 
 ## 변경 이력
 
@@ -371,3 +419,7 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v20 | 2026-10-14 | 휴대폰 설치 안내 시트(HP-638, §6): `install_guide_action` 에 새 값 `mail`(메일로 나에게 보내기 — 공유 기능이 없는 앱 밖 브라우저의 두 번째 버튼)·`open_catalog`(랜딩에서 연 시트의 '휴대폰으로는 작품 탐색부터 둘러보기')과 새 속성 `in_app`(앱 안 브라우저 종류, UA 로 가림). 앱 안 브라우저에서는 '웹 스토어에서 PC로 보내기'를 빼고, 'PC 크롬 주소창에 이렇게 입력하세요' 아래 replix.tv 를 주소창 모양으로 보인다. 동의 버전은 그대로 — 김지호(Claude Code) |
 | v21 | 2026-10-17 | 랜딩 본문 구성 개편(HP-664, §6·§12): 순서가 첫 화면 → 친구랑 같이 보기(`#friends`) → 디스코드 → 혼자 볼 때(`#how`) → FAQ → 마지막 버튼으로 바뀌어 `section_viewed.section` 을 `friends` · `discord` · `how` · `faq` · `install` 로 바꿨다(`intro`·`rooms`·`scenes`·`works` 는 빠진 섹션). 섹션 구성과 상관없는 새 이벤트 `scroll_depth{percent: 25 \| 50 \| 75 \| 100}`(W3). `install_cta_clicked.location`·`utm_medium` 에 `friends`(중간 버튼)·`float`(휴대폰 따라오는 버튼) — `together` 는 디스코드 연결 착지(`/together`)가 이미 쓰는 낱말이라 피했다. `nav_link_clicked` 메뉴·바닥 링크 `friends`·`how`(15곳 그대로). `demo_interacted` 는 제품 화면을 빼 발화 지점이 없다. `faq_opened.question_index` 의 순번이 가리키는 질문이 바뀌었다. 동의 버전은 그대로 — 조현빈(Claude Code) |
 | v22 | 2026-10-17 | 디스코드 봇 추가 계측(HP-671, §3·§6·§11): `/discord/` 의 [디스코드에 추가] 2곳을 `nav_link_clicked{target: discord_install, location: discord_page_hero \| discord_page_close}` 로 센다 — 이미 허용한 방문자만(그 페이지의 웹 스토어 버튼과 같은 조건). 클릭은 설치가 아니라는 주의와 실제 추가 수의 출처(BE `discord.guild_added`)를 §6 에 적었다. 동의 버전은 그대로 — 조현빈(Claude Code) |
+| v23 | 2026-10-20 | Meta 픽셀(§13, HP-542) — GA 와 같은 수집 게이트 뒤에 첫 화면 `/` 에서만, 운영 2026-10-20 시행(처리방침 2026-10-20 공고). `PageView`(로드 1회)·`Lead`(= `install_cta_clicked`)·`SendToPc{action}`(= `install_guide_action` 의 PC로 보내기 네 행동)만, `autoConfig`·`disablePushState` 끔, 고급 매칭 없음, 팀 브라우저 제외, 철회 시 `consent revoke`·`_fbp` 삭제. GA 를 광고 성과 측정에도 쓴다(§10). 동의 버전 **5**(운영은 2026-10-20 전까지 4 유효) — 조현빈(Claude Code) |
+| v24 | 2026-10-21 | 광고 캠페인 쿼리에 `utm_id` 를 더했다(§10·§13, HP-690). Meta 가 광고 주소에 빠진 utm 항목을 자동으로 채워 `utm_term`(광고 세트 번호)·`utm_id`(캠페인 번호)를 붙이는데, `utm_id` 가 `GA_CAMPAIGN_PARAMS` 밖이라 `metaPageSafe` 가 광고로 온 모든 방문에서 픽셀을 붙이지 않았다 — 2026-10-21 광고 D 방문자 7명 모두 이 주소였고, Amplitude 의 설치 버튼 7명·PC로 보내기 4명이 Meta 에는 0건이었다. `utm_id` 는 캠페인 단위 값이라 방문자를 가리키지 않아 처리방침 수집 항목(방문한 페이지)은 그대로다. GA `page_location` 에도 남는다(GA4 표준 캠페인 ID). 이벤트·동의 버전은 그대로 — 조현빈(Claude Code) |
+| v25 | 2026-10-21 | Google 광고 클릭 식별값을 GA 페이지 주소에만(§2·§10, HP-691). 부트가 광고 클릭 식별값을 주소에서 지우기 전에 `gclid`·`gbraid`·`wbraid` 만 받아 두고(`GA_CLICK_ID_PARAMS`·`gaClickParts`) `gaPage` 가 `page_location` 에 붙인다 — 유튜브 광고의 GA4 전환(설치 버튼 클릭)을 Google Ads 가 광고 클릭에 잇게 하려는 것. 운영은 처리방침 개정 시행일 `GA_CLICK_FROM`(2026-10-21, 공고와 동시 — 조현빈 결정)부터. 주소창·Amplitude·리플레이·Meta 픽셀은 그대로 보지 못한다. 이벤트·동의 버전은 그대로 — 조현빈(Claude Code) |
+| v26 | 2026-10-22 | 광고 캠페인을 스토어 링크로(§12, HP-697). 스토어 자체 GA4 가 랜딩을 거친 설치를 모두 `replix.tv / hero`·`(referral)` 로만 보여 어느 광고가 설치를 낳았는지 가를 수 없었다 — 광고로 들어온 방문이면 스토어 링크에 `utm_campaign=<utm_source>.<utm_campaign>.<utm_content>`(자리 고정, 자리마다 영문·숫자·`_`·`-` 32자까지)를 더한다. `utm_source=replix.tv`·`utm_medium=<위치>` 는 그대로, `utm_medium`·`utm_term`·`utm_id`·광고 클릭 식별값은 싣지 않는다. 지금 주소, 없으면 같은 출처 리퍼러에서 읽고 브라우저에 저장하지 않는다. 부트 때 문서의 스토어 링크를, 그 뒤에 그려진 링크는 누르는 순간(capture) 바꾼다. 동의와 무관(링크 주소), 계측 이벤트·동의 버전은 그대로 — 조현빈(Claude Code) |
