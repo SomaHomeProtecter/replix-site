@@ -626,15 +626,16 @@ assert.equal(a.gaPage('https://replix.tv', '/catalog/', '#/title/123/ep/4', '', 
 assert.equal(a.gaPage('https://replix.tv', '/', '', '', '?gclid=X').page_location, 'https://replix.tv/',
   '받아 둔 값(clicks)을 주지 않으면 주소의 gclid 는 싣지 않는다 — 캠페인 쿼리는 여전히 클릭 식별값을 거른다');
 const GCLICK_BEFORE = Date.parse('2026-10-20T23:59:59+09:00');
-assert.equal(a.GA_CLICK_FROM, Date.parse('2026-10-21T00:00:00+09:00'), '시행일 — 바꾸면 privacy.html 머리의 시행일도 같이(아래에서 대조한다)');
+assert.equal(a.GA_CLICK_FROM, Date.parse('2026-10-21T00:00:00+09:00'), '시행일 — 바꾸면 privacy.html 의 시행일도 같이(아래에서 대조한다)');
 assert.equal(a.gaClickOn('replix.tv', GCLICK_BEFORE), false, '시행일 전 운영에서는 받아 두지 않는다');
 assert.equal(a.gaClickOn('replix.tv', a.GA_CLICK_FROM), true);
 assert.equal(a.gaClickOn('localhost', 0), true, '운영이 아닌 곳은 날짜와 무관(로컬은 collecting 의 디버그 표시가 따로 막는다)');
 assert.match(src, /if \(gaClickOn\(location\.hostname, Date\.now\(\)\)\) _gaClick = gaClickParts\(f\.rest\);\s*var c = stripClickIds\(f\.rest\);/,
   '주소에서 지우기 바로 전에 받아 둔다(부트 첫 줄 — SDK·리플레이·픽셀이 붙기 전)');
+// 처리방침과 코드의 시행일 — 이 개정(2026-10-21)은 HP-282 개정(2026-10-23 공고) 뒤로 '직전 개정'이 됐다(다음 개정 뒤에는 '이전 개정').
 const gclickEffective = new Date(a.GA_CLICK_FROM + 9 * 3600 * 1000).toISOString().slice(0, 10);
-assert.match(privacy, new RegExp(`<p class="doc-meta">공고일 2026-10-21, 시행일 ${gclickEffective}</p>\\s*<p class="doc-meta">이번 개정은 웹사이트에 Google 광고`),
-  `privacy.html 머리의 지금 개정 시행일이 ${gclickEffective} 여야 한다`);
+assert.match(privacy, new RegExp(`<p class="doc-meta">(?:직전|이전) 개정: 공고일 2026-10-21 · 시행일 ${gclickEffective} — 웹사이트에 Google 광고`),
+  `privacy.html 의 Google 광고 클릭 식별값 개정 시행일이 ${gclickEffective} 여야 한다`);
 assert.match(privacy, /Google 광고를 눌러 들어온 경우 그 광고 클릭\s+식별값/, '1항 GA 수집 항목');
 assert.match(privacy, /Google Analytics: 기기 식별값·방문 페이지·Google 광고 클릭 식별값·이벤트/, '5항 처리 위탁 표');
 assert.match(privacy, /Google 광고 클릭\s+식별값\(Google 광고로 들어온 경우\)/, '6항 국외 이전 표');
