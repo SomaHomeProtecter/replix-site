@@ -148,6 +148,16 @@ export var CLICK_ID_PARAMS = ['dclid', 'fbclid', 'gbraid', 'gclid', 'ko_click_id
    ⚠️ 날짜를 옮기면 privacy.html 머리의 시행일과 같이(테스트가 대조). */
 export var GA_CLICK_ID_PARAMS = ['gbraid', 'gclid', 'wbraid'];
 export var GA_CLICK_FROM = Date.parse('2026-10-21T00:00:00+09:00');
+/* ─── Google 광고 재방문 — GA 에는 유입으로 싣지 않는다(HP-700) ───────────────────
+   Google Ads 는 광고 클릭 주소에 클릭 식별값(gclid 등)과 함께 gad_source·gad_campaignid 를 붙인다. 부트는 클릭 식별값만 주소창에서
+   지우므로, 새로 고침·뒤로 가기·탭 복원·방문 기록·주소 공유로 그 주소가 다시 열리면 utm·gad_* 는 있고 gclid 는 없다. 광고 클릭이라면
+   gclid 가 반드시 있으니 이 주소는 광고 클릭이 아니다. 그런데 GA 에 utm 을 그대로 실으면 그 로드가 'youtube / paid_video' 접점이
+   되어 앞서 gclid 로 잡힌 'google / cpc' 클릭의 공을 가져가고, Google Ads 는 gclid 가 없는 그 접점의 전환을 받지 못한다
+   (2026-10-23·24 GA4 에서 설치 버튼 클릭 2건이 그렇게 빠졌다). 그래서 이 로드는 GA 에 캠페인 쿼리를 싣지 않고 리퍼러도 유입으로
+   치지 않게(ignore_referrer) 해 직접 유입으로 보낸다 — GA 의 귀속은 직접 유입을 건너뛰므로 공이 처음 클릭으로 돌아간다.
+   gclid 를 브라우저에 두었다가 다시 붙이지 않는다(STORE 캠페인 주석의 저장소 원칙). Amplitude·스토어 링크 캠페인(HP-697)·Meta 픽셀은
+   주소창의 utm 을 지금처럼 본다. */
+export var GA_AD_MARK = /^gad_/;
 /* ─── 웹 스토어 링크 캠페인(HP-697, 2026-10-22 조현빈 승인) ──────────────────
    크롬 웹 스토어 등록 정보에는 스토어 자체의 GA4 속성이 있고, 설치(install)를 스토어 주소의 utm_source·utm_medium·utm_campaign
    으로 귀속한다. 스토어 링크는 utm_source=replix.tv·utm_medium=<버튼 위치>(트래킹 플랜 §12, HP-615)만 달고 있어 랜딩을 거친 설치가
@@ -251,6 +261,14 @@ export function gaClickParts(search) {
   });
   return kept;
 }
+/* Google 광고 재방문인가(HP-700) — 부트가 지우기 전 주소에 Google Ads 표시(gad_*)는 있는데 Google 광고 클릭 식별값이 없다.
+   받아 두는 날짜(gaClickOn)와 무관하게 주소만 본다 — 시행일 전이라 받아 두지 않은 광고 클릭을 재방문으로 보지 않게. */
+export function gaAdRevisit(search) {
+  var marked = String(search || '').replace(/^\?/, '').split('&').some(function (part) {
+    return GA_AD_MARK.test(part.split('=')[0]);
+  });
+  return marked && gaClickParts(search).length === 0;
+}
 /* 받아 둘 때인가 — 운영은 처리방침 시행일(GA_CLICK_FROM)부터. 운영이 아닌 곳은 날짜와 무관(로컬은 collecting 의 디버그 표시가 따로 막는다). */
 export function gaClickOn(hostname, nowMs) {
   return envOf(hostname) !== 'prod' || nowMs >= GA_CLICK_FROM;
@@ -349,15 +367,17 @@ export function metaEvent(name, props) {
 }
 /* GA 에 싣는 페이지 값 — 주소는 cleanPath(작품·회차 번호 없음) + 광고 캠페인 쿼리(campaignQuery) + Google 광고 클릭 식별값
    (clicks — 부트가 주소에서 지우기 전에 받아 둔 gaClickParts 결과, HP-691), 제목은 표면 이름으로 고정(문서 제목에 작품명이
-   들어가도 새지 않게), 리퍼러는 외부면 출처만·같은 출처면 정리된 경로(검색어·초대 토큰이 실리지 않게). */
-export function gaPage(origin, pathname, hash, referrer, search, clicks) {
+   들어가도 새지 않게), 리퍼러는 외부면 출처만·같은 출처면 정리된 경로(검색어·초대 토큰이 실리지 않게).
+   revisit(gaAdRevisit — Google 광고 재방문, HP-700)이면 캠페인 쿼리를 싣지 않고 ignore_referrer 로 리퍼러도 유입으로 치지 않는다. */
+export function gaPage(origin, pathname, hash, referrer, search, clicks, revisit) {
   var path = cleanPath(pathname, hash), cut = path.indexOf('#');
-  var query = campaignQuery(search), extra = (clicks || []).join('&');
+  var query = revisit ? '' : campaignQuery(search), extra = (clicks || []).join('&');
   if (extra) query = query ? query + '&' + extra : '?' + extra;
   var out = {
     page_location: origin + (cut < 0 ? path : path.slice(0, cut)) + query + (cut < 0 ? '' : path.slice(cut)),
     page_title: surfaceOf(pathname) === 'web_catalog' ? 'Replix 작품 탐색' : 'Replix 랜딩',
   };
+  if (revisit) out.ignore_referrer = true;
   if (referrer) {
     try {
       var u = new URL(referrer);
@@ -511,6 +531,7 @@ var _revoked = false;     /* 이 페이지에서 거부(철회)했는가 — 재
 var _debug = false;       /* 로컬 호스트에서도 보내는 디버그 표시(DEBUG_KEY) — 부트 때 읽는다 */
 var _internal = false;    /* 팀 브라우저 표시(INTERNAL_KEY) — 부트 때 읽는다 */
 var _gaClick = [];        /* 부트가 주소에서 지우기 전에 받아 둔 Google 광고 클릭 식별값(HP-691) — GA 페이지 주소에만 싣는다 */
+var _gaRevisit = false;   /* 이 로드가 Google 광고 재방문인가(HP-700) — 부트가 지우기 전 주소로 정한다 */
 
 function nowVersion() { return consentVersion(location.hostname, Date.now()); }
 function timeZone() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) { return ''; } }
@@ -532,7 +553,9 @@ function syncFlags() {
     if (localStorage.getItem(DEBUG_KEY) === '1') _debug = true;
   } catch (_) { /* 저장소를 못 읽으면 쿼리로 받은 값만 */ }
   /* 광고 클릭 식별값도 여기서 지운다 — SDK·리플레이·Meta 픽셀이 붙기 전(부트 첫 줄)이라 이 값을 보지 못한다(HP-628).
-     GA 는 지우기 전에 Google 것만 받아 두었다가 페이지 주소로 받는다(HP-691, 처리방침 시행일부터). */
+     GA 는 지우기 전에 Google 것만 받아 두었다가 페이지 주소로 받는다(HP-691, 처리방침 시행일부터). 지울 것이 이미 없는
+     Google 광고 주소는 재방문이라 GA 에 유입으로 싣지 않는다(HP-700). */
+  _gaRevisit = gaAdRevisit(f.rest);
   if (gaClickOn(location.hostname, Date.now())) _gaClick = gaClickParts(f.rest);
   var c = stripClickIds(f.rest);
   if (f.found || c.found) {
@@ -643,7 +666,7 @@ function ensureGa() {
   var dev = envOf(location.hostname) !== 'prod';
   /* traffic_type 은 config 에 실어 이 페이지의 모든 수집 요청에 붙는다(수집 요청의 tt=internal — 2026-10-13 확인). */
   var cfg = Object.assign({}, GA_CONFIG,
-    gaPage(location.origin, location.pathname, location.hash, document.referrer, location.search, _gaClick),
+    gaPage(location.origin, location.pathname, location.hash, document.referrer, location.search, _gaClick, _gaRevisit),
     { cookie_flags: 'SameSite=Lax' + (location.protocol === 'https:' ? ';Secure' : '') },
     internalNow() ? { traffic_type: 'internal' } : {},
     dev ? { debug_mode: true } : {});
@@ -661,7 +684,7 @@ function gaTrack(name, props) {
   if (!gaOk()) return;
   var p = Object.assign({ surface: surfaceOf(location.pathname) }, gaParams(props));
   if (name === 'page_viewed') {
-    var pg = gaPage(location.origin, location.pathname, location.hash, '', location.search, _gaClick);
+    var pg = gaPage(location.origin, location.pathname, location.hash, '', location.search, _gaClick, _gaRevisit);
     window.gtag('set', { page_location: pg.page_location, page_title: pg.page_title });
     window.gtag('event', 'page_view', p);
   } else {
