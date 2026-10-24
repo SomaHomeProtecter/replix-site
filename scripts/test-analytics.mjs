@@ -352,9 +352,9 @@ assert.equal(a.campaignQuery('?utm_campaign=%EA%B0%80%EC%9D%84+%ED%8A%B9%EA%B0%8
 assert.equal(a.campaignQuery('?xutm_source=a&utm_source2=b'), '', '키는 정확히 같아야 한다');
 assert.equal(a.campaignQuery(''), '');
 assert.equal(a.campaignQuery(undefined), '');
-assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, document\.referrer, location\.search, _gaClick\)/,
-  '로드 때 config 의 page_location 에 캠페인 쿼리(+ 받아 둔 Google 광고 클릭 식별값) — 세션 첫 hit 부터 실린다');
-assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, '', location\.search, _gaClick\)/, 'page_view 마다 같은 주소');
+assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, document\.referrer, location\.search, _gaClick, _gaRevisit\)/,
+  '로드 때 config 의 page_location 에 캠페인 쿼리(+ 받아 둔 Google 광고 클릭 식별값, 재방문이면 뺀다) — 세션 첫 hit 부터 실린다');
+assert.match(src, /gaPage\(location\.origin, location\.pathname, location\.hash, '', location\.search, _gaClick, _gaRevisit\)/, 'page_view 마다 같은 주소');
 
 // ② GA 는 이벤트 파라미터 source·medium·campaign·term·content 를 세션 유입 경로로 해석한다 — catalog_engaged{source: 'nav'} 가
 //    세션 소스 'nav' 로 잡혔다(실측 22세션). GA 로 보낼 때만 이름을 바꾸고, Amplitude 는 기존 차트를 깨지 않게 그대로 둔다.
@@ -639,6 +639,37 @@ assert.match(privacy, new RegExp(`<p class="doc-meta">(?:직전|이전) 개정: 
 assert.match(privacy, /Google 광고를 눌러 들어온 경우 그 광고 클릭\s+식별값/, '1항 GA 수집 항목');
 assert.match(privacy, /Google Analytics: 기기 식별값·방문 페이지·Google 광고 클릭 식별값·이벤트/, '5항 처리 위탁 표');
 assert.match(privacy, /Google 광고 클릭\s+식별값\(Google 광고로 들어온 경우\)/, '6항 국외 이전 표');
+
+// ═══ HP-700 Google 광고 재방문 — GA 에는 유입으로 싣지 않는다 ═══════════════════════════════
+// 부트는 gclid 만 주소창에서 지우고 utm·gad_* 는 남긴다. 그 주소가 새로 고침·탭 복원·방문 기록으로 다시 열리면 GA 가 utm 만 보고
+// 'youtube / paid_video' 접점을 만들어 앞선 'google / cpc' 클릭의 공을 가져갔다(2026-10-23·24 설치 버튼 클릭 2건) — Google Ads 는
+// gclid 없는 접점의 전환을 받지 못한다. gad_* 가 있는데 클릭 식별값이 없으면 광고 클릭이 아니므로 GA 에는 직접 유입으로 보낸다.
+const YT_CLICK = '?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_pc_1022&utm_content=a30&gclid=G1&gad_source=1&gad_campaignid=24376953504';
+const YT_REVISIT = a.stripClickIds(YT_CLICK).rest;   // 부트가 gclid 를 지운 뒤 주소창에 남는 주소 — 다시 열리면 이것이 들어온다
+assert.equal(YT_REVISIT, '?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_pc_1022&utm_content=a30&gad_source=1&gad_campaignid=24376953504',
+  '주소창에는 utm 과 gad_* 가 남는다(재방문 판정의 근거)');
+assert.equal(a.gaAdRevisit(YT_CLICK), false, '광고 클릭 — gclid 가 있다');
+assert.equal(a.gaAdRevisit(YT_REVISIT), true, '같은 주소의 재방문 — gad_* 만 남았다');
+assert.equal(a.gaAdRevisit('?gad_source=1'), true, 'utm 이 없어도 gad_* 만으로 판정한다');
+assert.equal(a.gaAdRevisit('?utm_source=youtube&utm_medium=paid_video&gad_source=1&gbraid=B1'), false, 'gbraid·wbraid 도 광고 클릭 식별값');
+assert.equal(a.gaAdRevisit('?utm_source=youtube&gad_source=1&gclid='), true, '값 없는 gclid 는 클릭 식별값이 아니다(gaClickParts 와 같다)');
+for (const q of [META_AD, '?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_pc_1022', '?utm_source=youtube&utm_medium=video',
+  '?xgad_source=1', '?w=81234567&t=SECRET', '', '?', undefined]) {
+  assert.equal(a.gaAdRevisit(q), false, `${q}: Google Ads 표시가 없으면 재방문으로 보지 않는다 — 링크 확인·Meta·채널 링크는 지금처럼`);
+}
+assert.match(src, /_gaRevisit = gaAdRevisit\(f\.rest\);\s*if \(gaClickOn\(/, '부트가 지우기 전 주소로, 받아 두는 날짜와 무관하게 정한다');
+const revisitPage = a.gaPage('https://replix.tv', '/', '', 'https://www.youtube.com/', YT_REVISIT, [], true);
+assert.equal(revisitPage.page_location, 'https://replix.tv/', '재방문 — 캠페인 쿼리를 싣지 않는다');
+assert.equal(revisitPage.ignore_referrer, true, '재방문 — 남아 있는 광고 리퍼러(youtube.com)도 유입으로 치지 않는다');
+assert.equal(revisitPage.page_referrer, 'https://www.youtube.com', '리퍼러 값 자체는 지금처럼 출처만');
+const clickPage = a.gaPage('https://replix.tv', '/', '', 'https://www.youtube.com/', a.stripClickIds(YT_CLICK).rest, a.gaClickParts(YT_CLICK), false);
+assert.equal(clickPage.page_location,
+  'https://replix.tv/?utm_source=youtube&utm_medium=paid_video&utm_campaign=yt_pc_1022&utm_content=a30&gclid=G1', '광고 클릭은 그대로(HP-691)');
+assert.equal('ignore_referrer' in clickPage, false, '광고 클릭에는 ignore_referrer 를 싣지 않는다');
+assert.equal('ignore_referrer' in a.gaPage('https://replix.tv', '/', '', '', META_AD), false, '재방문 인자를 주지 않으면 종전과 같다');
+assert.equal(a.gaPage('https://replix.tv', '/catalog/', '#/title/123/ep/4', '', YT_REVISIT, [], true).page_location,
+  'https://replix.tv/catalog/#/title', '작품 탐색의 page_view 도 같다');
+assert.equal(a.storeCampaign(YT_REVISIT), 'youtube.yt_pc_1022.a30', '스토어 링크 캠페인(HP-697)은 주소창의 utm 으로 그대로 실린다');
 
 // ═══ HP-697 웹 스토어 링크 캠페인 ═══════════════════════════════════════════════════
 // 스토어 자체 GA4 는 설치를 스토어 주소의 utm 으로 귀속한다 — 랜딩을 거친 설치가 모두 'replix.tv / hero · (referral)' 로 뭉쳐 어느 광고가
