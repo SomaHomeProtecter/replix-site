@@ -2,6 +2,8 @@
    이 앱은 그 파일을 런타임에 붙이고 window.ReplixAnalytics 로만 부른다. 정본: analytics/tracking-plan.md.
    Vite dev·file:// 시안 검토에서는 그 파일이 없어 no-op 이다(fail-open — 계측이 화면을 막지 않는다).
    ⚠️ 작품·회차 ID·검색어는 어떤 속성에도 싣지 않는다(트래킹 플랜 §2). */
+import { watchPlatformOf } from './watch-pure.js'
+
 type Props = Record<string, string | number | boolean>
 type Bridge = { track(name: string, props?: Props): void; page(props?: Props): void }
 declare global { interface Window { ReplixAnalytics?: Bridge } }
@@ -33,10 +35,11 @@ export function track(name: string, props?: Props) { call((b) => b.track(name, p
 export function page(props?: Props) { call((b) => b.page(props)) }
 
 export type WatchFrom = 'title_hero' | 'moment' | 'home_billboard' | 'home_hot' | 'home_live' | 'my_activity'
-/** 재생 딥링크 클릭(W5 전환). watchUrl 은 넷플릭스만 만들므로 platform 은 그 사실을 그대로 적는다. */
+/** 재생 딥링크 클릭(W5 전환). platform 은 딥링크 호스트에서 읽는다(netflix | laftel, HP-709). url 은 watchUrl 이 만든 것만 오므로
+ *  'other' 는 닿지 않는 갈래다 — 속성 타입(null 불가)을 맞추고, 혹시 모르는 호스트가 생기면 계측에서 드러나게 둔다. */
 export function trackWatch(url: string | null, from: WatchFrom) {
   if (!url) return
-  track('watch_link_clicked', { platform: 'netflix', from, has_timestamp: /[?&]t=\d/.test(url) })
+  track('watch_link_clicked', { platform: watchPlatformOf(url) ?? 'other', from, has_timestamp: /[?&]t=\d/.test(url) })
 }
 /** catalog_engaged{feature, action} — 기능 사용을 잘게 쪼개지 않고 하나로 묶는다(익스텐션 feature_engaged 와 같은 이유). */
 export function engaged(feature: string, action: string, extra?: Props) {

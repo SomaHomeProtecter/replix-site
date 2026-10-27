@@ -286,7 +286,8 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: RankItem | 
   const show = live.find((s) => s.showId === String(episodeId)) ?? null
   const viewers = show ? show.segments.reduce((a, s) => a + s.viewers, 0) : 0
   const peak = list.reduce<Moment | null>((a, m) => (!a || m.strength > a.strength ? m : a), null)
-  const play = top ? watchUrl(top.platform, top.platformEpisodeId, peak?.at) : null
+  // 라프텔은 작품 id 가 필수라 titleId 를 함께 넘긴다(잠정 작품이면 null → 링크 없음, HP-709). 넷플릭스는 쓰지 않는다.
+  const play = top ? watchUrl(top.platform, top.platformEpisodeId, peak?.at, top.titleId) : null
   const epTitle = top ? (top.episodeTitle ?? (episodeLabel({ seasonNumber: top.seasonNumber, episodeNumber: top.episodeNumber }, top.contentType) || '대표 회차')) : ''
   // 예능 회차 제목은 `2026-09-16 4일 차에…` 처럼 방영일로 시작하곤 한다 — 날짜는 떼어 `09.16` 으로 작게 보인다.
   const epMatch = /^(\d{4})[-.](\d{2})[-.](\d{2})\s+(.+)$/.exec(epTitle)
@@ -539,7 +540,7 @@ function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveSh
             <ol className="divide-y divide-line border-y border-line">
               {list.map((m, i) => {
                 const on = m === peak
-                const href = watchUrl(top.platform, top.platformEpisodeId, m.at)
+                const href = watchUrl(top.platform, top.platformEpisodeId, m.at, top.titleId) // 작품 id = titleId(HP-709)
                 const Row = href ? 'a' : 'div'
                 const pos = dur ? Math.min(100, Math.max(0, (m.at / dur) * 100)) : null
                 return (
@@ -607,7 +608,7 @@ function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
       <ul ref={fill.ref} className="fill-grid rail-sm" style={{ '--min': '140px', '--gx': '16px', '--gy': '0px' } as React.CSSProperties}>
         {sorted.map((s, i) => {
           const hot = [...s.segments].sort((a, b) => b.viewers - a.viewers)[0]
-          const href = watchUrl(s.platform, s.watchId, hot?.at)
+          const href = watchUrl(s.platform, s.watchId, hot?.at, s.titleId) // 라프텔 작품 id = LiveShow.titleId(HP-709)
           return (
             <li key={s.showId} hidden={i >= fill.limit}>
               <a href={href ?? undefined} target={href ? '_blank' : undefined} rel="noopener" className="group block" onClick={() => trackWatch(href, 'home_live')}>

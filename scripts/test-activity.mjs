@@ -202,13 +202,13 @@ assert.equal((me.match(/api\.myActivityWork\(/g) || []).length, 1, 'myActivityWo
 // 장면 = 칩 6 + 더 보기, 누르면 구간 시작(slotStart) — 1차와 같은 watchUrl·trackWatch, url 없으면 링크 없이.
 assert.match(me, /p2\.scenes\.slice\(0, SCENES_PREVIEW\)/);
 assert.match(me, /moreLabel\(s2\.sceneCount, open\.scenes, SCENES_PREVIEW\)/);
-assert.match(me, /watchUrl\(w\.platform, sc\.platformEpisodeId, sc\.slotStart\)/);
+assert.match(me, /watchUrl\(w\.platform, sc\.platformEpisodeId, sc\.slotStart, w\.platformContentId\)/); // 라프텔 작품 id(HP-709)
 assert.match(me, /capNote\(s2\.sceneCount\)/);
 // 좋아요 = 3 + 더 보기, likedView 판정, 목록은 세션 리플레이 가림(HP-457).
 assert.match(me, /p2\.liked\.slice\(0, LIKED_PREVIEW\)/);
 assert.match(me, /likedView\(l\)/);
 assert.match(me, /<ol className="amp-mask[^"]*">\s*\{liked\.map\(\(l\) => <LikedRow/);
-assert.match(me, /watchUrl\(w\.platform, l\.platformEpisodeId, l\.playbackTime\)/);
+assert.match(me, /watchUrl\(w\.platform, l\.platformEpisodeId, l\.playbackTime, w\.platformContentId\)/); // 라프텔 작품 id(HP-709)
 // 넷플릭스가 아니거나 회차 id 가 없으면(url null) 세 줄 모두 링크 없이 글자만.
 assert.ok((me.match(/\{url \? \(/g) || []).length >= 3, 'ChatRow·SceneChip·LikedRow 모두 url null 분기');
 // 요약 = summaryCells(1차 서버면 세 칸) · 휴대폰에서 칸 여백을 줄인다 · 칩은 줄바꿈.

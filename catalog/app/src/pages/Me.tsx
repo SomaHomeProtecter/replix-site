@@ -25,10 +25,10 @@ import {
 
 const WRAP = 'wrap min-h-[60vh] py-10'
 
-/** 채팅 한 줄 — 회차·시각을 누르면 넷플릭스 그 장면이 새 탭(뜨거운 순간과 같은 watchUrl). 답글이면 본문 위에 원문 한 줄.
- *  watchUrl 이 null(넷플릭스가 아니거나 회차 id 없음)이면 링크가 아니라 글만 둔다. */
+/** 채팅 한 줄 — 회차·시각을 누르면 그 플랫폼의 장면(넷플릭스·라프텔)이 새 탭(뜨거운 순간과 같은 watchUrl). 답글이면 본문 위에 원문 한 줄.
+ *  watchUrl 이 null(지원 플랫폼이 아니거나 회차·작품 id 없음)이면 링크가 아니라 글만 둔다. 라프텔 작품 id 는 Work.platformContentId(HP-709). */
 function ChatRow({ w, c }: { w: MyActivityWork; c: MyActivityChat }) {
-  const url = watchUrl(w.platform, c.platformEpisodeId, c.playbackTime)
+  const url = watchUrl(w.platform, c.platformEpisodeId, c.playbackTime, w.platformContentId)
   const ref = parentView(c.parent)
   const body = (
     <>
@@ -61,10 +61,10 @@ function ChatRow({ w, c }: { w: MyActivityWork; c: MyActivityChat }) {
   )
 }
 
-/** 반응한 장면 칩(HP-471 결정 2) — 회차 · 장면 시작 · 이모지별 횟수. 누르면 넷플릭스 그 장면(구간 시작)이 새 탭 — 채팅 줄과 같은
- *  watchUrl·trackWatch. url 이 null(넷플릭스가 아니거나 회차 id 없음)이면 링크 없이 글만. 툴팁에 30초 구간 "시작~끝". */
+/** 반응한 장면 칩(HP-471 결정 2) — 회차 · 장면 시작 · 이모지별 횟수. 누르면 그 플랫폼의 장면(구간 시작)이 새 탭 — 채팅 줄과 같은
+ *  watchUrl·trackWatch. url 이 null(지원 플랫폼이 아니거나 회차·작품 id 없음, HP-709)이면 링크 없이 글만. 툴팁에 30초 구간 "시작~끝". */
 function SceneChip({ w, sc }: { w: MyActivityWork; sc: MyActivityScene }) {
-  const url = watchUrl(w.platform, sc.platformEpisodeId, sc.slotStart)
+  const url = watchUrl(w.platform, sc.platformEpisodeId, sc.slotStart, w.platformContentId)
   const span = `${fmtTime(sc.slotStart)}~${fmtTime(sceneEndSec(sc.slotStart))}`
   const body = (
     <>
@@ -96,7 +96,7 @@ function SceneChip({ w, sc }: { w: MyActivityWork; sc: MyActivityScene }) {
  *  공개 아님·차단·스포일러 신호면 "가려진 메시지", 내 글에 누른 좋아요는 그대로. 작성자는 가려도 남긴다(누구 글인지는 읽혀야 한다 —
  *  답글 원문과 같다). 탈퇴한 작성자 이름은 서버 값("탈퇴한 사용자"). */
 function LikedRow({ w, l }: { w: MyActivityWork; l: MyActivityLiked }) {
-  const url = watchUrl(w.platform, l.platformEpisodeId, l.playbackTime)
+  const url = watchUrl(w.platform, l.platformEpisodeId, l.playbackTime, w.platformContentId)
   const v = likedView(l)
   const body = (
     <>
