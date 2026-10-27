@@ -65,7 +65,7 @@ export type EpisodeSummary = {
 export type ContentDetail = {
   contentId: number
   platform: string
-  platformContentId: string | null   // 임시 작품(HP-168)이면 null(BE CatalogQueryService — 순위 행 titleId 와 같은 규칙, HP-709)
+  platformContentId: string | null   // 작품 상세 API(/api/v1/contents/{id}, BE ContentQueryService)는 임시 작품(HP-168)이면 watch id 를 그대로 낸다 — 사이트는 이 필드로 링크를 만들지 않는다(딥링크는 CatalogContent.platformContentId — null 규칙, HP-709)
   title: string
   contentType: 'MOVIE' | 'SERIES'
   posterUrl: string | null
