@@ -67,8 +67,95 @@ assert.match(invite, /getElementById\('desc'\)\.textContent = copy\.desc;/);
 assert.match(invite, new RegExp(`<a class="btn cta" href="${store('invite')}" target="_blank"`),
   '[크롬에 추가]는 웹 스토어를 새 탭으로 — 이 탭이 남아 있어야 설치 뒤 익스텐션이 이어 간다');
 assert.match(invite, /<p class="sub">설치가 끝나면 이 페이지에서 자동으로 이어져요\.<\/p>/);
-assert.match(invite, /openLink\.textContent = '이미 설치했어요\. ' \+ NAV\[pk\]\.name \+ '에서 열기';\s*openLink\.href = url;/,
-  '보조 링크는 예전 이동 주소(해시 토큰 포함) 그대로');
+// 라프텔(HP-709) — 셋째 사본. 익스텐션 test/disney-room assertCopy 가 `laftel:` 뒤 첫 URL 리터럴을 대조한다.
+assert.match(invite, /laftel: \{\s*name: '라프텔',\s*url: function \(id, showId\) \{ return showId \? 'https:\/\/laftel\.net\/player\/' \+ encodeURIComponent\(showId\) \+ '\/' \+ encodeURIComponent\(id\) : null; \},/,
+  '라프텔 재생 URL 은 작품 id 가 있을 때만 — 없으면 null(회차 id 를 작품 자리에 넣지 않는다)');
+const navBlock = /var NAV = \{[\s\S]*?\};/.exec(invite);
+assert.ok(navBlock && navBlock[0].includes("'https://laftel.net/player/'"), 'NAV 블록이 라프텔 재생 URL 리터럴을 담는다(HP-709)');
+assert.match(invite, /var s = p\.get\('s'\);/, '작품 id 는 링크의 s(BE DiscordText.inviteUrl·익스텐션 buildInviteLink 와 같은 이름)');
+assert.match(invite, /function buildUrl\(showId\) \{[\s\S]*?NAV\[pk\]\.url\(w, showId\)[\s\S]*?'#replix-invite=' \+ encodeURIComponent\(t\)/, '토큰은 해시로');
+assert.match(invite, /if \(!url && preview && typeof preview\.platformContentId === 'string'\) url = buildUrl\(preview\.platformContentId\);/,
+  's 없는 라프텔 초대는 방 요약의 작품 id 로 보조 링크를 만든다');
+assert.match(invite, /openLink\.textContent = '이미 설치했어요\. ' \+ NAV\[pk\]\.name \+ '에서 열기';\s*if \(url\) openLink\.href = url;\s*else openLink\.removeAttribute\('href'\);/,
+  '보조 링크는 예전 이동 주소(해시 토큰 포함) 그대로 — 주소가 없으면 href 를 남기지 않는다(href="null" 은 상대 주소로 열린다)');
+assert.match(invite, /openLink\.hidden = !url;/, '작품 id 를 끝내 못 받으면 보조 링크를 숨긴다(엉뚱한 곳으로 보내지 않는다)');
+assert.match(invite, /anyway\.hidden = !url;/, '휴대폰도 같다');
+assert.match(invite, /function showInstall\(preview\) \{\s*applyPreview\(preview\);/, 'PC 보조 링크는 설치 안내를 여는 자리에서 요약 폴백과 함께 맞춘다');
+assert.match(invite, /if \(isMobileDevice\(device\)\) \{[\s\S]*?setAnywayLink\(\);/, '휴대폰 갈래는 setAnywayLink 로');
+
+// ── 초대 링크 해석·이동 주소(HP-709): inviteNav:start~end 구간을 꺼내 가짜 document 로 돌린다(소스 글자가 아니라 동작을 본다).
+const navSlice = /\/\* inviteNav:start \*\/([\s\S]*?)\/\* inviteNav:end \*\//.exec(invite);
+assert.ok(navSlice, '초대 페이지에 링크 구간(inviteNav:start~end)이 있다');
+function stub(search) {
+  const els = {};
+  const getElementById = (id) => (els[id] ||= {
+    id, hidden: false, textContent: '', attrs: { href: 'stale' }, // 앞선 값이 남아 있어도 지우는지 보려고 일부러 채워 둔다
+    set href(v) { this.attrs.href = String(v); }, get href() { return this.attrs.href; },
+    removeAttribute(name) { delete this.attrs[name]; },
+  });
+  const api = new Function('location', 'document',
+    `${navSlice[1]}; return { get pk() { return pk; }, get url() { return url; }, setOpenLink, applyPreview, setAnywayLink };`,
+  )({ search }, { getElementById });
+  return { api, el: getElementById };
+}
+const LAFTEL = 'https://laftel.net/player/47088/99909#replix-invite=tok';
+{ // 라프텔 + s — 처음부터 주소가 있다
+  const { api, el } = stub('?w=99909&t=tok&p=laftel&s=47088');
+  assert.equal(api.pk, 'laftel');
+  assert.equal(api.url, LAFTEL);
+  api.applyPreview({ platformContentId: '11111' });
+  assert.equal(api.url, LAFTEL, '링크의 s 가 정본 — 요약이 다른 작품 id 를 줘도 덮지 않는다');
+  assert.deepEqual([el('open').hidden, el('open').attrs.href, el('open').textContent], [false, LAFTEL, '이미 설치했어요. 라프텔에서 열기']);
+}
+{ // 라프텔, s 없음 — 넷플릭스로 떨어지지 않고 주소 없음, 요약의 작품 id 로 다시 만든다
+  const { api, el } = stub('?w=99909&t=tok&p=laftel');
+  assert.equal(api.pk, 'laftel', '숫자 회차 id 여도 p=laftel 이면 넷플릭스로 추론하지 않는다');
+  assert.equal(api.url, null, '작품 id 없이 라프텔 주소를 추측하지 않는다');
+  api.setOpenLink(); // 폴백 전에 맞추면 숨긴 채다 — 그래서 applyPreview 는 폴백을 먼저 한다
+  assert.equal(el('open').hidden, true);
+  assert.ok(!('href' in el('open').attrs), '주소가 없으면 href 를 남기지 않는다');
+  api.applyPreview({ contentTitle: 'x', platformContentId: '47088' });
+  assert.equal(api.url, LAFTEL);
+  assert.deepEqual([el('open').hidden, el('open').attrs.href], [false, LAFTEL], '요약 폴백 뒤 보조 링크가 보인다');
+}
+for (const preview of [null, {}, { platformContentId: 47088 }, { platformContentId: '' }]) { // 요약 실패·작품 id 없음·문자열 아님·빈 값
+  const { api, el } = stub('?w=99909&t=tok&p=laftel');
+  api.applyPreview(preview);
+  assert.equal(api.url, null, JSON.stringify(preview));
+  assert.equal(el('open').hidden, true, JSON.stringify(preview));
+  assert.ok(!('href' in el('open').attrs), JSON.stringify(preview));
+}
+{ // 휴대폰 — 주소가 없으면 '그냥 열기'를 숨기고 href 를 쓰지 않는다
+  const { api, el } = stub('?w=99909&t=tok&p=laftel');
+  el('anyway').attrs = {};
+  api.setAnywayLink();
+  assert.equal(el('anyway').hidden, true);
+  assert.ok(!('href' in el('anyway').attrs), "href 에 'null' 을 넣지 않는다");
+  assert.equal(el('anyway').textContent, '라프텔에서 그냥 열기 →');
+  const withS = stub('?w=99909&t=tok&p=laftel&s=47088');
+  withS.api.setAnywayLink();
+  assert.deepEqual([withS.el('anyway').hidden, withS.el('anyway').attrs.href], [false, LAFTEL]);
+}
+{ // 넷플릭스·디즈니+ — 둘째 인자(s·요약)를 쓰지 않고 종전 주소 그대로
+  const { api, el } = stub('?w=81234567&t=tok&p=netflix&s=999');
+  assert.equal(api.url, 'https://www.netflix.com/watch/81234567#replix-invite=tok');
+  api.applyPreview({ platformContentId: '1' });
+  assert.equal(el('open').attrs.href, 'https://www.netflix.com/watch/81234567#replix-invite=tok');
+  assert.equal(stub('?w=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa&t=tok&p=disney_plus').api.url,
+    'https://www.disneyplus.com/play/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa#replix-invite=tok');
+}
+// p 가 없던 옛 링크(HP-318 이전)는 회차 id 모양으로 — 숫자면 넷플릭스, UUID 면 디즈니+.
+assert.equal(stub('?w=81234567&t=tok').api.pk, 'netflix');
+assert.equal(stub('?w=81234567&t=tok').api.url, 'https://www.netflix.com/watch/81234567#replix-invite=tok');
+assert.equal(stub('?w=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa&t=tok').api.pk, 'disney_plus');
+// 프로토타입 키는 플랫폼이 아니다(hasOwnProperty 가드) — 모양 추론으로 떨어지고, 모양도 모르면 잘못된 링크.
+for (const bogus of ['__proto__', 'constructor', 'toString', 'bogus']) {
+  assert.equal(stub(`?w=81234567&t=tok&p=${bogus}`).api.pk, 'netflix', bogus);
+  const odd = stub(`?w=ab12&t=tok&p=${bogus}`);
+  assert.equal(odd.api.pk, null, bogus);
+  assert.equal(odd.api.url, null, bogus);
+}
+assert.equal(stub('?w=99909&p=laftel&s=47088').api.url, null, '토큰이 없으면 주소도 없다(잘못된 링크 화면)');
 
 // ── 디스코드 연결 페이지 소스 규칙
 assert.match(together, /var WAIT_MS = 2500;/, '초대 페이지와 같은 대기 시간');

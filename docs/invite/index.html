@@ -1,5 +1,6 @@
 <!doctype html>
-<!-- 초대 링크 착지(HP-186 · HP-497) — https://replix.tv/invite?w=<watch id>&t=<초대 토큰>&p=<플랫폼>
+<!-- 초대 링크 착지(HP-186 · HP-497) — https://replix.tv/invite?w=<watch id>&t=<초대 토큰>&p=<플랫폼>[&s=<작품 id>]
+     (s 는 라프텔 재생 URL 에 필요한 작품 id — HP-705 부터 BE·익스텐션이 싣는 선택 파라미터, HP-709)
      역할: 익스텐션이 없는 사람을 설치로 잇는다. 설치자는 익스텐션 background가 이 페이지 도달 전에(늦어도 아래 대기 중에)
      가로채 그 플랫폼의 해당 회차로 보낸다.
      · PC(HP-497): 곧바로 넘기지 않는다. 2.5초 동안 '이동하고 있어요'를 보여 주며 가로채기를 기다리고, 그래도 남아 있으면
@@ -107,19 +108,6 @@
     <p class="sub">초대한 친구에게 새 링크를 받아 주세요</p>
   </main>
   <script>
-    // 플랫폼별 재생 URL (HP-318). 조립 규칙의 정본은 익스텐션의 `replix-net.js` PLATFORM_NAV이고
-    // 여기는 그 사본이다 — 이 페이지는 익스텐션 코드에 닿을 수 없는 정적 웹 표면이라 어쩔 수 없다.
-    // ⚠ 플랫폼을 추가하면 세 곳을 함께 고쳐야 한다: replix-net.js · 익스텐션 background.js · 이 파일.
-    var NAV = {
-      netflix: {
-        name: '넷플릭스',
-        url: function (id) { return 'https://www.netflix.com/watch/' + encodeURIComponent(id); },
-      },
-      disney_plus: {
-        name: '디즈니+',
-        url: function (id) { return 'https://www.disneyplus.com/play/' + encodeURIComponent(id); },
-      },
-    };
     // 익스텐션을 설치할 수 없는 기기인가(HP-477). 정본은 docs/js/install-guide.js 의 isMobileDevice 이고 여기는 사본이다 —
     // 외부 리소스 0 원칙이라 import 하지 못한다. 고치면 셋 다(원본, 이 파일, together/index.html —
     // scripts/test-install-guide.mjs 가 같은 사례로 대조한다).
@@ -181,6 +169,7 @@
       } catch (_) { finish(null); }
     }
     function showInstall(preview) {
+      applyPreview(preview); // 보조 링크 — s 없이 온 라프텔 초대는 요약의 작품 id 로 주소를 다시 만든다(HP-709, 아래 inviteNav 구간)
       var copy = inviteCopy(preview);
       var title = document.getElementById('title');
       // 서버가 준 작품명은 textContent 로만 넣는다 — HTML 로 해석되지 않는다(주입 방지).
@@ -192,9 +181,32 @@
       title.focus();
     }
 
+    /* inviteNav:start */
+    // 링크 해석과 이동 주소(HP-709) — scripts/test-invite.mjs 가 이 구간을 꺼내 가짜 document 로 돌린다.
+    // 플랫폼별 재생 URL (HP-318). 조립 규칙의 정본은 익스텐션의 `replix-net.js` PLATFORM_NAV이고
+    // 여기는 그 사본이다 — 이 페이지는 익스텐션 코드에 닿을 수 없는 정적 웹 표면이라 어쩔 수 없다.
+    // ⚠ 플랫폼을 추가하면 세 곳을 함께 고쳐야 한다: replix-net.js · 익스텐션 background.js · 이 파일.
+    // 라프텔은 작품 id 가 필수(`/player/<작품>/<회차>`) — 두 인자. 익스텐션 PLATFORM_NAV.laftel·INVITE_WATCH_URL.laftel 과 같은 꼴(HP-709).
+    // 작품 id 가 없으면 null — 회차 id 를 작품 자리에 넣어 추측하지 않는다(틀린 작품 id 는 404). 넷플릭스·디즈니+ 는 둘째 인자를 무시한다.
+    var NAV = {
+      netflix: {
+        name: '넷플릭스',
+        url: function (id) { return 'https://www.netflix.com/watch/' + encodeURIComponent(id); },
+      },
+      disney_plus: {
+        name: '디즈니+',
+        url: function (id) { return 'https://www.disneyplus.com/play/' + encodeURIComponent(id); },
+      },
+      laftel: {
+        name: '라프텔',
+        url: function (id, showId) { return showId ? 'https://laftel.net/player/' + encodeURIComponent(showId) + '/' + encodeURIComponent(id) : null; },
+      },
+    };
     var p = new URLSearchParams(location.search);
     var w = p.get('w');
     var t = p.get('t');
+    // 작품 id(HP-709) — 라프텔 재생 URL 에 필요하다. HP-705 부터 BE 디스코드 카드·익스텐션이 싣는 선택 파라미터라 없을 수 있다.
+    var s = p.get('s');
     // platform은 링크가 실어 준 값이 정본. 없으면(HP-318 이전에 발급된 링크) 회차 id 모양으로
     // 추론한다 — 그 시절 링크는 전부 넷플릭스였고 넷플릭스 id는 순수 숫자라 안전하다.
     var pk = p.get('p');
@@ -202,19 +214,45 @@
       pk = w && /^\d+$/.test(w) ? 'netflix'
         : (w && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(w) ? 'disney_plus' : null);
     }
+    // 재생 URL(+ 해시 토큰). 라프텔은 작품 id 가 없으면 null — 그때는 방 요약(invite-preview.platformContentId)으로 다시 만든다(PC 경로, HP-709).
+    // 토큰은 해시(#)로 나른다 — fragment는 서버로 전송되지 않아 OTT 쪽이 토큰을 보지 못하고,
+    // 설치된 익스텐션(content script)만 읽는다. encodeURIComponent는 URL 조립 방어(값은 base64url).
+    function buildUrl(showId) {
+      var base = NAV[pk].url(w, showId);
+      return base ? base + '#replix-invite=' + encodeURIComponent(t) : null;
+    }
+    // 처음 이동 주소 — 라프텔인데 s 가 없으면 null 이다. PC 는 방 요약을 받은 뒤 applyPreview 가 다시 만든다.
+    var url = w && t && pk ? buildUrl(s) : null;
+    // PC 보조 링크('이미 설치했어요') — 주소를 끝내 못 만들면 숨기고 href 도 남기지 않는다(href 가 'null' 이면 상대 주소로 열린다, HP-709).
+    function setOpenLink() {
+      var openLink = document.getElementById('open');
+      openLink.textContent = '이미 설치했어요. ' + NAV[pk].name + '에서 열기';
+      if (url) openLink.href = url;
+      else openLink.removeAttribute('href');
+      openLink.hidden = !url;
+    }
+    // 방 요약을 받은 뒤(PC). s 없이 온 라프텔 초대(HP-705 이전에 발급된 링크 등)는 요약의 작품 id 로 주소를 다시 만든다.
+    // 순서가 중요하다 — 폴백이 먼저, 그다음 보조 링크. 요약도 없으면(실패, 시간 초과) 보조 링크는 숨긴 채 둔다(HP-709).
+    function applyPreview(preview) {
+      if (!url && preview && typeof preview.platformContentId === 'string') url = buildUrl(preview.platformContentId);
+      setOpenLink();
+    }
+    // 휴대폰 '그냥 열기' — 라프텔인데 작품 id 가 없으면 url 이 null 이다. href 에 'null' 이 들어가지 않게 하고 링크를 숨긴다(HP-709).
+    function setAnywayLink() {
+      var anyway = document.getElementById('anyway');
+      anyway.textContent = NAV[pk].name + '에서 그냥 열기 →';
+      if (url) anyway.href = url;
+      anyway.hidden = !url;
+    }
+    /* inviteNav:end */
     if (w && t && pk) {
-      // 토큰은 해시(#)로 나른다 — fragment는 서버로 전송되지 않아 OTT 쪽이 토큰을 보지 못하고,
-      // 설치된 익스텐션(content script)만 읽는다. encodeURIComponent는 URL 조립 방어(값은 base64url).
-      var url = NAV[pk].url(w) + '#replix-invite=' + encodeURIComponent(t);
       var nav = navigator;
       var device = { ua: nav.userAgent || '', platform: nav.platform || '', maxTouchPoints: nav.maxTouchPoints || 0,
         uaMobile: nav.userAgentData ? nav.userAgentData.mobile === true : undefined,
         uaPlatform: nav.userAgentData ? nav.userAgentData.platform : undefined };
       if (isMobileDevice(device)) {
         // 휴대폰: 자동 이동하지 않는다. 복사하는 링크는 이 초대 주소 그대로라 PC에서 열면 아래 PC 경로를 탄다.
-        var anyway = document.getElementById('anyway');
-        anyway.textContent = NAV[pk].name + '에서 그냥 열기 →';
-        anyway.href = url;
+        setAnywayLink();
         var copied = document.getElementById('copied');
         var copyBtn = document.getElementById('copy');
         var done = function () { copyBtn.textContent = '복사했어요'; copied.textContent = 'PC에서 붙여 넣어 열어 주세요.'; };
@@ -236,9 +274,7 @@
         // PC(HP-497): 곧바로 넘기지 않는다. 익스텐션이 있으면 background 가 이 탭을 그 플랫폼으로 돌려보내므로 잠시
         // 기다리고, 그대로 남아 있으면(= 미설치) 방 요약을 받아 설치 안내를 보여 준다. 설치가 끝나면 익스텐션이 열려
         // 있는 이 탭을 찾아 이어서 입장시킨다. 설치했는데 넘어가지 않았다면 보조 링크로 예전처럼 바로 연다.
-        var openLink = document.getElementById('open');
-        openLink.textContent = '이미 설치했어요. ' + NAV[pk].name + '에서 열기';
-        openLink.href = url;
+        // 보조 링크는 설치 안내(#install) 안에 있어 그 화면을 여는 showInstall → applyPreview 가 맞춘다(HP-709).
         document.getElementById('go').hidden = false;
         setTimeout(function () { fetchPreview(t, showInstall); }, WAIT_MS);
       }

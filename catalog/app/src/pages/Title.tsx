@@ -6,7 +6,6 @@ import {
   decodeEntities,
   episodeLabel,
   fmtTime,
-  watchUrl,
   ApiError,
   type CatalogContent,
   type CatalogEpisode,
@@ -18,6 +17,7 @@ import {
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../route-pure.js'
 import { storeUrl } from '../store-pure.js'
+import { platformName, watchCta, watchUrl } from '../watch-pure.js'
 import { engaged, trackWatch } from '../analytics'
 import { Avatar, Chip, MomentDots, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { CardGridSkeleton, EmptyNote, RailSkeleton, RowsSkeleton } from '../components/skeleton'
@@ -45,7 +45,9 @@ function liveViewers(live: LiveShow[], episodeId: number | null) {
 /* ═══ 히어로 ═════════════════════════════════════════════════ */
 function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpisode | null; live: LiveShow[]; peak: Moment | null; rating: Rating }) {
   const viewers = liveViewers(live, ep?.episodeId ?? null)
-  const play = ep ? watchUrl(c.platform, ep.platformEpisodeId) : null
+  // 라프텔 딥링크는 작품 id 가 필수 — 카탈로그 응답의 platformContentId. 임시 작품(HP-168)이면 서버가 null 로 준다
+  // (순위 행 titleId 와 같은 규칙, BE CatalogQueryService) → 링크 없음(HP-709).
+  const play = ep ? watchUrl(c.platform, ep.platformEpisodeId, undefined, c.platformContentId) : null
   const maxShare = Math.max(1, ...c.episodes.map((e) => e.heatShare))
   // 시즌별 묶음(시즌 오름차순, 안에서 회차 오름차순). 영화나 시즌 정보가 없는 회차는 season 0.
   const seasons = Array.from(
@@ -62,7 +64,7 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12.5px] text-muted">
             <span>{c.contentType === 'MOVIE' ? '영화' : '시리즈'}</span>
             <Rule />
-            <span>{c.platform === 'netflix' ? '넷플릭스' : c.platform}</span>
+            <span>{platformName(c.platform)}</span>
             {ep && (<><Rule /><span>{episodeLabel(ep, c.contentType) || ep.title}</span></>)}
           </div>
 
@@ -134,7 +136,8 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
               <a href={play} target="_blank" rel="noopener" onClick={() => trackWatch(play, 'title_hero')}
                 className="inline-flex items-center gap-2 whitespace-nowrap rounded-btn bg-accent px-4 py-2.5 text-[14px] font-bold text-white transition-all hover:brightness-110 active:translate-y-px">
                 <PlayIcon size={15} weight="fill" />
-                넷플릭스에서 {ep ? episodeLabel(ep, c.contentType) || '이 회차' : ''} 보기
+                {/* 플랫폼 이름은 platformName — 라프텔 작품에 넷플릭스 문구가 붙지 않게(HP-709). */}
+                {platformName(c.platform)}에서 {ep ? episodeLabel(ep, c.contentType) || '이 회차' : ''} 보기
                 <ArrowUpRightIcon size={13} weight="bold" className="opacity-80" />
               </a>
             )}
@@ -271,7 +274,7 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
       .slice(0, 8)
       .sort((a, b) => a.playbackTime - b.playbackTime)
   }, [chats.data])
-  const play = ep && m ? watchUrl(c.platform, ep.platformEpisodeId, m.at) : null
+  const play = ep && m ? watchUrl(c.platform, ep.platformEpisodeId, m.at, c.platformContentId) : null // 작품 id(HP-709)
 
   return (
     <section id="moments" className={`scroll-mt-28 border-y border-line bg-soft ${SEC}`}>
@@ -331,7 +334,7 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
                   </div>
                   {play && (
                     <a href={play} target="_blank" rel="noopener" onClick={() => trackWatch(play, 'moment')} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-btn bg-accent px-3.5 py-2 text-[13px] font-bold text-white transition-all hover:brightness-110">
-                      <PlayIcon size={12} weight="fill" />넷플릭스에서 {fmtTime(m.at)}부터 보기<ArrowUpRightIcon size={11} weight="bold" className="opacity-80" />
+                      <PlayIcon size={12} weight="fill" />{watchCta(c.platform, fmtTime(m.at))}<ArrowUpRightIcon size={11} weight="bold" className="opacity-80" />
                     </a>
                   )}
                 </div>

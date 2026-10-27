@@ -65,7 +65,7 @@ export type EpisodeSummary = {
 export type ContentDetail = {
   contentId: number
   platform: string
-  platformContentId: string
+  platformContentId: string | null   // 작품 상세 API(/api/v1/contents/{id}, BE ContentQueryService)는 임시 작품(HP-168)이면 watch id 를 그대로 낸다 — 사이트는 이 필드로 링크를 만들지 않는다(딥링크는 CatalogContent.platformContentId — null 규칙, HP-709)
   title: string
   contentType: 'MOVIE' | 'SERIES'
   posterUrl: string | null
@@ -87,6 +87,7 @@ export type RankItem = {
   title: string
   contentType: 'MOVIE' | 'SERIES'
   platform: string
+  titleId: string | null      // 플랫폼 작품 id(BE RankItem.titleId) — 잠정 작품이면 null. 라프텔 딥링크의 작품 자리(HP-709)
   posterUrl: string | null
   episodeId: number | null
   platformEpisodeId: string | null
@@ -131,7 +132,7 @@ export type Rating = { average: number | null; count: number }
 export type CatalogContent = {
   contentId: number
   platform: string
-  platformContentId: string
+  platformContentId: string | null   // 임시 작품(HP-168)이면 null(BE CatalogQueryService — 순위 행 titleId 와 같은 규칙). 라프텔 딥링크의 작품 자리(HP-709)
   title: string
   contentType: 'MOVIE' | 'SERIES'
   posterUrl: string | null
@@ -232,6 +233,7 @@ export type MyActivityWork = {
   title: string
   contentType: 'MOVIE' | 'SERIES'
   platform: string
+  platformContentId?: string | null   // 이동 링크용 작품 id(BE HP-705, Content#linkShowId — 잠정이면 null). 1차 서버엔 없어 optional(HP-709)
   posterUrl: string | null
   lastActivityAt: string | null   // 한 작품 보기에서 활동이 없으면 null
   review: Comment | null          // 작품 댓글 API 의 Item 그대로(mine=true)
@@ -350,12 +352,7 @@ export const api = {
 
 /* ── 화면 공용 계산 ────────────────────────────────────────── */
 
-/** 넷플릭스 재생 딥링크. `t` 는 초. 프로필 관문·URL 재작성 함정은 memory/실행-함정.md 참조. */
-export function watchUrl(platform: string, platformEpisodeId: string | null | undefined, sec?: number): string | null {
-  if (!platformEpisodeId) return null
-  if (platform !== 'netflix') return null
-  return `https://www.netflix.com/watch/${platformEpisodeId}${sec !== undefined ? `?t=${Math.max(0, Math.floor(sec))}` : ''}`
-}
+export { watchUrl } from './watch-pure.js' // 재생 딥링크(HP-709) — 규칙은 watch-pure.js
 
 /** 히트맵(채팅+반응 1:1)을 막대 N개로 다시 샘플링한다. 회차 길이를 모르므로 마지막 채팅 버킷 끝을 길이로 본다. */
 export function heatToBars(h: Heatmap | null, bars: number): { values: number[]; duration: number } {

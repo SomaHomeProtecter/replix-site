@@ -130,7 +130,7 @@ assert.match(html, /<textarea id="bye-body"[^>]*maxlength="1000"/, '입력 상�
 const js = read('docs/js/bye.js');
 assert.doesNotMatch(js, /Authorization|credentials:/, '익명 — 토큰·쿠키를 싣지 않는다');
 assert.doesNotMatch(js, /innerHTML|insertAdjacentHTML/, '사용자 입력·문구를 HTML로 해석하지 않는다');
-assert.doesNotMatch(js, /netflix\.com|disneyplus\.com/, '넷플릭스·디즈니+ 서버로 요청하지 않는다');
+assert.doesNotMatch(js, /netflix\.com|disneyplus\.com|laftel\.net/, '넷플릭스·디즈니+·라프텔 서버로 요청하지 않는다'); // 라프텔(HP-709)
 // 화면 연결(boot)은 DOM 이 없어 node 에서 돌릴 수 없다 — 깨지면 설문을 통째로 잃는 연결만 글자로 못박는다
 assert.match(js, /var payload = buildPayload\(state, params\);\s*send\(api, payload,/, '보내는 것은 계약 모양의 요청 본문');
 assert.match(js, /if \(result\.ok\) done\(payload\.reasons\);/, '요약은 실제로 보낸 사유로');
