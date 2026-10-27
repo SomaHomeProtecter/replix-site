@@ -16,6 +16,7 @@ import {
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../route-pure.js'
+import { watchCta } from '../watch-pure.js'
 import { engaged, trackWatch } from '../analytics'
 import { Chip, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { EmptyNote, PosterGridSkeleton, RailSkeleton, RowsSkeleton, Shimmer } from '../components/skeleton'
@@ -393,7 +394,8 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: RankItem | 
               <a href={play} target="_blank" rel="noopener" onClick={() => trackWatch(play, 'home_billboard')}
                 className="inline-flex items-center gap-2 whitespace-nowrap rounded-btn bg-accent px-4 py-2.5 text-[14px] font-bold text-white transition-all hover:brightness-110 active:translate-y-px">
                 <PlayIcon size={15} weight="fill" />
-                넷플릭스에서 {peak ? `${fmtTime(peak.at)}부터 ` : ''}보기
+                {/* 플랫폼 이름·"…부터"는 watchCta 가 정한다 — 라프텔은 시작 시각이 없어 '라프텔에서 보기'(HP-709). */}
+                {watchCta(top.platform, peak ? fmtTime(peak.at) : undefined)}
                 <ArrowUpRightIcon size={13} weight="bold" className="opacity-80" />
               </a>
             )}

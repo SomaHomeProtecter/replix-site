@@ -16,6 +16,26 @@ export function watchUrl(platform, platformEpisodeId, sec, showId) {
   return null
 }
 
+// ── 재생 버튼 문구(HP-709) — 화면마다 '넷플릭스에서 …'를 박아 두면 라프텔 링크에 넷플릭스 문구가 붙는다. 이름과 문구를 여기 한 곳에서 만든다.
+const PLATFORM_NAMES = { netflix: '넷플릭스', laftel: '라프텔', disney_plus: '디즈니+' }
+
+/** 플랫폼 코드 → 화면 이름. 모르는 코드는 그대로 돌려준다(던지지 않는다 — 새 플랫폼이 와도 화면이 깨지지 않게). */
+export function platformName(platform) {
+  return Object.prototype.hasOwnProperty.call(PLATFORM_NAMES, platform) ? PLATFORM_NAMES[platform] : String(platform)
+}
+
+/** 재생 버튼 글자 — '넷플릭스에서 12:34부터 보기' · '라프텔에서 보기'. 라프텔 딥링크엔 시작 시각이 없어 "부터"를 약속하지 않는다(HP-709).
+ *  watchUrl 이 시작 시각(`?t=`)을 싣는 플랫폼은 넷플릭스뿐이라 넷플릭스만 시각을 적는다. */
+export function watchCta(platform, atText) {
+  return `${platformName(platform)}에서 ${atText && platform === 'netflix' ? atText + '부터 ' : ''}보기`
+}
+
+/** 내 활동 툴팁 — 넷플릭스는 그 장면(+ 구간), 라프텔 등은 회차 처음에 닿으므로 '이 회차'라고만 한다(구간을 약속하지 않는다, HP-709). */
+export function watchSceneTitle(platform, span) {
+  if (platform === 'netflix') return '넷플릭스에서 이 장면 보기' + (span ? ` (${span})` : '')
+  return `${platformName(platform)}에서 이 회차 보기`
+}
+
 /** 계측용 — 딥링크 URL 의 호스트로 플랫폼을 적는다(analytics.ts trackWatch). 모르는 호스트는 null. */
 export function watchPlatformOf(url) {
   if (!url) return null

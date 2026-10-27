@@ -13,6 +13,7 @@ import { login, useAuth } from '../auth'
 import { useAsync } from '../hooks'
 import { engaged, trackWatch } from '../analytics'
 import { reviewHref, titleHref } from '../route-pure.js'
+import { watchSceneTitle } from '../watch-pure.js'
 import { Chip, PosterSlot } from '../components/primitives'
 import { Stars } from '../components/Comments'
 import {
@@ -51,7 +52,7 @@ function ChatRow({ w, c }: { w: MyActivityWork; c: MyActivityChat }) {
   return (
     <li>
       {url ? (
-        <a href={url} target="_blank" rel="noopener" title="넷플릭스에서 이 장면 보기" onClick={() => trackWatch(url, 'my_activity')} className={`${cls} hover:bg-soft`}>
+        <a href={url} target="_blank" rel="noopener" title={watchSceneTitle(w.platform)} onClick={() => trackWatch(url, 'my_activity')} className={`${cls} hover:bg-soft`}>
           {body}
         </a>
       ) : (
@@ -62,7 +63,8 @@ function ChatRow({ w, c }: { w: MyActivityWork; c: MyActivityChat }) {
 }
 
 /** 반응한 장면 칩(HP-471 결정 2) — 회차 · 장면 시작 · 이모지별 횟수. 누르면 그 플랫폼의 장면(구간 시작)이 새 탭 — 채팅 줄과 같은
- *  watchUrl·trackWatch. url 이 null(지원 플랫폼이 아니거나 회차·작품 id 없음, HP-709)이면 링크 없이 글만. 툴팁에 30초 구간 "시작~끝". */
+ *  watchUrl·trackWatch. url 이 null(지원 플랫폼이 아니거나 회차·작품 id 없음, HP-709)이면 링크 없이 글만. 툴팁은 watchSceneTitle —
+ *  넷플릭스는 30초 구간 "시작~끝"을 붙이고, 라프텔은 회차 처음에 닿으므로 구간 없이 '이 회차'(HP-709). */
 function SceneChip({ w, sc }: { w: MyActivityWork; sc: MyActivityScene }) {
   const url = watchUrl(w.platform, sc.platformEpisodeId, sc.slotStart, w.platformContentId)
   const span = `${fmtTime(sc.slotStart)}~${fmtTime(sceneEndSec(sc.slotStart))}`
@@ -82,7 +84,7 @@ function SceneChip({ w, sc }: { w: MyActivityWork; sc: MyActivityScene }) {
   return (
     <li>
       {url ? (
-        <a href={url} target="_blank" rel="noopener" title={`넷플릭스에서 이 장면 보기 (${span})`} onClick={() => trackWatch(url, 'my_activity')} className={`${cls} hover:border-line2 hover:bg-soft`}>
+        <a href={url} target="_blank" rel="noopener" title={watchSceneTitle(w.platform, span)} onClick={() => trackWatch(url, 'my_activity')} className={`${cls} hover:border-line2 hover:bg-soft`}>
           {body}
         </a>
       ) : (
@@ -114,7 +116,7 @@ function LikedRow({ w, l }: { w: MyActivityWork; l: MyActivityLiked }) {
   return (
     <li>
       {url ? (
-        <a href={url} target="_blank" rel="noopener" title="넷플릭스에서 이 장면 보기" onClick={() => trackWatch(url, 'my_activity')} className={`${cls} hover:bg-soft`}>
+        <a href={url} target="_blank" rel="noopener" title={watchSceneTitle(w.platform)} onClick={() => trackWatch(url, 'my_activity')} className={`${cls} hover:bg-soft`}>
           {body}
         </a>
       ) : (
