@@ -67,8 +67,19 @@ assert.match(invite, /getElementById\('desc'\)\.textContent = copy\.desc;/);
 assert.match(invite, new RegExp(`<a class="btn cta" href="${store('invite')}" target="_blank"`),
   '[크롬에 추가]는 웹 스토어를 새 탭으로 — 이 탭이 남아 있어야 설치 뒤 익스텐션이 이어 간다');
 assert.match(invite, /<p class="sub">설치가 끝나면 이 페이지에서 자동으로 이어져요\.<\/p>/);
+// 라프텔(HP-709) — 셋째 사본. 익스텐션 test/disney-room assertCopy 가 `laftel:` 뒤 첫 URL 리터럴을 대조한다.
+assert.match(invite, /laftel: \{\s*name: '라프텔',\s*url: function \(id, showId\) \{ return showId \? 'https:\/\/laftel\.net\/player\/' \+ encodeURIComponent\(showId\) \+ '\/' \+ encodeURIComponent\(id\) : null; \},/,
+  '라프텔 재생 URL 은 작품 id 가 있을 때만 — 없으면 null(회차 id 를 작품 자리에 넣지 않는다)');
+const navBlock = /var NAV = \{[\s\S]*?\};/.exec(invite);
+assert.ok(navBlock && navBlock[0].includes("'https://laftel.net/player/'"), 'NAV 블록이 라프텔 재생 URL 리터럴을 담는다(HP-709)');
+assert.match(invite, /var s = p\.get\('s'\);/, '작품 id 는 링크의 s(BE DiscordText.inviteUrl·익스텐션 buildInviteLink 와 같은 이름)');
+assert.match(invite, /function buildUrl\(showId\) \{[\s\S]*?NAV\[pk\]\.url\(w, showId\)[\s\S]*?'#replix-invite=' \+ encodeURIComponent\(t\)/, '토큰은 해시로');
+assert.match(invite, /if \(!url && preview && typeof preview\.platformContentId === 'string'\) url = buildUrl\(preview\.platformContentId\);/,
+  's 없는 라프텔 초대는 방 요약의 작품 id 로 보조 링크를 만든다');
 assert.match(invite, /openLink\.textContent = '이미 설치했어요\. ' \+ NAV\[pk\]\.name \+ '에서 열기';\s*openLink\.href = url;/,
   '보조 링크는 예전 이동 주소(해시 토큰 포함) 그대로');
+assert.match(invite, /openLink\.hidden = !url;/, '작품 id 를 끝내 못 받으면 보조 링크를 숨긴다(엉뚱한 곳으로 보내지 않는다)');
+assert.match(invite, /anyway\.hidden = !url;/, '휴대폰도 같다');
 
 // ── 디스코드 연결 페이지 소스 규칙
 assert.match(together, /var WAIT_MS = 2500;/, '초대 페이지와 같은 대기 시간');
