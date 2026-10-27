@@ -8,12 +8,12 @@
    들어오는 길 = 헤더 닉네임 메뉴 「내 활동」(Chrome.tsx) · 익스텐션의 「전체 활동 보기」(HP-442). */
 import { useCallback, useState, type ReactElement } from 'react'
 import { EyeSlashIcon, HeartIcon, TrashIcon } from '@phosphor-icons/react'
-import { api, ApiError, decodeEntities, deleteMyComment, episodeLabel, fmtTime, watchUrl, type MyActivityChat, type MyActivityLiked, type MyActivityScene, type MyActivityWork } from '../api'
+import { api, ApiError, decodeEntities, deleteMyComment, episodeLabel, fmtTime, type MyActivityChat, type MyActivityLiked, type MyActivityScene, type MyActivityWork } from '../api'
 import { login, useAuth } from '../auth'
 import { useAsync } from '../hooks'
 import { engaged, trackWatch } from '../analytics'
 import { reviewHref, titleHref } from '../route-pure.js'
-import { watchSceneTitle } from '../watch-pure.js'
+import { watchSceneTitle, watchUrl } from '../watch-pure.js'
 import { Chip, PosterSlot } from '../components/primitives'
 import { Stars } from '../components/Comments'
 import {

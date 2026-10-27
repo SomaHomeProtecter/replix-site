@@ -7,7 +7,6 @@ import {
   episodeLabel,
   fmtTime,
   fmtDuration,
-  watchUrl,
   type LiveShow,
   type Moment,
   type RankItem,
@@ -16,7 +15,7 @@ import {
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../route-pure.js'
-import { watchCta } from '../watch-pure.js'
+import { watchCta, watchUrl } from '../watch-pure.js'
 import { engaged, trackWatch } from '../analytics'
 import { Chip, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { EmptyNote, PosterGridSkeleton, RailSkeleton, RowsSkeleton, Shimmer } from '../components/skeleton'

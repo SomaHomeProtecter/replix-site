@@ -53,7 +53,7 @@ assert.doesNotMatch(api, /function watchUrl\(/, 'watchUrl 본체는 watch-pure.j
 assert.match(api, /export \{ watchUrl \} from '\.\/watch-pure\.js'/);
 assert.match(api, /titleId: string \| null/, 'RankItem 에 titleId');
 assert.match(api, /platformContentId\?: string \| null/, 'MyActivityWork.platformContentId 는 1차 서버엔 없어 optional');
-assert.match(analytics, /platform: watchPlatformOf\(url\)/, 'trackWatch 는 호스트로 플랫폼을 적는다');
+assert.match(analytics, /platform: watchPlatformOf\(url\) \?\? 'other'/, 'trackWatch 는 호스트로 플랫폼을 적는다(속성 타입이 null 을 받지 않아 닿지 않는 갈래는 other)');
 assert.doesNotMatch(analytics, /platform: 'netflix'/);
 // 화면 글자에 '넷플릭스에서'를 박아 두지 않는다 — 라프텔 링크에 넷플릭스 문구가 붙는다(HP-709). 주석은 빼고 본다.
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');

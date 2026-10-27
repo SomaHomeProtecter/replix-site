@@ -209,7 +209,7 @@ assert.match(me, /p2\.liked\.slice\(0, LIKED_PREVIEW\)/);
 assert.match(me, /likedView\(l\)/);
 assert.match(me, /<ol className="amp-mask[^"]*">\s*\{liked\.map\(\(l\) => <LikedRow/);
 assert.match(me, /watchUrl\(w\.platform, l\.platformEpisodeId, l\.playbackTime, w\.platformContentId\)/); // 라프텔 작품 id(HP-709)
-// 넷플릭스가 아니거나 회차 id 가 없으면(url null) 세 줄 모두 링크 없이 글자만.
+// 지원 플랫폼이 아니거나 회차 id·작품 id(라프텔 — Work.platformContentId, HP-709)가 없으면(url null) 세 줄 모두 링크 없이 글자만.
 assert.ok((me.match(/\{url \? \(/g) || []).length >= 3, 'ChatRow·SceneChip·LikedRow 모두 url null 분기');
 // 요약 = summaryCells(1차 서버면 세 칸) · 휴대폰에서 칸 여백을 줄인다 · 칩은 줄바꿈.
 assert.match(me, /summaryCells\(s\)\.map/);

@@ -6,7 +6,6 @@ import {
   decodeEntities,
   episodeLabel,
   fmtTime,
-  watchUrl,
   ApiError,
   type CatalogContent,
   type CatalogEpisode,
@@ -18,7 +17,7 @@ import {
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../route-pure.js'
 import { storeUrl } from '../store-pure.js'
-import { platformName, watchCta } from '../watch-pure.js'
+import { platformName, watchCta, watchUrl } from '../watch-pure.js'
 import { engaged, trackWatch } from '../analytics'
 import { Avatar, Chip, MomentDots, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
 import { CardGridSkeleton, EmptyNote, RailSkeleton, RowsSkeleton } from '../components/skeleton'
@@ -46,7 +45,8 @@ function liveViewers(live: LiveShow[], episodeId: number | null) {
 /* ═══ 히어로 ═════════════════════════════════════════════════ */
 function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpisode | null; live: LiveShow[]; peak: Moment | null; rating: Rating }) {
   const viewers = liveViewers(live, ep?.episodeId ?? null)
-  // 라프텔 딥링크는 작품 id 가 필수 — 카탈로그 응답의 platformContentId(잠정 작품은 서버가 null 로 준다, HP-709).
+  // 라프텔 딥링크는 작품 id 가 필수 — 카탈로그 응답의 platformContentId. 임시 작품(HP-168)이면 서버가 null 로 준다
+  // (순위 행 titleId 와 같은 규칙, BE CatalogQueryService) → 링크 없음(HP-709).
   const play = ep ? watchUrl(c.platform, ep.platformEpisodeId, undefined, c.platformContentId) : null
   const maxShare = Math.max(1, ...c.episodes.map((e) => e.heatShare))
   // 시즌별 묶음(시즌 오름차순, 안에서 회차 오름차순). 영화나 시즌 정보가 없는 회차는 season 0.

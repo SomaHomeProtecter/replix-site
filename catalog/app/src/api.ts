@@ -65,7 +65,7 @@ export type EpisodeSummary = {
 export type ContentDetail = {
   contentId: number
   platform: string
-  platformContentId: string
+  platformContentId: string | null   // 임시 작품(HP-168)이면 null(BE CatalogQueryService — 순위 행 titleId 와 같은 규칙, HP-709)
   title: string
   contentType: 'MOVIE' | 'SERIES'
   posterUrl: string | null
@@ -132,7 +132,7 @@ export type Rating = { average: number | null; count: number }
 export type CatalogContent = {
   contentId: number
   platform: string
-  platformContentId: string
+  platformContentId: string | null   // 임시 작품(HP-168)이면 null(BE CatalogQueryService — 순위 행 titleId 와 같은 규칙). 라프텔 딥링크의 작품 자리(HP-709)
   title: string
   contentType: 'MOVIE' | 'SERIES'
   posterUrl: string | null
