@@ -144,17 +144,22 @@ for (const preview of [null, {}, { platformContentId: 47088 }, { platformContent
   assert.equal(stub('?w=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa&t=tok&p=disney_plus').api.url,
     'https://www.disneyplus.com/play/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa#replix-invite=tok');
 }
-// p 가 없던 옛 링크(HP-318 이전)는 회차 id 모양으로 — 숫자면 넷플릭스, UUID 면 디즈니+.
-assert.equal(stub('?w=81234567&t=tok').api.pk, 'netflix');
-assert.equal(stub('?w=81234567&t=tok').api.url, 'https://www.netflix.com/watch/81234567#replix-invite=tok');
-assert.equal(stub('?w=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa&t=tok').api.pk, 'disney_plus');
-// 프로토타입 키는 플랫폼이 아니다(hasOwnProperty 가드) — 모양 추론으로 떨어지고, 모양도 모르면 잘못된 링크.
-for (const bogus of ['__proto__', 'constructor', 'toString', 'bogus']) {
-  assert.equal(stub(`?w=81234567&t=tok&p=${bogus}`).api.pk, 'netflix', bogus);
-  const odd = stub(`?w=ab12&t=tok&p=${bogus}`);
+// p 가 없는 링크(HP-318 이전, 익스텐션 0.8.0 이하)는 회차 id 모양으로 추측하지 않는다(HP-749) — 숫자·UUID 회차 모두 잘못된 링크 화면.
+// 익스텐션도 같은 링크를 가로채지 않는다(core/link-rules.js parseReplixLink).
+for (const q of ['?w=81234567&t=tok', '?w=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa&t=tok', '?w=81234567&t=tok&p=']) {
+  const bare = stub(q);
+  assert.equal(bare.api.pk, null, q);
+  assert.equal(bare.api.url, null, q);
+}
+// 모르는 p·프로토타입 키도 플랫폼이 아니다(hasOwnProperty 가드) — 숫자 회차여도 넷플릭스로 추측하지 않는다(익스텐션 inviteWatchUrl 과 같다).
+for (const bogus of ['__proto__', 'constructor', 'toString', 'bogus', 'tving']) {
+  const odd = stub(`?w=81234567&t=tok&p=${bogus}`);
   assert.equal(odd.api.pk, null, bogus);
   assert.equal(odd.api.url, null, bogus);
 }
+// pk 가 없으면 페이지는 #bad('유효하지 않은 초대 링크')를 연다 — 판정이 inviteNav 구간 밖(아래 if)에 있어 소스로 고정한다.
+assert.match(invite, /if \(w && t && pk\) \{[\s\S]*\} else \{\s*document\.getElementById\('bad'\)\.hidden = false;/,
+  'w·t·p 중 하나라도 없으면 잘못된 링크 안내');
 assert.equal(stub('?w=99909&p=laftel&s=47088').api.url, null, '토큰이 없으면 주소도 없다(잘못된 링크 화면)');
 
 // ── 디스코드 연결 페이지 소스 규칙
