@@ -46,18 +46,18 @@ assert.equal(inviteCopy({ contentTitle: '흑백요리사', episodeNumber: 2, onl
 assert.equal(inviteCopy({ contentTitle: '흑백요리사', episodeNumber: 2 }).desc, INSTALL, '인원이 없어도 뺀다');
 // 요약 실패(404·네트워크·시간 초과 = null)나 작품명이 빈 응답은 일반 제목으로.
 const FALLBACK = { title: '리플릭스 그룹방 초대', desc: INSTALL };
-// 스트리밍(방송) 방(HP-786) — 무엇이 필요한지 한 줄과 휴대폰 안내를 더한다. 광고형 안내는 넷플릭스에만, 플랫폼 이름이 없으면 넷플릭스.
+// 스트리머 방(HP-786) — 무엇이 필요한지 한 줄과 휴대폰 안내를 더한다. 광고형 안내는 넷플릭스에만, 플랫폼 이름이 없으면 넷플릭스.
 const NEED = 'PC 크롬과 넷플릭스 계정(광고형도 돼요)이 있으면 돼요. 로그인은 한 번만 하면 되고, 대화는 방송 채팅에서 해요.';
-const MOBILE = '휴대폰에서는 방송 화면의 방장 위치를 보고 맞춰 보세요.';
+const MOBILE = '방송 화면의 같이보기 타이머를 보고 맞춰 보세요.';
 assert.deepEqual(inviteCopy({ contentTitle: '흑백요리사', episodeNumber: 2, onlineCount: 84, streamMode: true }, '넷플릭스'),
   { title: '『흑백요리사』 2화', desc: '84명이 함께 보고 있어요. ' + INSTALL, need: NEED, mobile: MOBILE });
 assert.equal(inviteCopy({ contentTitle: '흑백요리사', streamMode: true }).need, NEED);
 assert.equal(inviteCopy({ contentTitle: '귀멸의 칼날', streamMode: true }, '라프텔').need,
   'PC 크롬과 라프텔 계정이 있으면 돼요. 로그인은 한 번만 하면 되고, 대화는 방송 채팅에서 해요.');
 const plain = inviteCopy({ contentTitle: '흑백요리사', streamMode: false }, '넷플릭스');
-assert.equal(plain.need, undefined, '스트리밍 방이 아니면 안내를 더하지 않는다');
+assert.equal(plain.need, undefined, '스트리머 방이 아니면 안내를 더하지 않는다');
 assert.equal(plain.mobile, undefined);
-assert.equal(inviteCopy({ contentTitle: '흑백요리사', streamMode: 'true' }).need, undefined, 'true 만 스트리밍 방으로 읽는다');
+assert.equal(inviteCopy({ contentTitle: '흑백요리사', streamMode: 'true' }).need, undefined, 'true 만 스트리머 방으로 읽는다');
 
 assert.deepEqual(inviteCopy(null), FALLBACK);
 assert.deepEqual(inviteCopy({}), FALLBACK);

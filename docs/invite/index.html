@@ -71,7 +71,7 @@
     }
     .title:focus { outline: none; }
     .desc { font-size: 13.5px; line-height: 1.6; color: #a9a9b4; max-width: 300px; word-break: keep-all; }
-    /* 스트리밍(방송) 방 안내(HP-786) — 무엇이 필요한지 한 줄. */
+    /* 스트리머 방 안내(HP-786) — 무엇이 필요한지 한 줄. */
     .need {
       font-size: 12.5px; line-height: 1.6; color: #cfcfd6; max-width: 300px; word-break: keep-all;
       background: #15151b; border-radius: 8px; padding: 8px 12px;
@@ -144,7 +144,7 @@
       return season + episodeNumber + '화';
     }
     // preview = invite-preview 응답, 실패(404, 네트워크, 시간 초과)면 null. 작품명이 없으면 요약 없는 제목으로 떨어진다.
-    // 스트리밍(방송) 방이면(HP-786) 무엇이 필요한지(need)와 휴대폰 안내(mobile)를 더한다 — platformName 은 링크의 플랫폼 이름.
+    // 스트리머 방이면(HP-786) 무엇이 필요한지(need)와 휴대폰 안내(mobile)를 더한다 — platformName 은 링크의 플랫폼 이름.
     function inviteCopy(preview, platformName) {
       var pv = preview || {};
       var work = typeof pv.contentTitle === 'string' ? pv.contentTitle.trim() : '';
@@ -159,7 +159,7 @@
         var name = platformName || '넷플릭스';
         copy.need = 'PC 크롬과 ' + name + ' 계정' + (name === '넷플릭스' ? '(광고형도 돼요)' : '') +
           '이 있으면 돼요. 로그인은 한 번만 하면 되고, 대화는 방송 채팅에서 해요.';
-        copy.mobile = '휴대폰에서는 방송 화면의 방장 위치를 보고 맞춰 보세요.';
+        copy.mobile = '방송 화면의 같이보기 타이머를 보고 맞춰 보세요.';
       }
       return copy;
     }
@@ -287,7 +287,7 @@
           else fallback();
         });
         document.getElementById('mobile').hidden = false;
-        // 스트리밍(방송) 방이면 휴대폰으로도 따라 볼 길을 알린다(HP-786). 요약이 늦거나 없으면 그대로 둔다.
+        // 스트리머 방이면 휴대폰으로도 따라 볼 길을 알린다(HP-786). 요약이 늦거나 없으면 그대로 둔다.
         fetchPreview(t, function (preview) {
           var mobileNeed = document.getElementById('mobile-need');
           var copy = inviteCopy(preview, NAV[pk].name);
