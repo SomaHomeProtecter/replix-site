@@ -7,9 +7,10 @@
        시계가 어긋나도 틀어지지 않는다. 30초 넘게 답을 못 받으면 낡은 값을 띄우지 않게 감춘다.
      · 토큰이 없거나 링크가 꺼졌으면(404 — 꺼짐·다시 만듦·스트리밍 모드 꺼짐·방장 바뀜) 아무것도 그리지 않는다. 방송 화면에 오류 글을
        띄우지 않으려는 것이다. 5초마다 다시 물어 모드를 다시 켜면 돌아온다.
-     · 싣는 것은 식별 정보뿐이다(법규 트리거 ⑥ — 회차 제목·포스터·플랫폼 로고 없이 플랫폼은 글자로). 서버 문자열은 textContent 로만 넣는다.
-     · 남은 시간 '-55:09'(2026-11-02 김지호 결정) — 서버가 회차 길이(durationSec)를 실었을 때만. 길이는 방장 플레이어가 보낸 것을 서버가
-       1시간 수명의 Redis 에만 두는 법규 B2 의 좁은 예외다(Replix-be HP-757).
+     · 싣는 것은 식별 정보(플랫폼·작품명·시즌/회차 번호 — 법규 트리거 ⑥, 회차 제목·포스터·플랫폼 로고 없이 플랫폼은 글자로)와 방장 위치·상태,
+       그리고 남은 시간이다. 서버 문자열은 textContent 로만 넣는다.
+     · 남은 시간 '-55:08'(2026-11-02 김지호 결정) — 서버가 회차 길이(durationSec)를 실었을 때만, 회차 끝에서는 뺀다. 길이는 방장 플레이어가
+       보낸 것을 서버가 1시간 수명의 Redis 에만 두는 규칙 문서 'B2 예외'다(워크스페이스 docs/legal-compliance-dev-rules.md, Replix-be HP-757).
      · env=dev 면 개발 서버(api.replix-dev.site)에 묻는다 — 익스텐션 개발 빌드가 만든 링크다. 다른 값은 받지 않는다(아무 주소나 묻지 않게).
      외부 리소스 0, 계측 없음 — 단일 파일. 검사 = scripts/test-overlay.mjs -->
 <html lang="ko">
@@ -90,14 +91,23 @@
         state: STATE_TEXT[data.state] || '',
         wait: data.state === 'AD',
         pos: pos,
-        duration: typeof data.durationSec === 'number' && data.durationSec > 0 ? data.durationSec : null,
+        duration: typeof data.durationSec === 'number' && isFinite(data.durationSec) && data.durationSec > 0 ? data.durationSec : null,
+        ended: data.state === 'EPISODE_END',
         key: (data.platform || '') + '|' + title + '|' + (data.state || ''),
       };
     }
-    // 남은 시간 '-55:09' — 회차 길이를 알 때만. 올린다: 지금 위치(내림) + 남은 시간 = 길이가 되게.
+    // 남은 시간 '-55:08' — 회차 길이를 알 때만. 둘 다 내린 초로 센다(내림(길이) − 내림(위치)): 시각과 남은 시간이 같은 순간에 한 칸씩 움직이고
+    // 둘을 더하면 늘 내림(길이)이다.
     function formatRemain(duration, pos) {
-      if (duration === null || pos === null || typeof pos !== 'number') return '';
-      return '-' + formatClock(Math.ceil(Math.max(0, duration - pos)));
+      if (typeof duration !== 'number' || !isFinite(duration) || typeof pos !== 'number' || !isFinite(pos)) return '';
+      var left = formatClock(Math.max(0, Math.floor(duration) - Math.floor(pos)));
+      return left ? '-' + left : '';
+    }
+    // 그릴 시각 두 개 — 뒤로 가지 않는 위치(steadyPosition)와 그 위치로 센 남은 시간. 회차 끝에서는 남은 시간을 빼고('-0:00'이 상태와 겹친다),
+    // 뒤로 가지 않는 위치를 다음 판정에 넘긴다.
+    function timesFor(view, prevPos, prevKey) {
+      var pos = steadyPosition(prevPos, prevKey, view.pos, view.key);
+      return { pos: pos, time: pos === null ? '' : formatClock(pos), remain: view.ended ? '' : formatRemain(view.duration, pos) };
     }
     // 재생 중 표시를 뒤로 돌리지 않는다 — 새 응답으로 다시 맞춘 위치가 방금 보인 값보다 조금(1.5초 미만) 뒤면 보인 값을 둔다(방장 표본·
     // 전송 지연의 흔들림으로 12:30 → 12:29 → 12:30 처럼 튀지 않게). 크게 뒤로 갔으면(방장이 되감음) 그대로 따르고, 흐름이 바뀌면(회차·상태)
@@ -138,17 +148,16 @@
       var now = performance.now();
       var view = last && now - receivedAt <= STALE_MS ? overlayView(last, (now - receivedAt) / 1000) : null;
       if (!view) { shownPos = null; shownKey = null; paint(box, 'hidden', true); return; }
-      var pos = steadyPosition(shownPos, shownKey, view.pos, view.key);
-      shownPos = pos; shownKey = view.key;
-      var time = pos === null ? '' : formatClock(pos);
+      var times = timesFor(view, shownPos, shownKey);
+      shownPos = times.pos; shownKey = view.key;
+      var time = times.time;
       paint(pfEl, 'textContent', view.platform);
       paint(pfEl, 'hidden', !view.platform);
       paint(ttlEl, 'textContent', view.title);
       paint(timeEl, 'textContent', time);
       paint(timeEl, 'hidden', !time);
-      var remain = formatRemain(view.duration, pos);
-      paint(remEl, 'textContent', remain);
-      paint(remEl, 'hidden', !remain);
+      paint(remEl, 'textContent', times.remain);
+      paint(remEl, 'hidden', !times.remain);
       paint(stEl, 'textContent', view.state);
       paint(stEl, 'className', view.wait ? 'st wait' : 'st');
       paint(box, 'hidden', false);
