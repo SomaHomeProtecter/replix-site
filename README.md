@@ -12,7 +12,7 @@ Replix의 정적 웹 표면. GitHub Pages로 `https://replix.tv`에 서빙된다
 
 ## 계약 (변경 금지)
 
-- 초대 링크 형식: `https://replix.tv/invite?w=<watch id>&t=<토큰(base64url 43자)>` — 이미 밖으로 공유되는 영구 표면. 정본 = Jira **HP-186 코멘트 11185** · **HP-87 코멘트 11191**.
+- 초대 링크 형식: `https://replix.tv/invite?w=<watch id>&t=<토큰(base64url 43자)>&p=<플랫폼>[&s=<작품 id>]` — 이미 밖으로 공유되는 영구 표면. 정본 = Jira **HP-186 코멘트 11185** · **HP-87 코멘트 11191**. `p`는 HP-318(익스텐션 0.9.0)부터 실렸고, 2026-11-02 HP-749부터 필수다 — `p` 없는 링크(0.8.0 이하가 만든 것)의 방은 운영에 남아 있지 않아 '유효하지 않은 초대 링크'로 안내한다(익스텐션도 가로채지 않는다).
 - 토큰은 넷플릭스 URL의 **해시(#)** 로만 나른다 — fragment는 서버·리퍼러로 전송되지 않는다.
 - `/invite`는 `noindex` 유지, 토큰을 로그·분석 도구로 보내지 않는다. 토큰이 이 페이지 밖으로 나가는 곳은 OTT 이동 주소의 해시와 방 요약 조회(`GET https://api.replix.tv/api/v1/rooms/invite-preview?t=`, 공개, HP-497)뿐이다.
 - 디스코드 연결 링크 형식: `https://replix.tv/together?p=<연결 토큰(base64url 43자, 30분, 1회용)>` — 디스코드 봇(Replix-be)이 만들고 익스텐션이 가로챈다(HP-497). `/together`도 `noindex`, 계측 없음이며 연결 토큰을 어디로도 보내지 않는다(있는지만 본다).

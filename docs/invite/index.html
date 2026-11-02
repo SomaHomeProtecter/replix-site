@@ -10,6 +10,7 @@
      · 휴대폰(HP-477): 자동 이동하지 않는다 — 초대는 대개 메신저로 받아 휴대폰에서 열리는데, 휴대폰엔 익스텐션이 없어
        넷플릭스로 보내면 Replix 안내 없이 초대가 끊긴다. 'PC 크롬에서 같이 봐요' 안내와 링크 복사를 보여 준다.
      계약 정본 = Jira HP-186 코멘트 11185 · HP-87 코멘트 11191(URL·파라미터 불변). 외부 리소스 0 — 단일 파일 유지.
+     p 는 필수다(HP-749) — p 없는 링크는 익스텐션 0.8.0 이하만 만들었고 그 방은 운영에 남아 있지 않아, '유효하지 않은 초대 링크'로 안내한다.
      같은 골격의 디스코드 연결 착지 = together/index.html. -->
 <html lang="ko">
 <head>
@@ -207,13 +208,11 @@
     var t = p.get('t');
     // 작품 id(HP-709) — 라프텔 재생 URL 에 필요하다. HP-705 부터 BE 디스코드 카드·익스텐션이 싣는 선택 파라미터라 없을 수 있다.
     var s = p.get('s');
-    // platform은 링크가 실어 준 값이 정본. 없으면(HP-318 이전에 발급된 링크) 회차 id 모양으로
-    // 추론한다 — 그 시절 링크는 전부 넷플릭스였고 넷플릭스 id는 순수 숫자라 안전하다.
-    var pk = p.get('p');
-    if (!Object.prototype.hasOwnProperty.call(NAV, pk || '')) {
-      pk = w && /^\d+$/.test(w) ? 'netflix'
-        : (w && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(w) ? 'disney_plus' : null);
-    }
+    // platform은 링크가 실어 준 값(p)만 본다. p 가 없거나 모르는 값이면 null — 아래에서 '유효하지 않은 초대 링크'를 보인다.
+    // 익스텐션 background 도 같은 링크를 가로채지 않는다(core/link-rules.js parseReplixLink · background.js inviteWatchUrl).
+    // 회차 id 모양(숫자 = 넷플릭스, UUID = 디즈니+)으로 추측하던 폴백은 p 를 싣기 전(HP-318 이전, 익스텐션 0.8.0 이하)에
+    // 발급된 링크용이었고, 그 방은 운영에 남아 있지 않아 HP-749에서 걷었다. 자기 속성만 보므로 p=__proto__ 같은 값도 모르는 값이다.
+    var pk = Object.prototype.hasOwnProperty.call(NAV, p.get('p') || '') ? p.get('p') : null;
     // 재생 URL(+ 해시 토큰). 라프텔은 작품 id 가 없으면 null — 그때는 방 요약(invite-preview.platformContentId)으로 다시 만든다(PC 경로, HP-709).
     // 토큰은 해시(#)로 나른다 — fragment는 서버로 전송되지 않아 OTT 쪽이 토큰을 보지 못하고,
     // 설치된 익스텐션(content script)만 읽는다. encodeURIComponent는 URL 조립 방어(값은 base64url).
