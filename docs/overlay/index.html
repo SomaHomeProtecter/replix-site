@@ -1,0 +1,144 @@
+<!doctype html>
+<!-- 방송 화면 오버레이(HP-757) — https://replix.tv/overlay#t=<오버레이 토큰>[&env=dev]
+     역할: 그룹방 스트리밍 모드의 방송인이 OBS 브라우저 소스로 띄운다. 익스텐션 없이 방송만 따라 보는 시청자도 방장 위치를 알게,
+     보는 플랫폼·작품명·회차와 방장 위치·상태를 한 줄로 보여 준다. 방송과 함께 늦게 나가므로 '방송 기준 시각'이 된다.
+     · 토큰은 해시(#)로만 받는다 — GitHub Pages 서버·리퍼러로 가지 않는다. 묻는 곳은 우리 API(공개 stream-overlay, Replix-be HP-757)뿐이다.
+     · 2초마다 묻고, 그 사이는 받은 위치에 흐른 시간 × 재생 속도를 더해 초를 흘린다. 서버가 응답 시각의 위치를 실어 주므로 방송 PC
+       시계가 어긋나도 틀어지지 않는다. 30초 넘게 답을 못 받으면 낡은 값을 띄우지 않게 감춘다.
+     · 토큰이 없거나 링크가 꺼졌으면(404 — 꺼짐·다시 만듦·스트리밍 모드 꺼짐·방장 바뀜) 아무것도 그리지 않는다. 방송 화면에 오류 글을
+       띄우지 않으려는 것이다. 5초마다 다시 물어 모드를 다시 켜면 돌아온다.
+     · 싣는 것은 식별 정보뿐이다(법규 트리거 ⑥ — 회차 제목·포스터·플랫폼 로고 없이 플랫폼은 글자로). 서버 문자열은 textContent 로만 넣는다.
+     · env=dev 면 개발 서버(api.replix-dev.site)에 묻는다 — 익스텐션 개발 빌드가 만든 링크다. 다른 값은 받지 않는다(아무 주소나 묻지 않게).
+     외부 리소스 0, 계측 없음 — 단일 파일. 검사 = scripts/test-overlay.mjs -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- 토큰이 실린 주소가 검색에 잡히지 않게(토큰은 해시라 서버에는 가지 않는다). -->
+  <meta name="robots" content="noindex">
+  <!-- 오버레이를 묻는 곳 — 운영 BE. 링크에 env=dev 가 있으면 개발 서버를 묻는다. -->
+  <meta name="api-base" content="https://api.replix.tv">
+  <title>Replix 방송 화면</title>
+  <style>
+    /* OBS 브라우저 소스는 배경을 투명하게 합성한다 — 페이지 배경을 칠하지 않는다. */
+    html, body { margin: 0; background: transparent; }
+    body {
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    }
+    .ovl {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 10px 18px; border-radius: 12px;
+      background: rgba(10, 10, 14, 0.84); border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #e8e8ec; font-size: 20px; line-height: 1.2; white-space: nowrap;
+    }
+    .ovl[hidden], .ovl [hidden] { display: none; }
+    .pf { font-weight: 800; color: #fff; padding-right: 12px; border-right: 1px solid rgba(255, 255, 255, 0.22); }
+    .ttl { font-weight: 700; }
+    /* 숫자 폭만 고정한다(tabular-nums) — 초가 바뀔 때 상자가 흔들리지 않게. 고정폭 글꼴은 ':' 앞뒤가 벌어져 쓰지 않는다. */
+    .time { font-size: 30px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+    .st { color: #cfcfd6; }
+    .st.wait { color: #ffb020; }
+  </style>
+</head>
+<body>
+  <div class="ovl" id="ovl" hidden>
+    <span class="pf" id="pf"></span>
+    <span class="ttl" id="ttl"></span>
+    <b class="time" id="time"></b>
+    <span class="st" id="st"></span>
+  </div>
+  <script>
+  (function () {
+    'use strict';
+    /* overlayView:start */
+    // 플랫폼 코드(Replix-be platform.code) → 화면 이름. 모르는 코드는 플랫폼 칸을 비운다.
+    var PLATFORM_NAMES = { netflix: '넷플릭스', disney_plus: '디즈니+', laftel: '라프텔', tving: '티빙', wavve: '웨이브', youtube: '유튜브' };
+    var STATE_TEXT = { PLAYING: '재생 중', PAUSED: '멈춤', AD: '광고 대기', EPISODE_END: '회차 끝', IDLE: '시작 전' };
+    // 회차 표기 — 익스텐션 replix-net.js formatEpisodeLabel 의 사본(초대 페이지와 같다). 시즌은 2 이상일 때만 붙인다.
+    function formatEpisodeLabel(seasonNumber, episodeNumber) {
+      if (typeof episodeNumber !== 'number') return '';
+      var season = typeof seasonNumber === 'number' && seasonNumber > 1 ? '시즌' + seasonNumber + ' ' : '';
+      return season + episodeNumber + '화';
+    }
+    // 초 → '12:26' · 한 시간이 넘으면 '1:02:05'. 소수는 버린다(넷플릭스 플레이어 표시와 같다).
+    function formatClock(sec) {
+      if (typeof sec !== 'number' || !isFinite(sec)) return '';
+      var s = Math.max(0, Math.floor(sec));
+      var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+      var mm = h > 0 && m < 10 ? '0' + m : String(m);
+      return (h > 0 ? h + ':' : '') + mm + ':' + (r < 10 ? '0' + r : r);
+    }
+    // data = stream-overlay 응답, elapsedSec = 받은 뒤 흐른 초. 그릴 것이 없으면 null(감춘다).
+    function overlayView(data, elapsedSec) {
+      if (!data || typeof data.contentTitle !== 'string' || !data.contentTitle.trim()) return null;
+      var label = formatEpisodeLabel(data.seasonNumber, data.episodeNumber);
+      var pos = typeof data.positionSec === 'number' ? data.positionSec : null;
+      if (pos !== null && data.state === 'PLAYING') {
+        pos += Math.max(0, elapsedSec || 0) * (typeof data.rate === 'number' && data.rate > 0 ? data.rate : 1);
+      }
+      return {
+        platform: PLATFORM_NAMES[data.platform] || '',
+        title: data.contentTitle.trim() + (label ? ' ' + label : ''),
+        time: pos === null ? '' : formatClock(pos),
+        state: STATE_TEXT[data.state] || '',
+        wait: data.state === 'AD',
+      };
+    }
+    // 해시에서 토큰과 환경을 읽는다(#t=…&env=dev).
+    function readHash(hash) {
+      var p = new URLSearchParams(String(hash || '').replace(/^#/, ''));
+      return { token: p.get('t') || '', env: p.get('env') || '' };
+    }
+    function apiBase(metaBase, env) {
+      return env === 'dev' ? 'https://api.replix-dev.site' : metaBase;
+    }
+    /* overlayView:end */
+
+    var POLL_MS = 2000, CLOSED_POLL_MS = 5000, TICK_MS = 250, STALE_MS = 30000, TIMEOUT_MS = 5000;
+    var meta = document.querySelector('meta[name="api-base"]');
+    var metaBase = meta ? meta.content : 'https://api.replix.tv';
+    var hash = readHash(location.hash);
+    var box = document.getElementById('ovl');
+    var pfEl = document.getElementById('pf'), ttlEl = document.getElementById('ttl');
+    var timeEl = document.getElementById('time'), stEl = document.getElementById('st');
+    var last = null, receivedAt = 0;
+
+    function render() {
+      var now = performance.now();
+      var view = last && now - receivedAt <= STALE_MS ? overlayView(last, (now - receivedAt) / 1000) : null;
+      if (!view) { box.hidden = true; return; }
+      pfEl.textContent = view.platform;
+      pfEl.hidden = !view.platform;
+      ttlEl.textContent = view.title;
+      timeEl.textContent = view.time;
+      timeEl.hidden = !view.time;
+      stEl.textContent = view.state;
+      stEl.className = view.wait ? 'st wait' : 'st';
+      box.hidden = false;
+    }
+
+    // 공개 GET 이라 쿠키·인증을 싣지 않는다. 다음 묻기까지의 간격을 돌려준다.
+    function ask() {
+      if (!hash.token) { last = null; return Promise.resolve(CLOSED_POLL_MS); }
+      var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, TIMEOUT_MS) : null;
+      var url = apiBase(metaBase, hash.env) + '/api/v1/rooms/stream-overlay?t=' + encodeURIComponent(hash.token);
+      return fetch(url, { cache: 'no-store', credentials: 'omit', signal: ctrl ? ctrl.signal : undefined })
+        .then(function (res) {
+          if (res.status === 404) { last = null; return CLOSED_POLL_MS; }
+          if (!res.ok) return POLL_MS; // 잠깐의 서버 오류 — 마지막 값을 두고 다시 묻는다(30초가 지나면 감춘다)
+          return res.json().then(function (data) { last = data; receivedAt = performance.now(); return POLL_MS; });
+        })
+        .catch(function () { return POLL_MS; })
+        .then(function (next) { if (timer) clearTimeout(timer); render(); return next; });
+    }
+
+    function loop() { ask().then(function (next) { setTimeout(loop, next); }); }
+    window.addEventListener('hashchange', function () { hash = readHash(location.hash); last = null; render(); });
+    setInterval(render, TICK_MS);
+    loop();
+  })();
+  </script>
+</body>
+</html>
