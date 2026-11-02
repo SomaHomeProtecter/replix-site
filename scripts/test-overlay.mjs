@@ -12,11 +12,14 @@ const invite = read('docs/invite/index.html');
 
 const block = /\/\* overlayView:start \*\/([\s\S]*?)\/\* overlayView:end \*\//.exec(page);
 assert.ok(block, '오버레이 페이지에 순수 함수 구간(overlayView:start~end)이 있다');
-const { formatEpisodeLabel, formatClock, overlayView, readHash, apiBase } = new Function(
-  `${block[1]}; return { formatEpisodeLabel, formatClock, overlayView, readHash, apiBase };`)();
+const { formatEpisodeLabel, formatClock, overlayView: rawView, steadyPosition, readHash, apiBase, PLATFORM_NAMES } = new Function(
+  `${block[1]}; return { formatEpisodeLabel, formatClock, overlayView, steadyPosition, readHash, apiBase, PLATFORM_NAMES };`)();
+// 화면 글자만 견준다 — pos(초)·key(흐름)는 아래에서 따로 본다.
+const overlayView = (d, e) => { const v = rawView(d, e); if (!v) return v; const { pos, key, ...shown } = v; return shown; };
 
 // ── 회차 표기 — 초대 페이지(=익스텐션 replix-net.js)와 같은 규칙이어야 한다.
 const inviteBlock = /\/\* inviteCopy:start \*\/([\s\S]*?)\/\* inviteCopy:end \*\//.exec(invite);
+assert.ok(inviteBlock, '초대 페이지에 문구 구간(inviteCopy:start~end)이 있다 — 회차 표기를 견줄 원본');
 const inviteLabel = new Function(`${inviteBlock[1]}; return formatEpisodeLabel;`)();
 for (const [s, e] of [[8, 35], [1, 3], [null, 3], [8, null], [null, null], [2, 1]]) {
   assert.equal(formatEpisodeLabel(s, e), inviteLabel(s, e), `회차 표기가 초대 페이지와 같다 (${s}, ${e})`);
@@ -62,6 +65,23 @@ assert.equal(overlayView({ ...base, contentTitle: '  ' }, 0), null, '작품명�
 assert.equal(overlayView({ ...base, contentTitle: '<img src=x onerror=alert(1)>', state: 'IDLE' }, 0).title,
   '<img src=x onerror=alert(1)> 3화');
 
+// ── pos·key 와 뒤로 가지 않는 표시
+const playing = rawView({ ...base, state: 'PLAYING', positionSec: 100 }, 2);
+assert.equal(playing.pos, 102);
+assert.equal(playing.key, 'netflix|밤의 정원 3화|PLAYING');
+assert.equal(rawView({ ...base, state: 'IDLE', positionSec: null }, 2).pos, null);
+assert.equal(steadyPosition(750.1, 'k', 749.9, 'k'), 750.1, '조금(1.5초 미만) 뒤면 보인 값을 둔다 — 초가 뒤로 튀지 않게');
+assert.equal(steadyPosition(750.1, 'k', 750.6, 'k'), 750.6, '앞이면 따른다');
+assert.equal(steadyPosition(750.1, 'k', 700, 'k'), 700, '크게 뒤로 갔으면(되감음) 따른다');
+assert.equal(steadyPosition(750.1, 'k', 749.9, 'other'), 749.9, '흐름이 바뀌면 견주지 않는다');
+assert.equal(steadyPosition(null, null, 10, 'k'), 10);
+assert.equal(steadyPosition(750, 'k', null, 'k'), null);
+
+// ── 플랫폼 이름 — 초대 페이지의 이동 표(NAV)와 같아야 한다(플랫폼을 더하면 두 곳을 함께 고친다)
+const navNames = Object.fromEntries([...invite.matchAll(/\n\s+(\w+): \{\n\s+name: '([^']+)'/g)].map((m) => [m[1], m[2]]));
+assert.ok(Object.keys(navNames).length >= 3, '초대 페이지 NAV 표를 읽었다 — ' + JSON.stringify(navNames));
+for (const [code, name] of Object.entries(navNames)) assert.equal(PLATFORM_NAMES[code], name, code + ' 이름이 초대 페이지와 같다');
+
 // ── 해시·API 주소
 assert.deepEqual(readHash('#t=abc_DEF-123'), { token: 'abc_DEF-123', env: '' });
 assert.deepEqual(readHash('#t=abc&env=dev'), { token: 'abc', env: 'dev' });
@@ -75,7 +95,13 @@ assert.match(page, /<meta name="robots" content="noindex">/, '토큰이 실린 �
 assert.match(page, /<meta name="api-base" content="https:\/\/api\.replix\.tv">/, '기본은 운영 API');
 assert.match(page, /readHash\(location\.hash\)/, '토큰은 해시에서만 읽는다');
 assert.doesNotMatch(page, /location\.search/, '쿼리(서버로 가는 주소)에서 토큰을 읽지 않는다');
-assert.match(page, /'\/api\/v1\/rooms\/stream-overlay\?t=' \+ encodeURIComponent\(hash\.token\)/, '묻는 곳은 공개 stream-overlay 하나');
+assert.match(page, /'\/api\/v1\/rooms\/stream-overlay\?t=' \+ encodeURIComponent\(token\)/, '묻는 곳은 공개 stream-overlay 하나');
+assert.ok((page.match(/if \(token !== hash\.token\) return POLL_MS;/g) || []).length >= 2, '링크가 바뀐 뒤 온 옛 토큰의 답은 버린다');
+assert.match(page, /if \(inflight\) inflight\.abort\(\);[\s\S]{0,80}clearTimeout\(timer\);\s*loop\(\);/, '해시가 바뀌면 옛 요청을 거두고 바로 다시 묻는다');
+assert.match(page, /if \(mine === gen\) timer = setTimeout\(loop, next\);/, '옛 고리는 다음 차례를 잡지 않는다');
+assert.match(page, /receivedAt = \(sentAt \+ performance\.now\(\)\) \/ 2;/, '응답이 오는 데 걸린 시간을 보정한다(보낸 때와 받은 때의 가운데)');
+assert.match(page, /var pos = steadyPosition\(shownPos, shownKey, view\.pos, view\.key\);/, '그릴 때 뒤로 가지 않는 위치를 쓴다');
+assert.match(page, /function paint\(el, prop, value\) \{[\s\S]{0,120}if \(painted\[k\] === value\) return;/, '바뀐 칸만 쓴다');
 assert.match(page, /cache: 'no-store', credentials: 'omit'/, '저장하지 않고 쿠키를 싣지 않는다');
 assert.doesNotMatch(page, /innerHTML|insertAdjacentHTML|document\.write/, '서버 문자열은 textContent 로만');
 assert.doesNotMatch(page, /<script[^>]+src=|<link[^>]+href=["']https?:|@import/, '외부 리소스 0');
@@ -83,4 +109,4 @@ assert.doesNotMatch(page, /gtag|analytics|googletagmanager/i, '계측 없음');
 assert.doesNotMatch(page, /background:\s*#|body\s*\{[^}]*background(?!:\s*transparent)/, '페이지 배경을 칠하지 않는다(OBS 투명 합성)');
 assert.match(page, /var POLL_MS = 2000, CLOSED_POLL_MS = 5000, TICK_MS = 250, STALE_MS = 30000/, '2초마다 묻고 30초 넘게 못 받으면 감춘다');
 
-console.log('test-overlay: ok');
+console.log('scripts/test-overlay.mjs: 통과');

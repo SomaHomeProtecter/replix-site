@@ -69,7 +69,8 @@
       var mm = h > 0 && m < 10 ? '0' + m : String(m);
       return (h > 0 ? h + ':' : '') + mm + ':' + (r < 10 ? '0' + r : r);
     }
-    // data = stream-overlay 응답, elapsedSec = 받은 뒤 흐른 초. 그릴 것이 없으면 null(감춘다).
+    // data = stream-overlay 응답, elapsedSec = 받은 뒤 흐른 초. 그릴 것이 없으면 null(감춘다). pos 는 지금 위치(초, 재생 전이면 null),
+    // key 는 같은 흐름(플랫폼·작품·회차·상태)인지 가르는 값이다(steadyPosition).
     function overlayView(data, elapsedSec) {
       if (!data || typeof data.contentTitle !== 'string' || !data.contentTitle.trim()) return null;
       var label = formatEpisodeLabel(data.seasonNumber, data.episodeNumber);
@@ -77,13 +78,24 @@
       if (pos !== null && data.state === 'PLAYING') {
         pos += Math.max(0, elapsedSec || 0) * (typeof data.rate === 'number' && data.rate > 0 ? data.rate : 1);
       }
+      var title = data.contentTitle.trim() + (label ? ' ' + label : '');
       return {
         platform: PLATFORM_NAMES[data.platform] || '',
-        title: data.contentTitle.trim() + (label ? ' ' + label : ''),
+        title: title,
         time: pos === null ? '' : formatClock(pos),
         state: STATE_TEXT[data.state] || '',
         wait: data.state === 'AD',
+        pos: pos,
+        key: (data.platform || '') + '|' + title + '|' + (data.state || ''),
       };
+    }
+    // 재생 중 표시를 뒤로 돌리지 않는다 — 새 응답으로 다시 맞춘 위치가 방금 보인 값보다 조금(1.5초 미만) 뒤면 보인 값을 둔다(방장 표본·
+    // 전송 지연의 흔들림으로 12:30 → 12:29 → 12:30 처럼 튀지 않게). 크게 뒤로 갔으면(방장이 되감음) 그대로 따르고, 흐름이 바뀌면(회차·상태)
+    // 견주지 않는다.
+    var BACKSTEP_TOLERANCE_SEC = 1.5;
+    function steadyPosition(prevPos, prevKey, pos, key) {
+      if (prevPos === null || pos === null || prevKey !== key) return pos;
+      return pos < prevPos && prevPos - pos < BACKSTEP_TOLERANCE_SEC ? prevPos : pos;
     }
     // 해시에서 토큰과 환경을 읽는다(#t=…&env=dev).
     function readHash(hash) {
@@ -103,39 +115,77 @@
     var pfEl = document.getElementById('pf'), ttlEl = document.getElementById('ttl');
     var timeEl = document.getElementById('time'), stEl = document.getElementById('st');
     var last = null, receivedAt = 0;
+    var shownPos = null, shownKey = null, painted = {};
 
+    // 바뀐 칸만 쓴다 — 0.25초마다 도는데 멈춤·광고처럼 그대로인 동안 방송 PC 에서 스타일 계산이 쉬게.
+    function paint(el, prop, value) {
+      var k = el.id + '.' + prop;
+      if (painted[k] === value) return;
+      painted[k] = value;
+      el[prop] = value;
+    }
     function render() {
       var now = performance.now();
       var view = last && now - receivedAt <= STALE_MS ? overlayView(last, (now - receivedAt) / 1000) : null;
-      if (!view) { box.hidden = true; return; }
-      pfEl.textContent = view.platform;
-      pfEl.hidden = !view.platform;
-      ttlEl.textContent = view.title;
-      timeEl.textContent = view.time;
-      timeEl.hidden = !view.time;
-      stEl.textContent = view.state;
-      stEl.className = view.wait ? 'st wait' : 'st';
-      box.hidden = false;
+      if (!view) { shownPos = null; shownKey = null; paint(box, 'hidden', true); return; }
+      var pos = steadyPosition(shownPos, shownKey, view.pos, view.key);
+      shownPos = pos; shownKey = view.key;
+      var time = pos === null ? '' : formatClock(pos);
+      paint(pfEl, 'textContent', view.platform);
+      paint(pfEl, 'hidden', !view.platform);
+      paint(ttlEl, 'textContent', view.title);
+      paint(timeEl, 'textContent', time);
+      paint(timeEl, 'hidden', !time);
+      paint(stEl, 'textContent', view.state);
+      paint(stEl, 'className', view.wait ? 'st wait' : 'st');
+      paint(box, 'hidden', false);
     }
 
-    // 공개 GET 이라 쿠키·인증을 싣지 않는다. 다음 묻기까지의 간격을 돌려준다.
-    function ask() {
-      if (!hash.token) { last = null; return Promise.resolve(CLOSED_POLL_MS); }
+    // 공개 GET 이라 쿠키·인증을 싣지 않는다. 다음 묻기까지의 간격을 돌려준다. 답이 오는 사이 링크(해시)가 바뀌었으면 옛 토큰의 답은 버린다.
+    var inflight = null;
+    function ask(token) {
+      if (!token) { last = null; return Promise.resolve(CLOSED_POLL_MS); }
       var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, TIMEOUT_MS) : null;
-      var url = apiBase(metaBase, hash.env) + '/api/v1/rooms/stream-overlay?t=' + encodeURIComponent(hash.token);
+      inflight = ctrl;
+      var timeout = ctrl ? setTimeout(function () { ctrl.abort(); }, TIMEOUT_MS) : null;
+      var sentAt = performance.now();
+      var url = apiBase(metaBase, hash.env) + '/api/v1/rooms/stream-overlay?t=' + encodeURIComponent(token);
       return fetch(url, { cache: 'no-store', credentials: 'omit', signal: ctrl ? ctrl.signal : undefined })
         .then(function (res) {
+          if (token !== hash.token) return POLL_MS;
           if (res.status === 404) { last = null; return CLOSED_POLL_MS; }
           if (!res.ok) return POLL_MS; // 잠깐의 서버 오류 — 마지막 값을 두고 다시 묻는다(30초가 지나면 감춘다)
-          return res.json().then(function (data) { last = data; receivedAt = performance.now(); return POLL_MS; });
+          return res.json().then(function (data) {
+            if (token !== hash.token) return POLL_MS;
+            // 서버는 응답을 만든 순간의 위치를 싣는다 — 그 순간을 보낸 때와 받은 때의 가운데로 잡는다(오는 데 걸린 시간만큼 늦게 보이지 않게).
+            last = data;
+            receivedAt = (sentAt + performance.now()) / 2;
+            return POLL_MS;
+          });
         })
         .catch(function () { return POLL_MS; })
-        .then(function (next) { if (timer) clearTimeout(timer); render(); return next; });
+        .then(function (next) {
+          if (timeout) clearTimeout(timeout);
+          if (inflight === ctrl) inflight = null;
+          render();
+          return next;
+        });
     }
 
-    function loop() { ask().then(function (next) { setTimeout(loop, next); }); }
-    window.addEventListener('hashchange', function () { hash = readHash(location.hash); last = null; render(); });
+    // 묻기 고리 — 해시가 바뀌면 새 고리를 바로 시작하고 옛 고리는 다음 차례를 잡지 않는다(gen).
+    var gen = 0, timer = null;
+    function loop() {
+      var mine = ++gen;
+      ask(hash.token).then(function (next) { if (mine === gen) timer = setTimeout(loop, next); });
+    }
+    window.addEventListener('hashchange', function () {
+      hash = readHash(location.hash);
+      last = null;
+      render();
+      if (inflight) inflight.abort(); // 옛 토큰의 요청을 거둔다
+      clearTimeout(timer);
+      loop(); // 바로 다시 묻는다 — 토큰이 막 붙었으면 5초를 기다리지 않게
+    });
     setInterval(render, TICK_MS);
     loop();
   })();
