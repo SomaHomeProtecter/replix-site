@@ -12,10 +12,10 @@ const invite = read('docs/invite/index.html');
 
 const block = /\/\* overlayView:start \*\/([\s\S]*?)\/\* overlayView:end \*\//.exec(page);
 assert.ok(block, '오버레이 페이지에 순수 함수 구간(overlayView:start~end)이 있다');
-const { formatEpisodeLabel, formatClock, overlayView: rawView, steadyPosition, readHash, apiBase, PLATFORM_NAMES } = new Function(
-  `${block[1]}; return { formatEpisodeLabel, formatClock, overlayView, steadyPosition, readHash, apiBase, PLATFORM_NAMES };`)();
-// 화면 글자만 견준다 — pos(초)·key(흐름)는 아래에서 따로 본다.
-const overlayView = (d, e) => { const v = rawView(d, e); if (!v) return v; const { pos, key, ...shown } = v; return shown; };
+const { formatEpisodeLabel, formatClock, overlayView: rawView, steadyPosition, formatRemain, timesFor, readHash, apiBase, PLATFORM_NAMES } = new Function(
+  `${block[1]}; return { formatEpisodeLabel, formatClock, overlayView, steadyPosition, formatRemain, timesFor, readHash, apiBase, PLATFORM_NAMES };`)();
+// 화면 글자만 견준다 — pos(초)·key(흐름)·duration(길이)·ended 는 아래에서 따로 본다.
+const overlayView = (d, e) => { const v = rawView(d, e); if (!v) return v; const { pos, key, duration, ended, ...shown } = v; return shown; };
 
 // ── 회차 표기 — 초대 페이지(=익스텐션 replix-net.js)와 같은 규칙이어야 한다.
 const inviteBlock = /\/\* inviteCopy:start \*\/([\s\S]*?)\/\* inviteCopy:end \*\//.exec(invite);
@@ -77,6 +77,33 @@ assert.equal(steadyPosition(750.1, 'k', 749.9, 'other'), 749.9, '흐름이 바�
 assert.equal(steadyPosition(null, null, 10, 'k'), 10);
 assert.equal(steadyPosition(750, 'k', null, 'k'), null);
 
+// ── 남은 시간(2026-11-02 김지호 결정 — '-55:08') — 길이를 알 때만, 내린 초끼리 빼서
+assert.equal(rawView({ ...base, state: 'PLAYING', positionSec: 746.2, durationSec: 4054.6 }, 0).duration, 4054.6);
+assert.equal(rawView({ ...base, state: 'PLAYING', positionSec: 746.2 }, 0).duration, null, '길이가 없으면 null');
+assert.equal(rawView({ ...base, state: 'PLAYING', positionSec: 746.2, durationSec: 0 }, 0).duration, null, '0 은 모르는 것');
+assert.equal(rawView({ ...base, state: 'PLAYING', positionSec: 746.2, durationSec: Infinity }, 0).duration, null, '유한하지 않으면 모르는 것');
+assert.equal(formatRemain(4054.6, 746.2), '-55:08', '내림(4054.6) − 내림(746.2) = 3308초');
+for (const pos of [746.0, 746.2, 746.6, 746.99]) {
+  assert.equal(formatClock(pos) + ' ' + formatRemain(4054.6, pos), '12:26 -55:08', '같은 초 안에서는 둘 다 그대로 — ' + pos);
+}
+assert.equal(formatClock(747) + ' ' + formatRemain(4054.6, 747), '12:27 -55:07', '초가 넘어가면 둘이 같은 순간에 한 칸씩');
+assert.equal(formatRemain(4054.6, 4060), '-0:00', '넘어가도 음수가 아니다');
+assert.equal(formatRemain(null, 746.2), '');
+assert.equal(formatRemain(undefined, 10), '', '빈 칸에 - 하나만 남기지 않는다');
+assert.equal(formatRemain(Infinity, 10), '');
+assert.equal(formatRemain(4054.6, null), '', '재생 전이면 빈 글자');
+// 그릴 때 — 뒤로 가지 않는 위치로 세고, 회차 끝에서는 뺀다
+const v1 = rawView({ ...base, state: 'PLAYING', positionSec: 746.2, durationSec: 4054.6 }, 0);
+assert.deepEqual(timesFor(v1, null, null), { pos: 746.2, time: '12:26', remain: '-55:08' });
+const vBack = rawView({ ...base, state: 'PLAYING', positionSec: 745.6, durationSec: 4054.6 }, 0); // 새 응답이 조금 뒤로
+assert.deepEqual(timesFor(vBack, 746.2, vBack.key), { pos: 746.2, time: '12:26', remain: '-55:08' }, '남은 시간도 뒤로 가지 않는 위치로 센다');
+const vEnd = rawView({ ...base, state: 'EPISODE_END', positionSec: 4054, durationSec: 4054.6 }, 0);
+assert.equal(timesFor(vEnd, null, null).remain, '', "회차 끝에서는 빼낸다('-0:00'이 상태와 겹친다)");
+assert.equal(timesFor(rawView({ ...base, state: 'AD', positionSec: 1312, durationSec: 4054.6 }, 0), null, null).remain, '-45:42',
+  '광고 대기 중에도 콘텐츠 위치로 센다(정본이 광고 전 위치를 쥔다)');
+assert.match(page, /<b class="time" id="time"><\/b>\s*<span class="rem" id="rem"><\/span>/, '시각 바로 뒤에');
+assert.match(page, /var times = timesFor\(view, shownPos, shownKey\);/, '그리기는 timesFor 를 쓴다');
+
 // ── 플랫폼 이름 — 초대 페이지의 이동 표(NAV)와 같아야 한다(플랫폼을 더하면 두 곳을 함께 고친다)
 const navNames = Object.fromEntries([...invite.matchAll(/\n\s+(\w+): \{\n\s+name: '([^']+)'/g)].map((m) => [m[1], m[2]]));
 assert.ok(Object.keys(navNames).length >= 3, '초대 페이지 NAV 표를 읽었다 — ' + JSON.stringify(navNames));
@@ -100,7 +127,6 @@ assert.ok((page.match(/if \(token !== hash\.token\) return POLL_MS;/g) || []).le
 assert.match(page, /if \(inflight\) inflight\.abort\(\);[\s\S]{0,80}clearTimeout\(timer\);\s*loop\(\);/, '해시가 바뀌면 옛 요청을 거두고 바로 다시 묻는다');
 assert.match(page, /if \(mine === gen\) timer = setTimeout\(loop, next\);/, '옛 고리는 다음 차례를 잡지 않는다');
 assert.match(page, /receivedAt = \(sentAt \+ performance\.now\(\)\) \/ 2;/, '응답이 오는 데 걸린 시간을 보정한다(보낸 때와 받은 때의 가운데)');
-assert.match(page, /var pos = steadyPosition\(shownPos, shownKey, view\.pos, view\.key\);/, '그릴 때 뒤로 가지 않는 위치를 쓴다');
 assert.match(page, /function paint\(el, prop, value\) \{[\s\S]{0,120}if \(painted\[k\] === value\) return;/, '바뀐 칸만 쓴다');
 assert.match(page, /cache: 'no-store', credentials: 'omit'/, '저장하지 않고 쿠키를 싣지 않는다');
 assert.doesNotMatch(page, /innerHTML|insertAdjacentHTML|document\.write/, '서버 문자열은 textContent 로만');
