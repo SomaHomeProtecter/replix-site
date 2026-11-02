@@ -12,10 +12,10 @@ const invite = read('docs/invite/index.html');
 
 const block = /\/\* overlayView:start \*\/([\s\S]*?)\/\* overlayView:end \*\//.exec(page);
 assert.ok(block, '오버레이 페이지에 순수 함수 구간(overlayView:start~end)이 있다');
-const { formatEpisodeLabel, formatClock, overlayView: rawView, steadyPosition, readHash, apiBase, PLATFORM_NAMES } = new Function(
-  `${block[1]}; return { formatEpisodeLabel, formatClock, overlayView, steadyPosition, readHash, apiBase, PLATFORM_NAMES };`)();
-// 화면 글자만 견준다 — pos(초)·key(흐름)는 아래에서 따로 본다.
-const overlayView = (d, e) => { const v = rawView(d, e); if (!v) return v; const { pos, key, ...shown } = v; return shown; };
+const { formatEpisodeLabel, formatClock, overlayView: rawView, steadyPosition, formatRemain, readHash, apiBase, PLATFORM_NAMES } = new Function(
+  `${block[1]}; return { formatEpisodeLabel, formatClock, overlayView, steadyPosition, formatRemain, readHash, apiBase, PLATFORM_NAMES };`)();
+// 화면 글자만 견준다 — pos(초)·key(흐름)·duration(길이)은 아래에서 따로 본다.
+const overlayView = (d, e) => { const v = rawView(d, e); if (!v) return v; const { pos, key, duration, ...shown } = v; return shown; };
 
 // ── 회차 표기 — 초대 페이지(=익스텐션 replix-net.js)와 같은 규칙이어야 한다.
 const inviteBlock = /\/\* inviteCopy:start \*\/([\s\S]*?)\/\* inviteCopy:end \*\//.exec(invite);
@@ -76,6 +76,17 @@ assert.equal(steadyPosition(750.1, 'k', 700, 'k'), 700, '크게 뒤로 갔으면
 assert.equal(steadyPosition(750.1, 'k', 749.9, 'other'), 749.9, '흐름이 바뀌면 견주지 않는다');
 assert.equal(steadyPosition(null, null, 10, 'k'), 10);
 assert.equal(steadyPosition(750, 'k', null, 'k'), null);
+
+// ── 남은 시간(2026-11-02 김지호 결정 — '-55:09') — 길이를 알 때만, 올려서
+assert.equal(rawView({ ...base, state: 'PLAYING', positionSec: 746.2, durationSec: 4054.6 }, 0).duration, 4054.6);
+assert.equal(rawView({ ...base, state: 'PLAYING', positionSec: 746.2 }, 0).duration, null, '길이가 없으면 null');
+assert.equal(rawView({ ...base, state: 'PLAYING', positionSec: 746.2, durationSec: 0 }, 0).duration, null, '0 은 모르는 것');
+assert.equal(formatRemain(4054.6, 746.2), '-55:09', '3308.4초를 올린다 — 12:26 + 55:09 = 67:35');
+assert.equal(formatRemain(4054.6, 4060), '-0:00', '넘어가도 음수가 아니다');
+assert.equal(formatRemain(null, 746.2), '', '길이를 모르면 빈 글자');
+assert.equal(formatRemain(4054.6, null), '', '재생 전이면 빈 글자');
+assert.match(page, /var remain = formatRemain\(view\.duration, pos\);/, '뒤로 가지 않는 위치(pos)로 센다');
+assert.match(page, /<b class="time" id="time"><\/b>\s*<span class="rem" id="rem"><\/span>/, '시각 바로 뒤에');
 
 // ── 플랫폼 이름 — 초대 페이지의 이동 표(NAV)와 같아야 한다(플랫폼을 더하면 두 곳을 함께 고친다)
 const navNames = Object.fromEntries([...invite.matchAll(/\n\s+(\w+): \{\n\s+name: '([^']+)'/g)].map((m) => [m[1], m[2]]));
