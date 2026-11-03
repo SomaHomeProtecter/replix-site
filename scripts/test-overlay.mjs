@@ -1,4 +1,4 @@
-// scripts/test-overlay.mjs — 방송 화면 오버레이(/overlay, HP-757)의 순수 함수 + 소스 규칙 검사.
+// scripts/test-overlay.mjs — 같이보기 타이머(/overlay, HP-757 → HP-791 버전 네 가지)의 순수 함수 + 소스 규칙 검사.
 // 외부 리소스 0 원칙의 단일 파일이라 빌드도 import 도 없다 — 이 검사가 회귀망이다. 실행: node scripts/test-overlay.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -12,10 +12,12 @@ const invite = read('docs/invite/index.html');
 
 const block = /\/\* overlayView:start \*\/([\s\S]*?)\/\* overlayView:end \*\//.exec(page);
 assert.ok(block, '오버레이 페이지에 순수 함수 구간(overlayView:start~end)이 있다');
-const { formatEpisodeLabel, formatClock, overlayView: rawView, steadyPosition, formatRemain, timesFor, readHash, apiBase, PLATFORM_NAMES } = new Function(
-  `${block[1]}; return { formatEpisodeLabel, formatClock, overlayView, steadyPosition, formatRemain, timesFor, readHash, apiBase, PLATFORM_NAMES };`)();
-// 화면 글자만 견준다 — pos(초)·key(흐름)·duration(길이)·ended 는 아래에서 따로 본다.
-const overlayView = (d, e) => { const v = rawView(d, e); if (!v) return v; const { pos, key, duration, ended, ...shown } = v; return shown; };
+const { formatEpisodeLabel, formatClock, overlayView: rawView, steadyPosition, formatRemain, timesFor, readHash, apiBase, PLATFORM_NAMES,
+  episodeCode, chooseVersion, progressPct, noteFor, VERSIONS, VERSION_SOURCE, CHIP_TEXT, MARK_TEXT } = new Function(
+  `${block[1]}; return { formatEpisodeLabel, formatClock, overlayView, steadyPosition, formatRemain, timesFor, readHash, apiBase, PLATFORM_NAMES,
+    episodeCode, chooseVersion, progressPct, noteFor, VERSIONS, VERSION_SOURCE, CHIP_TEXT, MARK_TEXT };`)();
+// 화면 글자만 견준다 — 카드 칸(work·ep·chip·mark …)과 pos(초)·key(흐름)·duration(길이)은 아래에서 따로 본다.
+const overlayView = (d, e) => { const v = rawView(d, e); if (!v) return v; const { platform, title, time, state, wait } = v; return { platform, title, time, state, wait }; };
 
 // ── 회차 표기 — 초대 페이지(=익스텐션 replix-net.js)와 같은 규칙이어야 한다.
 const inviteBlock = /\/\* inviteCopy:start \*\/([\s\S]*?)\/\* inviteCopy:end \*\//.exec(invite);
@@ -101,7 +103,6 @@ const vEnd = rawView({ ...base, state: 'EPISODE_END', positionSec: 4054, duratio
 assert.equal(timesFor(vEnd, null, null).remain, '', "회차 끝에서는 빼낸다('-0:00'이 상태와 겹친다)");
 assert.equal(timesFor(rawView({ ...base, state: 'AD', positionSec: 1312, durationSec: 4054.6 }, 0), null, null).remain, '-45:42',
   '광고 대기 중에도 콘텐츠 위치로 센다(정본이 광고 전 위치를 쥔다)');
-assert.match(page, /<b class="time" id="time"><\/b>\s*<span class="rem" id="rem"><\/span>/, '시각 바로 뒤에');
 assert.match(page, /var times = timesFor\(view, shownPos, shownKey\);/, '그리기는 timesFor 를 쓴다');
 
 // ── 플랫폼 이름 — 초대 페이지의 이동 표(NAV)와 같아야 한다(플랫폼을 더하면 두 곳을 함께 고친다)
@@ -110,9 +111,14 @@ assert.ok(Object.keys(navNames).length >= 3, '초대 페이지 NAV 표를 읽었
 for (const [code, name] of Object.entries(navNames)) assert.equal(PLATFORM_NAMES[code], name, code + ' 이름이 초대 페이지와 같다');
 
 // ── 해시·API 주소
-assert.deepEqual(readHash('#t=abc_DEF-123'), { token: 'abc_DEF-123', env: '' });
-assert.deepEqual(readHash('#t=abc&env=dev'), { token: 'abc', env: 'dev' });
-assert.deepEqual(readHash(''), { token: '', env: '' });
+assert.deepEqual(readHash('#t=abc_DEF-123'), { token: 'abc_DEF-123', env: '', v: 'corner' }, '버전이 없으면 코너 카드');
+assert.deepEqual(readHash('#t=abc&env=dev'), { token: 'abc', env: 'dev', v: 'corner' });
+assert.deepEqual(readHash('#t=abc&v=bar&env=dev'), { token: 'abc', env: 'dev', v: 'bar' });
+for (const v of ['corner', 'bar', 'clock', 'chip']) assert.equal(readHash('#t=a&v=' + v).v, v);
+assert.equal(readHash('#t=a&v=cam').v, 'corner', '모르는 버전(채택하지 않은 캠 하단 패널 등)은 코너 카드');
+assert.equal(readHash('#t=a&v=').v, 'corner');
+assert.deepEqual(readHash(''), { token: '', env: '', v: 'corner' });
+assert.equal(chooseVersion('CHIP'), 'corner', '대소문자도 그대로 견준다');
 assert.equal(apiBase('https://api.replix.tv', ''), 'https://api.replix.tv');
 assert.equal(apiBase('https://api.replix.tv', 'dev'), 'https://api.replix-dev.site');
 assert.equal(apiBase('https://api.replix.tv', 'https://evil.example'), 'https://api.replix.tv', '다른 값은 받지 않는다');
@@ -127,12 +133,78 @@ assert.ok((page.match(/if \(token !== hash\.token\) return POLL_MS;/g) || []).le
 assert.match(page, /if \(inflight\) inflight\.abort\(\);[\s\S]{0,80}clearTimeout\(timer\);\s*loop\(\);/, '해시가 바뀌면 옛 요청을 거두고 바로 다시 묻는다');
 assert.match(page, /if \(mine === gen\) timer = setTimeout\(loop, next\);/, '옛 고리는 다음 차례를 잡지 않는다');
 assert.match(page, /receivedAt = \(sentAt \+ performance\.now\(\)\) \/ 2;/, '응답이 오는 데 걸린 시간을 보정한다(보낸 때와 받은 때의 가운데)');
-assert.match(page, /function paint\(el, prop, value\) \{[\s\S]{0,120}if \(painted\[k\] === value\) return;/, '바뀐 칸만 쓴다');
+assert.match(page, /function paint\(el, prop, value\) \{[\s\S]{0,240}if \(painted\[i\]\[2\] === value\) return;/, '바뀐 칸만 쓴다');
 assert.match(page, /cache: 'no-store', credentials: 'omit'/, '저장하지 않고 쿠키를 싣지 않는다');
 assert.doesNotMatch(page, /innerHTML|insertAdjacentHTML|document\.write/, '서버 문자열은 textContent 로만');
 assert.doesNotMatch(page, /<script[^>]+src=|<link[^>]+href=["']https?:|@import/, '외부 리소스 0');
 assert.doesNotMatch(page, /gtag|analytics|googletagmanager/i, '계측 없음');
 assert.doesNotMatch(page, /background:\s*#|body\s*\{[^}]*background(?!:\s*transparent)/, '페이지 배경을 칠하지 않는다(OBS 투명 합성)');
 assert.match(page, /var POLL_MS = 2000, CLOSED_POLL_MS = 5000, TICK_MS = 250, STALE_MS = 30000/, '2초마다 묻고 30초 넘게 못 받으면 감춘다');
+
+
+// ── HP-791 버전 네 가지 — 카드 칸·상태 글자·크기
+assert.deepEqual([...VERSIONS], ['corner', 'bar', 'clock', 'chip']);
+for (const v of VERSIONS) {
+  const card = new RegExp('<div class="ov v-' + v + '-card" data-v="' + v + '" hidden>([\\s\\S]*?)\\n  </div>').exec(page);
+  assert.ok(card, v + ' 카드가 있고 처음엔 감춰져 있다');
+  for (const cls of ['now'].concat(v === 'chip' ? ['mark', 'ep'] : ['pf', 'ttl', 'ep', 'chip', 'dur', 'rem'])) {
+    assert.match(card[1], new RegExp('class="[^"]*\\b' + cls + '\\b'), v + ' 카드에 ' + cls + ' 칸');
+  }
+  const [w, h] = VERSION_SOURCE[v];
+  assert.match(page, new RegExp('html\\.v-' + v + ' \\{ font-size: min\\(calc\\(100vw / ' + w + '\\), calc\\(100vh / ' + h + '\\)\\); \\}'),
+    v + ' 글자 크기 기준이 권장 소스 크기(' + w + '×' + h + ')와 같다 — 소스 크기에 맞춰 다시 그린다');
+}
+assert.doesNotMatch(page, /data-v="(cam|frame)"/, '채택하지 않은 캠 하단 패널·테마 액자는 없다');
+assert.match(page, /<html lang="ko" class="v-corner">/, '처음 글자 크기 기준은 코너 카드');
+assert.match(page, /useVersion\(hash\.v\);/, '해시의 버전으로 카드를 고른다');
+assert.match(page, /if \(hash\.v !== before\.v\) \{ useVersion\(hash\.v\);/, '해시가 바뀌면 버전도 다시 고른다');
+// 치수는 rem 으로만 — px 로 쓰면 소스를 키울 때 같이 커지지 않는다(카드 스타일 구간)
+const cardCss = page.slice(page.indexOf('.ov {'), page.indexOf('</style>'));
+assert.doesNotMatch(cardCss, /\d+px/, '카드 치수는 rem(소스 크기 비례)으로만 쓴다');
+
+// 상태 다섯 — 카드 data-st·칩·미니 칩 표·밑 한 줄
+const at = (state, extra) => rawView({ ...base, state, positionSec: 1421, durationSec: 3130, ...extra }, 0);
+assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).st), ['play', 'pause', 'ad', 'end', 'idle']);
+assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).chip), ['', '‖ 멈춤', '광고 대기', '회차 끝', '시작 전'],
+  '재생 중에는 칩이 없다');
+assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).mark), ['●', '‖', '광고', '끝', '대기']);
+assert.equal(noteFor(at('PLAYING'), '23:41'), '');
+assert.equal(noteFor(at('PAUSED'), '23:41'), '');
+assert.equal(noteFor(at('AD'), '23:41'), '광고가 끝나면 23:41부터 이어져요');
+assert.equal(noteFor(at('AD', { positionSec: null }), ''), '광고가 끝나면 이어져요');
+assert.equal(noteFor(at('EPISODE_END'), '52:10'), '다음 회차를 기다리는 중');
+assert.equal(noteFor(at('IDLE', { positionSec: null }), ''), '방장이 재생하면 시작돼요');
+for (const t of [...Object.values(CHIP_TEXT), ...Object.values(MARK_TEXT), noteFor(at('AD'), '1:02:05'), noteFor(at('EPISODE_END'), ''), noteFor(at('IDLE'), '')]) {
+  assert.doesNotMatch(t, /·/, '화면 글자에 중간점을 쓰지 않는다 — ' + t);
+}
+assert.match(page, /paint\(parts\.now, 'textContent', time \|\| '--:--'\);/, '재생 전에는 --:--');
+// 회차 표기 — 카드는 S1 E3, 미니 칩은 E3
+assert.equal(episodeCode(1, 3), 'S1 E3');
+assert.equal(episodeCode(2, 14), 'S2 E14');
+assert.equal(episodeCode(null, 3), 'E3', '시즌을 모르면 회차만');
+assert.equal(episodeCode(1, null), '', '영화');
+assert.equal(at('PLAYING').ep, 'S1 E3');
+assert.equal(at('PLAYING').epShort, 'E3');
+assert.equal(at('PLAYING').work, '밤의 정원', '카드의 작품 칸은 작품명만(회차는 옆 칸)');
+assert.match(page, /paintText\(parts\.ep, box === cards\.chip \? view\.epShort : view\.ep\);/);
+// 진행 막대 — 길이를 알 때만
+assert.equal(progressPct(3130, 1565, false, false), 50);
+assert.equal(progressPct(3130, 5000, false, false), 100, '넘어도 100');
+assert.equal(progressPct(3130, 3000, true, false), 100, '회차 끝은 가득');
+assert.equal(progressPct(3130, null, false, true), 0, '시작 전은 0');
+assert.equal(progressPct(null, 100, false, false), null, '길이를 모르면 감춘다');
+assert.equal(progressPct(0, 100, false, false), null);
+
+// 미니 칩 상태 표 — 줄바꿈·잘림 없이(폭을 잡고 nowrap)
+assert.match(page, /\.v-chip-card \.mark \{ flex: none; min-width: 2\.6em; text-align: center; white-space: nowrap; word-break: keep-all;/,
+  '미니 칩 상태 글자는 폭을 잡고 줄바꿈하지 않는다');
+assert.match(page, /\.ov \{[^}]*white-space: nowrap;/, '카드 글자는 줄바꿈하지 않는다');
+assert.match(page, /\.v-chip-card \{[^}]*display: inline-flex;/, '미니 칩은 글자 폭만큼 — 상태 글자가 길어지면 칩이 늘어난다(자르지 않는다)');
+// 한 시간 넘는 시각은 코너 카드·큰 시계에서 줄인다
+assert.match(page, /\.v-corner-card\.is-long \.now \{ font-size: 48rem; \}/);
+assert.match(page, /\.v-clock-card\.is-long \.now \{ font-size: 80rem; \}/);
+assert.match(page, /var long = time\.length > 5 \|\| \(view\.duration !== null && view\.duration >= 3600\);/);
+// 법적 게이트 — 포스터·스틸컷·플랫폼 로고(이미지) 없음
+assert.doesNotMatch(page, /<img|<svg|background-image|url\(/, '이미지를 싣지 않는다(포스터·로고 없음)');
 
 console.log('scripts/test-overlay.mjs: 통과');
