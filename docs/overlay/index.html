@@ -18,6 +18,10 @@
        보낸 것을 서버가 1시간 수명의 Redis 에만 두는 규칙 문서 'B2 예외'다(워크스페이스 docs/legal-compliance-dev-rules.md, Replix-be HP-757).
        진행 막대도 같은 길이로만 센다(길이를 모르면 막대를 감춘다).
      · env=dev 면 개발 서버(api.replix-dev.site)에 묻는다 — 익스텐션 개발 빌드가 만든 링크다. 다른 값은 받지 않는다(아무 주소나 묻지 않게).
+     · 상태 그림·획 가운데 맞춤(HP-817, 2026-11-05 조현빈 결정) — 멈춤 ‖·재생 ● 는 글자가 아니라 인라인 SVG 도형이다(글꼴마다 굵기·높이가 달라진다).
+       가운데로 맞춘 줄(미니 칩·코너 카드 윗줄·플레이어 바·큰 시계 윗줄과 아랫줄)과 작은 카드(플랫폼·상태 칩)의 글자는 줄 상자가 아니라
+       글자 획이 가운데에 오게, 이 PC 의 글꼴로 획을 재서 옮긴다(alignInk). CSS text-box 는 OBS 32(Chromium 127)에 없어 쓰지 않는다.
+       기준선으로 맞춘 코너 카드 시각 줄과 위아래로 쌓는 큰 시계 가운데는 옮기지 않는다.
      외부 리소스 0, 계측 없음 — 단일 파일. 검사 = scripts/test-overlay.mjs -->
 <html lang="ko" class="v-corner">
 <head>
@@ -44,13 +48,13 @@
       /* 숫자 폭만 고정한다(tabular-nums) — 초가 바뀔 때 카드가 흔들리지 않게. 고정폭 글꼴은 ':' 앞뒤가 벌어져 쓰지 않는다. */
       font-variant-numeric: tabular-nums;
     }
-    .pf { flex: none; font-size: 0.73em; font-weight: 700; letter-spacing: 0.04em; padding: 0.1em 0.55em; border-radius: 0.3em; background: rgba(255, 255, 255, 0.13); color: #dcdce2; }
+    .pf { flex: none; display: inline-flex; align-items: center; font-size: 0.73em; font-weight: 700; letter-spacing: 0.04em; padding: 0.1em 0.55em; border-radius: 0.3em; background: rgba(255, 255, 255, 0.13); color: #dcdce2; }
     .ttl { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
     .ep { flex: none; font-weight: 700; color: #b4b4be; }
     .now { font-weight: 800; line-height: 1; letter-spacing: -0.01em; }
     .dim { font-weight: 700; color: #b4b4be; }
     .note { font-weight: 500; color: #b4b4be; }
-    .chip { flex: none; font-weight: 700; border-radius: 999rem; background: rgba(255, 255, 255, 0.14); color: #e6e6ec; }
+    .chip { flex: none; display: inline-flex; align-items: center; gap: 0.38em; font-weight: 700; border-radius: 999rem; background: rgba(255, 255, 255, 0.14); color: #e6e6ec; }
     .bar { overflow: hidden; background: rgba(255, 255, 255, 0.16); }
     .bar i { display: block; height: 100%; width: var(--p, 0%); background: rgb(61, 220, 151); }
     /* 상태 — 멈춤·시작 전은 숫자를 낮추고, 광고 대기는 주황(칩·막대 줄무늬). */
@@ -91,37 +95,50 @@
     .v-clock-card .note { font-size: 20rem; }
     .v-clock-card.is-long .now { font-size: 80rem; }
 
-    /* chip — 미니 칩: 소스 360×96(한 시간 넘는 시각까지), 높이 64. 상태 표(●·‖·광고·끝·대기)는 폭을 잡고 줄바꿈하지 않는다 — 글자가 깨지거나 잘리지 않게. */
+    /* chip — 미니 칩: 소스 360×96(한 시간 넘는 시각까지), 높이 64. 상태 표(재생·멈춤 그림, 광고·끝·대기 글자)는 폭을 잡고 줄바꿈하지 않는다 — 글자가 깨지거나 잘리지 않게. */
     .v-chip-card { top: 16rem; height: 64rem; padding: 0 20rem 0 18rem; border-radius: 12rem; display: inline-flex; align-items: center; gap: 12rem; font-size: 20rem; }
     .v-chip-card .mark { flex: none; min-width: 2.6em; text-align: center; white-space: nowrap; word-break: keep-all; font-weight: 800; color: #3ddc97; }
     .v-chip-card[data-st="pause"] .mark, .v-chip-card[data-st="idle"] .mark, .v-chip-card[data-st="end"] .mark { color: #b4b4be; }
     .v-chip-card[data-st="ad"] .mark { color: #f59e0b; }
     .v-chip-card .now { flex: none; font-size: 44rem; }
     .v-chip-card .ep { flex: none; }
+
+    /* 상태 그림(HP-817) — ‖·● 를 글자 대신 도형으로. 색은 글자색(currentColor)이라 상태 색 규칙을 그대로 따른다. */
+    .ic { flex: none; display: block; }
+    .ic svg { display: block; width: 100%; height: 100%; }
+    .chip .ic { width: 0.72em; height: 0.72em; }
+    /* 표시 칸의 최소 폭(2.6em)은 '광고'·'대기' 같은 두 글자가 깨지지 않게 둔 것이다 — 그림일 때는 풀어 그림 양옆이 비지 않게 한다. */
+    .v-chip-card .mark.has-ic { min-width: 0; display: inline-flex; justify-content: center; align-items: center; }
+    .v-chip-card .mark .ic-pause { width: 0.85em; height: 0.85em; }
+    .v-chip-card .mark .ic-play { width: 0.62em; height: 0.62em; }
+    /* 글자 획 가운데 맞춤(HP-817) — 옮길 양(--ink, em)은 alignInk 가 이 PC 의 글꼴로 재서 넣는다. */
+    .ink { transform: translateY(var(--ink, 0em)); }
+    .v-chip-card .mark-t { display: block; } /* 표시 칸 안의 글자는 인라인이라 transform 이 먹지 않는다 — 블록으로 */
   </style>
 </head>
 <body>
   <!-- 버전마다 카드 하나 — 고른 버전만 보이고 나머지는 늘 감춘다(chooseVersion). 서버 글자가 들어갈 칸은 비워 두고 textContent 로 채운다. -->
   <div class="ov v-corner-card" data-v="corner" hidden>
-    <div class="top"><span class="pf"></span><span class="ttl"></span><span class="ep"></span><span class="chip"></span></div>
+    <div class="top"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span><span class="ep ink"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span></div>
     <div class="row"><span class="now"></span><span class="dim dur"></span><span class="dim rem"></span></div>
     <span class="note"></span>
     <div class="bar"><i></i></div>
   </div>
   <div class="ov v-bar-card" data-v="bar" hidden>
-    <div class="who"><span class="pf"></span><span class="ttl"></span><span class="ep"></span></div>
+    <div class="who"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span><span class="ep ink"></span></div>
     <div class="bar"><i></i></div>
-    <span class="now"></span><span class="dim dur"></span><span class="dim rem"></span><span class="chip"></span>
+    <span class="now ink" data-ink="0123456789"></span><span class="dim dur ink"></span><span class="dim rem ink" data-ink="0123456789"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span>
   </div>
   <div class="ov v-clock-card" data-v="clock" hidden>
-    <div class="top"><span class="pf"></span><span class="ttl"></span></div>
+    <div class="top"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span></div>
     <span class="ep"></span>
     <span class="now"></span>
-    <div class="foot"><span class="dim dur"></span><span class="dim rem"></span><span class="chip"></span></div>
+    <div class="foot"><span class="dim dur ink"></span><span class="dim rem ink"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span></div>
     <span class="note"></span>
   </div>
   <div class="ov v-chip-card" data-v="chip" hidden>
-    <span class="mark"></span><span class="now"></span><span class="dim ep"></span>
+    <span class="mark"><span class="ic ic-play" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="12"/></svg></span><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="mark-t ink"></span></span>
+    <span class="now ink" data-ink="0123456789"></span><span class="dim ep ink" data-ink="E0123456789"></span>
   </div>
   <script>
   (function () {
@@ -132,8 +149,10 @@
     var STATE_TEXT = { PLAYING: '재생 중', PAUSED: '멈춤', AD: '광고 대기', EPISODE_END: '회차 끝', IDLE: '시작 전' };
     // 카드에 쓰는 상태 이름(data-st)·칩 글자·미니 칩 표. 재생 중에는 칩을 띄우지 않는다(평소엔 조용하게 — 시안).
     var STATE_KEY = { PLAYING: 'play', PAUSED: 'pause', AD: 'ad', EPISODE_END: 'end', IDLE: 'idle' };
-    var CHIP_TEXT = { PAUSED: '‖ 멈춤', AD: '광고 대기', EPISODE_END: '회차 끝', IDLE: '시작 전' };
-    var MARK_TEXT = { PLAYING: '●', PAUSED: '‖', AD: '광고', EPISODE_END: '끝', IDLE: '대기' };
+    // 멈춤·재생 중의 표시는 글자가 아니라 그림이다(HP-817 — MARK_ICON, 칩의 멈춤 그림은 st 가 pause 일 때).
+    var CHIP_TEXT = { PAUSED: '멈춤', AD: '광고 대기', EPISODE_END: '회차 끝', IDLE: '시작 전' };
+    var MARK_TEXT = { AD: '광고', EPISODE_END: '끝', IDLE: '대기' };
+    var MARK_ICON = { PLAYING: 'play', PAUSED: 'pause' };
     // 버전과 권장 소스 크기(px) — 페이지 CSS 의 html.v-* 글자 크기와 같은 값이어야 한다(시험이 대조한다). 익스텐션 방 관리가 같은 표를 안내한다.
     var VERSIONS = ['corner', 'bar', 'clock', 'chip'];
     var VERSION_SOURCE = { corner: [480, 200], bar: [1320, 120], clock: [440, 360], chip: [360, 96] };
@@ -180,6 +199,7 @@
         st: STATE_KEY[data.state] || 'play',
         chip: CHIP_TEXT[data.state] || '',
         mark: MARK_TEXT[data.state] || '',
+        markIcon: MARK_ICON[data.state] || '',
         pos: pos,
         duration: typeof data.durationSec === 'number' && isFinite(data.durationSec) && data.durationSec > 0 ? data.durationSec : null,
         ended: data.state === 'EPISODE_END',
@@ -222,6 +242,15 @@
       if (prevPos === null || pos === null || prevKey !== key) return pos;
       return pos < prevPos && prevPos - pos < BACKSTEP_TOLERANCE_SEC ? prevPos : pos;
     }
+    // 글자 획 가운데 맞춤(HP-817) — 요소 상자의 중심과 글자 획의 중심이 얼마나 떨어졌는지(em, 양수면 아래로 옮긴다). align-items: center 는
+    // 획이 아니라 글꼴의 줄 상자를 맞추는데, 숫자는 아래로 내려가는 획이 없어 상자 안에서 위로 치우친다. boxTop·boxHeight = 요소 상자,
+    // contentTop = 글자 영역 윗변(Range 의 첫 사각형), m = canvas measureText(견본) 결과, fontPx = 글자 크기.
+    function inkShiftEm(boxTop, boxHeight, contentTop, m, fontPx) {
+      if (!m || !(fontPx > 0) || !(boxHeight > 0)) return 0;
+      var inkMid = contentTop + m.fontBoundingBoxAscent - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+      var d = (boxTop + boxHeight / 2 - inkMid) / fontPx;
+      return isFinite(d) ? Math.round(d * 10000) / 10000 : 0;
+    }
     // 해시에서 토큰·버전·환경을 읽는다(#t=…&v=bar&env=dev).
     function readHash(hash) {
       var p = new URLSearchParams(String(hash || '').replace(/^#/, ''));
@@ -249,7 +278,8 @@
       box = cards[v];
       baseClass = box.className.replace(/ is-long/g, '');
       var q = function (sel) { return box.querySelector(sel); };
-      parts = { pf: q('.pf'), ttl: q('.ttl'), ep: q('.ep'), chip: q('.chip'), mark: q('.mark'), now: q('.now'),
+      parts = { pf: q('.pf'), pfT: q('.pf-t'), ttl: q('.ttl'), ep: q('.ep'), chip: q('.chip'), chipT: q('.chip-t'), chipIc: q('.chip .ic-pause'),
+        mark: q('.mark'), markT: q('.mark-t'), mkPlay: q('.mark .ic-play'), mkPause: q('.mark .ic-pause'), now: q('.now'),
         dur: q('.dur'), rem: q('.rem'), note: q('.note'), bar: q('.bar') };
       painted = [];
     }
@@ -279,11 +309,19 @@
       var long = time.length > 5 || (view.duration !== null && view.duration >= 3600);
       paint(box, 'className', baseClass + (long ? ' is-long' : ''));
       if (box.getAttribute('data-st') !== view.st) box.setAttribute('data-st', view.st);
-      paintText(parts.pf, view.platform);
+      paint(parts.pf, 'hidden', !view.platform);
+      paintText(parts.pfT, view.platform);
       paintText(parts.ttl, view.work);
       paintText(parts.ep, box === cards.chip ? view.epShort : view.ep);
-      paintText(parts.chip, view.chip);
-      paintText(parts.mark, view.mark);
+      paint(parts.chip, 'hidden', !view.chip);
+      paint(parts.chipT, 'textContent', view.chip);
+      paint(parts.chipIc, 'hidden', view.st !== 'pause');
+      if (parts.mark) {
+        paint(parts.mark, 'className', 'mark' + (view.markIcon ? ' has-ic' : ''));
+        paint(parts.mkPlay, 'hidden', view.markIcon !== 'play');
+        paint(parts.mkPause, 'hidden', view.markIcon !== 'pause');
+        paintText(parts.markT, view.mark);
+      }
       paint(parts.now, 'textContent', time || '--:--');
       paintText(parts.dur, box === cards.clock && dur ? '전체 ' + dur.slice(2) : dur);
       paintText(parts.rem, box === cards.clock && times.remain ? '남은 ' + times.remain : times.remain);
@@ -293,7 +331,35 @@
         if (pct !== null) parts.bar.firstElementChild.style.setProperty('--p', pct.toFixed(2) + '%');
       }
       paint(box, 'hidden', false);
+      alignInk();
     }
+
+    // 글자 획 가운데 맞춤(HP-817) — .ink 칸마다 이 PC 의 글꼴로 획을 재서 --ink(em)를 넣는다. 다시 재는 것은 그 칸의 견본·글꼴이 바뀔 때뿐이다.
+    // 초마다 바뀌는 시각·회차는 고정 견본(data-ink — 숫자 전부)으로 잰다: 숫자마다 획 끝이 조금씩 달라 초마다 들썩이지 않게. em 이라 OBS 에서
+    // 소스 크기를 바꿔도 다시 잴 필요가 없다. 보이는 칸만 잰다(감춘 칸은 상자가 없다).
+    var inkCtx = null, fontGen = 0;
+    function alignInk() {
+      var els = box.querySelectorAll('.ink');
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (el.hidden || !el.firstChild) continue;
+        var sample = el.getAttribute('data-ink') || el.textContent;
+        var cs = getComputedStyle(el);
+        var key = fontGen + '|' + cs.fontWeight + '|' + cs.fontFamily + '|' + sample;
+        if (el.getAttribute('data-ink-key') === key) continue;
+        el.style.setProperty('--ink', '0em');
+        if (!inkCtx) inkCtx = document.createElement('canvas').getContext('2d');
+        inkCtx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+        var range = document.createRange();
+        range.selectNodeContents(el);
+        var first = range.getClientRects()[0], rect = el.getBoundingClientRect();
+        if (!first || !rect.height) continue;
+        el.style.setProperty('--ink', inkShiftEm(rect.top, rect.height, first.top, inkCtx.measureText(sample), parseFloat(cs.fontSize)) + 'em');
+        el.setAttribute('data-ink-key', key);
+      }
+    }
+    // 글꼴을 늦게 받으면(대신 쓰인 글꼴로 잰 값이 남지 않게) 다시 잰다.
+    if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', function () { fontGen++; render(); });
 
     // 공개 GET 이라 쿠키·인증을 싣지 않는다. 다음 묻기까지의 간격을 돌려준다. 답이 오는 사이 링크(해시)가 바뀌었으면 옛 토큰의 답은 버린다.
     var inflight = null;

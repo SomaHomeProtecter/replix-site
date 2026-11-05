@@ -13,9 +13,9 @@ const invite = read('docs/invite/index.html');
 const block = /\/\* overlayView:start \*\/([\s\S]*?)\/\* overlayView:end \*\//.exec(page);
 assert.ok(block, '오버레이 페이지에 순수 함수 구간(overlayView:start~end)이 있다');
 const { formatEpisodeLabel, formatClock, overlayView: rawView, steadyPosition, formatRemain, timesFor, readHash, apiBase, PLATFORM_NAMES,
-  episodeCode, chooseVersion, progressPct, noteFor, VERSIONS, VERSION_SOURCE, CHIP_TEXT, MARK_TEXT } = new Function(
+  episodeCode, chooseVersion, progressPct, noteFor, VERSIONS, VERSION_SOURCE, CHIP_TEXT, MARK_TEXT, MARK_ICON, inkShiftEm } = new Function(
   `${block[1]}; return { formatEpisodeLabel, formatClock, overlayView, steadyPosition, formatRemain, timesFor, readHash, apiBase, PLATFORM_NAMES,
-    episodeCode, chooseVersion, progressPct, noteFor, VERSIONS, VERSION_SOURCE, CHIP_TEXT, MARK_TEXT };`)();
+    episodeCode, chooseVersion, progressPct, noteFor, VERSIONS, VERSION_SOURCE, CHIP_TEXT, MARK_TEXT, MARK_ICON, inkShiftEm };`)();
 // 화면 글자만 견준다 — 카드 칸(work·ep·chip·mark …)과 pos(초)·key(흐름)·duration(길이)은 아래에서 따로 본다.
 const overlayView = (d, e) => { const v = rawView(d, e); if (!v) return v; const { platform, title, time, state, wait } = v; return { platform, title, time, state, wait }; };
 
@@ -165,9 +165,13 @@ assert.doesNotMatch(cardCss, /\d+px/, '카드 치수는 rem(소스 크기 비례
 // 상태 다섯 — 카드 data-st·칩·미니 칩 표·밑 한 줄
 const at = (state, extra) => rawView({ ...base, state, positionSec: 1421, durationSec: 3130, ...extra }, 0);
 assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).st), ['play', 'pause', 'ad', 'end', 'idle']);
-assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).chip), ['', '‖ 멈춤', '광고 대기', '회차 끝', '시작 전'],
-  '재생 중에는 칩이 없다');
-assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).mark), ['●', '‖', '광고', '끝', '대기']);
+assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).chip), ['', '멈춤', '광고 대기', '회차 끝', '시작 전'],
+  '재생 중에는 칩이 없다 — 멈춤의 ‖ 는 글자가 아니라 그림(HP-817)');
+assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).mark), ['', '', '광고', '끝', '대기']);
+assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).markIcon), ['play', 'pause', '', '', ''],
+  '미니 칩의 재생 중 ●·멈춤 ‖ 는 그림(HP-817)');
+for (const t of [...Object.values(CHIP_TEXT), ...Object.values(MARK_TEXT)]) assert.doesNotMatch(t, /[‖●]/, '상태 기호를 글자로 쓰지 않는다 — ' + t);
+assert.deepEqual(MARK_ICON, { PLAYING: 'play', PAUSED: 'pause' });
 assert.equal(noteFor(at('PLAYING'), '23:41'), '');
 assert.equal(noteFor(at('PAUSED'), '23:41'), '');
 assert.equal(noteFor(at('AD'), '23:41'), '광고가 끝나면 23:41부터 이어져요');
@@ -195,6 +199,46 @@ assert.equal(progressPct(3130, null, false, true), 0, '시작 전은 0');
 assert.equal(progressPct(null, 100, false, false), null, '길이를 모르면 감춘다');
 assert.equal(progressPct(0, 100, false, false), null);
 
+// ── HP-817 상태 그림과 글자 획 가운데 맞춤
+// 그림은 카드에 미리 두고 hidden 으로만 켠다(innerHTML 없이). 칩 셋은 멈춤 그림 + 글자, 미니 칩은 재생·멈춤 그림 + 글자.
+assert.equal((page.match(/<span class="chip"><span class="ic ic-pause" hidden><svg /g) || []).length, 3, '코너·바·시계 칩에 멈춤 그림');
+const chipCard = /<div class="ov v-chip-card" data-v="chip" hidden>([\s\S]*?)\n  <\/div>/.exec(page)[1];
+assert.match(chipCard, /<span class="mark"><span class="ic ic-play" hidden><svg [\s\S]*?<span class="ic ic-pause" hidden><svg [\s\S]*?<span class="mark-t ink"><\/span><\/span>/);
+assert.match(chipCard, /<span class="now ink" data-ink="0123456789"><\/span>/, '시각은 숫자 견본으로 잰다 — 초마다 들썩이지 않게');
+assert.match(chipCard, /<span class="dim ep ink" data-ink="E0123456789"><\/span>/);
+for (const svg of page.match(/<svg[\s\S]*?<\/svg>/g)) {
+  assert.match(svg, /fill="currentColor"/, '그림 색은 글자색을 따른다 — 상태 색 규칙 그대로');
+  assert.doesNotMatch(svg, /<image|href|url\(/, '그림은 도형뿐 — 이미지·외부 참조 없음');
+}
+assert.match(page, /paint\(parts\.chipIc, 'hidden', view\.st !== 'pause'\);/, '칩의 멈춤 그림은 멈춤일 때만');
+// 가운데로 맞춘 줄과 작은 카드의 글자는 모두 획으로 맞춘다 — 기준선 줄(코너 카드 시각 줄)·세로로 쌓는 큰 시계 가운데는 빼고
+const cardOf = (v) => new RegExp('<div class="ov v-' + v + '-card" data-v="' + v + '" hidden>([\\s\\S]*?)\\n  </div>').exec(page)[1];
+for (const v of ['corner', 'bar', 'clock']) {
+  assert.match(cardOf(v), /<span class="pf"><span class="pf-t ink"><\/span><\/span><span class="ttl ink"><\/span>/, v + ' 플랫폼 칩·작품명');
+  assert.match(cardOf(v), /<span class="chip-t ink"><\/span>/, v + ' 상태 칩 글자');
+}
+assert.match(cardOf('corner'), /<span class="ep ink"><\/span><span class="chip">/);
+assert.match(cardOf('corner'), /<div class="row"><span class="now"><\/span><span class="dim dur"><\/span><span class="dim rem"><\/span><\/div>/, '코너 카드 시각 줄은 기준선 정렬이라 옮기지 않는다');
+assert.match(cardOf('bar'), /<span class="now ink" data-ink="0123456789"><\/span><span class="dim dur ink"><\/span><span class="dim rem ink" data-ink="0123456789"><\/span>/);
+assert.match(cardOf('clock'), /<div class="foot"><span class="dim dur ink"><\/span><span class="dim rem ink"><\/span>/);
+assert.match(page, /\.pf \{ flex: none; display: inline-flex; align-items: center;/, '플랫폼 칩 글자는 안쪽 칸이라 칩 가운데에서 옮긴다');
+assert.match(page, /paint\(parts\.pf, 'hidden', !view\.platform\);\s*paintText\(parts\.pfT, view\.platform\);/);
+assert.match(page, /paint\(parts\.mark, 'className', 'mark' \+ \(view\.markIcon \? ' has-ic' : ''\)\);/);
+assert.match(page, /\.v-chip-card \.mark\.has-ic \{ min-width: 0;/, '그림일 때는 표시 칸 최소 폭을 푼다 — 그림 양옆이 비지 않게');
+assert.match(page, /\.ink \{ transform: translateY\(var\(--ink, 0em\)\); \}/);
+assert.match(page, /paint\(box, 'hidden', false\);\s*alignInk\(\);/, '보인 뒤에 잰다(감춘 칸은 상자가 없다)');
+assert.match(page, /el\.style\.setProperty\('--ink', '0em'\);[\s\S]{0,800}inkShiftEm\(rect\.top, rect\.height, first\.top, inkCtx\.measureText\(sample\), parseFloat\(cs\.fontSize\)\)/,
+  '옮긴 값을 지우고 다시 잰다(transform 이 상자 위치에 섞이지 않게)');
+assert.doesNotMatch(page, /text-box(-trim)?\s*:/, 'text-box 는 쓰지 않는다 — OBS 32(Chromium 127)에 없다');
+// 옮길 양 — 상자 중심과 획 중심의 차이(em). 숫자처럼 획이 위로 치우치면 양수(아래로)
+const m = (fA, aA, aD) => ({ fontBoundingBoxAscent: fA, actualBoundingBoxAscent: aA, actualBoundingBoxDescent: aD });
+// 상자 0~44, 글자 영역 윗변 -2, 기준선 = -2+42 = 40, 획 40-31..40+0 → 중심 24.5, 상자 중심 22 → -2.5px / 44px
+assert.equal(inkShiftEm(0, 44, -2, m(42, 31, 0), 44), -0.0568);
+assert.equal(inkShiftEm(10, 20, 8, m(14, 8, 4), 20), 0, '획이 상자 가운데면 0');
+assert.equal(inkShiftEm(0, 0, 0, m(1, 1, 0), 10), 0, '상자가 없으면 옮기지 않는다');
+assert.equal(inkShiftEm(0, 10, 0, null, 10), 0);
+assert.equal(inkShiftEm(0, 10, 0, m(8, 6, 0), 0), 0);
+
 // 미니 칩 상태 표 — 줄바꿈·잘림 없이(폭을 잡고 nowrap)
 assert.match(page, /\.v-chip-card \.mark \{ flex: none; min-width: 2\.6em; text-align: center; white-space: nowrap; word-break: keep-all;/,
   '미니 칩 상태 글자는 폭을 잡고 줄바꿈하지 않는다');
@@ -205,6 +249,6 @@ assert.match(page, /\.v-corner-card\.is-long \.now \{ font-size: 48rem; \}/);
 assert.match(page, /\.v-clock-card\.is-long \.now \{ font-size: 80rem; \}/);
 assert.match(page, /var long = time\.length > 5 \|\| \(view\.duration !== null && view\.duration >= 3600\);/);
 // 법적 게이트 — 포스터·스틸컷·플랫폼 로고(이미지) 없음
-assert.doesNotMatch(page, /<img|<svg|background-image|url\(/, '이미지를 싣지 않는다(포스터·로고 없음)');
+assert.doesNotMatch(page, /<img|<image|background-image|url\(/, '이미지를 싣지 않는다(포스터·로고 없음) — 상태 그림은 인라인 SVG 도형뿐(HP-817)');
 
 console.log('scripts/test-overlay.mjs: 통과');
