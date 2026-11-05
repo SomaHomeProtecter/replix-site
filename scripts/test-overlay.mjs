@@ -211,6 +211,18 @@ for (const svg of page.match(/<svg[\s\S]*?<\/svg>/g)) {
   assert.doesNotMatch(svg, /<image|href|url\(/, '그림은 도형뿐 — 이미지·외부 참조 없음');
 }
 assert.match(page, /paint\(parts\.chipIc, 'hidden', view\.st !== 'pause'\);/, '칩의 멈춤 그림은 멈춤일 때만');
+// 가운데로 맞춘 줄과 작은 카드의 글자는 모두 획으로 맞춘다 — 기준선 줄(코너 카드 시각 줄)·세로로 쌓는 큰 시계 가운데는 빼고
+const cardOf = (v) => new RegExp('<div class="ov v-' + v + '-card" data-v="' + v + '" hidden>([\\s\\S]*?)\\n  </div>').exec(page)[1];
+for (const v of ['corner', 'bar', 'clock']) {
+  assert.match(cardOf(v), /<span class="pf"><span class="pf-t ink"><\/span><\/span><span class="ttl ink"><\/span>/, v + ' 플랫폼 칩·작품명');
+  assert.match(cardOf(v), /<span class="chip-t ink"><\/span>/, v + ' 상태 칩 글자');
+}
+assert.match(cardOf('corner'), /<span class="ep ink"><\/span><span class="chip">/);
+assert.match(cardOf('corner'), /<div class="row"><span class="now"><\/span><span class="dim dur"><\/span><span class="dim rem"><\/span><\/div>/, '코너 카드 시각 줄은 기준선 정렬이라 옮기지 않는다');
+assert.match(cardOf('bar'), /<span class="now ink" data-ink="0123456789"><\/span><span class="dim dur ink"><\/span><span class="dim rem ink" data-ink="0123456789"><\/span>/);
+assert.match(cardOf('clock'), /<div class="foot"><span class="dim dur ink"><\/span><span class="dim rem ink"><\/span>/);
+assert.match(page, /\.pf \{ flex: none; display: inline-flex; align-items: center;/, '플랫폼 칩 글자는 안쪽 칸이라 칩 가운데에서 옮긴다');
+assert.match(page, /paint\(parts\.pf, 'hidden', !view\.platform\);\s*paintText\(parts\.pfT, view\.platform\);/);
 assert.match(page, /paint\(parts\.mark, 'className', 'mark' \+ \(view\.markIcon \? ' has-ic' : ''\)\);/);
 assert.match(page, /\.v-chip-card \.mark\.has-ic \{ min-width: 0;/, '그림일 때는 표시 칸 최소 폭을 푼다 — 그림 양옆이 비지 않게');
 assert.match(page, /\.ink \{ transform: translateY\(var\(--ink, 0em\)\); \}/);

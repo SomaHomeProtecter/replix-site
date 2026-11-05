@@ -19,8 +19,9 @@
        진행 막대도 같은 길이로만 센다(길이를 모르면 막대를 감춘다).
      · env=dev 면 개발 서버(api.replix-dev.site)에 묻는다 — 익스텐션 개발 빌드가 만든 링크다. 다른 값은 받지 않는다(아무 주소나 묻지 않게).
      · 상태 그림·획 가운데 맞춤(HP-817, 2026-11-05 조현빈 결정) — 멈춤 ‖·재생 ● 는 글자가 아니라 인라인 SVG 도형이다(글꼴마다 굵기·높이가 달라진다).
-       미니 칩의 글자는 줄 상자가 아니라 글자 획이 칩 가운데에 오게, 이 PC 의 글꼴로 획을 재서 옮긴다(alignInk). CSS text-box 는 OBS 32
-       (Chromium 127)에 없어 쓰지 않는다.
+       가운데로 맞춘 줄(미니 칩·코너 카드 윗줄·플레이어 바·큰 시계 윗줄과 아랫줄)과 작은 카드(플랫폼·상태 칩)의 글자는 줄 상자가 아니라
+       글자 획이 가운데에 오게, 이 PC 의 글꼴로 획을 재서 옮긴다(alignInk). CSS text-box 는 OBS 32(Chromium 127)에 없어 쓰지 않는다.
+       기준선으로 맞춘 코너 카드 시각 줄과 위아래로 쌓는 큰 시계 가운데는 옮기지 않는다.
      외부 리소스 0, 계측 없음 — 단일 파일. 검사 = scripts/test-overlay.mjs -->
 <html lang="ko" class="v-corner">
 <head>
@@ -47,7 +48,7 @@
       /* 숫자 폭만 고정한다(tabular-nums) — 초가 바뀔 때 카드가 흔들리지 않게. 고정폭 글꼴은 ':' 앞뒤가 벌어져 쓰지 않는다. */
       font-variant-numeric: tabular-nums;
     }
-    .pf { flex: none; font-size: 0.73em; font-weight: 700; letter-spacing: 0.04em; padding: 0.1em 0.55em; border-radius: 0.3em; background: rgba(255, 255, 255, 0.13); color: #dcdce2; }
+    .pf { flex: none; display: inline-flex; align-items: center; font-size: 0.73em; font-weight: 700; letter-spacing: 0.04em; padding: 0.1em 0.55em; border-radius: 0.3em; background: rgba(255, 255, 255, 0.13); color: #dcdce2; }
     .ttl { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
     .ep { flex: none; font-weight: 700; color: #b4b4be; }
     .now { font-weight: 800; line-height: 1; letter-spacing: -0.01em; }
@@ -118,21 +119,21 @@
 <body>
   <!-- 버전마다 카드 하나 — 고른 버전만 보이고 나머지는 늘 감춘다(chooseVersion). 서버 글자가 들어갈 칸은 비워 두고 textContent 로 채운다. -->
   <div class="ov v-corner-card" data-v="corner" hidden>
-    <div class="top"><span class="pf"></span><span class="ttl"></span><span class="ep"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t"></span></span></div>
+    <div class="top"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span><span class="ep ink"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span></div>
     <div class="row"><span class="now"></span><span class="dim dur"></span><span class="dim rem"></span></div>
     <span class="note"></span>
     <div class="bar"><i></i></div>
   </div>
   <div class="ov v-bar-card" data-v="bar" hidden>
-    <div class="who"><span class="pf"></span><span class="ttl"></span><span class="ep"></span></div>
+    <div class="who"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span><span class="ep ink"></span></div>
     <div class="bar"><i></i></div>
-    <span class="now"></span><span class="dim dur"></span><span class="dim rem"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t"></span></span>
+    <span class="now ink" data-ink="0123456789"></span><span class="dim dur ink"></span><span class="dim rem ink" data-ink="0123456789"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span>
   </div>
   <div class="ov v-clock-card" data-v="clock" hidden>
-    <div class="top"><span class="pf"></span><span class="ttl"></span></div>
+    <div class="top"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span></div>
     <span class="ep"></span>
     <span class="now"></span>
-    <div class="foot"><span class="dim dur"></span><span class="dim rem"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t"></span></span></div>
+    <div class="foot"><span class="dim dur ink"></span><span class="dim rem ink"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span></div>
     <span class="note"></span>
   </div>
   <div class="ov v-chip-card" data-v="chip" hidden>
@@ -277,7 +278,7 @@
       box = cards[v];
       baseClass = box.className.replace(/ is-long/g, '');
       var q = function (sel) { return box.querySelector(sel); };
-      parts = { pf: q('.pf'), ttl: q('.ttl'), ep: q('.ep'), chip: q('.chip'), chipT: q('.chip-t'), chipIc: q('.chip .ic-pause'),
+      parts = { pf: q('.pf'), pfT: q('.pf-t'), ttl: q('.ttl'), ep: q('.ep'), chip: q('.chip'), chipT: q('.chip-t'), chipIc: q('.chip .ic-pause'),
         mark: q('.mark'), markT: q('.mark-t'), mkPlay: q('.mark .ic-play'), mkPause: q('.mark .ic-pause'), now: q('.now'),
         dur: q('.dur'), rem: q('.rem'), note: q('.note'), bar: q('.bar') };
       painted = [];
@@ -308,7 +309,8 @@
       var long = time.length > 5 || (view.duration !== null && view.duration >= 3600);
       paint(box, 'className', baseClass + (long ? ' is-long' : ''));
       if (box.getAttribute('data-st') !== view.st) box.setAttribute('data-st', view.st);
-      paintText(parts.pf, view.platform);
+      paint(parts.pf, 'hidden', !view.platform);
+      paintText(parts.pfT, view.platform);
       paintText(parts.ttl, view.work);
       paintText(parts.ep, box === cards.chip ? view.epShort : view.ep);
       paint(parts.chip, 'hidden', !view.chip);
