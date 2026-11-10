@@ -190,8 +190,12 @@
       if (!data || typeof data.contentTitle !== 'string' || !data.contentTitle.trim()) return null;
       var label = formatEpisodeLabel(data.seasonNumber, data.episodeNumber, data);
       var pos = typeof data.positionSec === 'number' ? data.positionSec : null;
+      var duration = typeof data.durationSec === 'number' && isFinite(data.durationSec) && data.durationSec > 0 ? data.durationSec : null;
       if (pos !== null && data.state === 'PLAYING') {
         pos += Math.max(0, elapsedSec || 0) * (typeof data.rate === 'number' && data.rate > 0 ? data.rate : 1);
+        // 흘린 위치는 회차 길이를 넘지 않는다(HP-858) — 서버도 페이지도 마지막 표본에서 시간을 더해 가므로, 스트리머의 표본이 끊긴 채
+        // (탭이 닫힘·끊김) 재생 중으로 남으면 '51:03 / 50:51'처럼 길이를 지나 계속 흘렀다. 길이를 모르면 그대로 둔다.
+        if (duration !== null && pos > duration) pos = duration;
       }
       var work = data.contentTitle.trim();
       var title = work + (label ? ' ' + label : '');
@@ -209,7 +213,7 @@
         mark: MARK_TEXT[data.state] || '',
         markIcon: MARK_ICON[data.state] || '',
         pos: pos,
-        duration: typeof data.durationSec === 'number' && isFinite(data.durationSec) && data.durationSec > 0 ? data.durationSec : null,
+        duration: duration,
         ended: data.state === 'EPISODE_END',
         idle: data.state === 'IDLE',
         key: (data.platform || '') + '|' + title + '|' + (data.state || ''),
