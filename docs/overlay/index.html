@@ -233,7 +233,7 @@
     function noteFor(view, time) {
       if (view.wait) return time ? '광고가 끝나면 ' + time + '부터 이어져요' : '광고가 끝나면 이어져요';
       if (view.ended) return '다음 회차를 기다리는 중';
-      if (view.idle) return '방장이 재생하면 시작돼요';
+      if (view.idle) return '스트리머가 재생하면 시작돼요'; // 타이머는 스트리머 방에만 있다 — 방장이 아니라 '스트리머'(익스텐션 HP-850 호칭, 방 설정 미리보기와 같은 글)
       return '';
     }
     // 그릴 시각 두 개 — 뒤로 가지 않는 위치(steadyPosition)와 그 위치로 센 남은 시간. 회차 끝에서는 남은 시간을 빼고('-0:00'이 상태와 겹친다),

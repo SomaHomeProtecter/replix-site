@@ -178,7 +178,7 @@ assert.equal(noteFor(at('PAUSED'), '23:41'), '');
 assert.equal(noteFor(at('AD'), '23:41'), '광고가 끝나면 23:41부터 이어져요');
 assert.equal(noteFor(at('AD', { positionSec: null }), ''), '광고가 끝나면 이어져요');
 assert.equal(noteFor(at('EPISODE_END'), '52:10'), '다음 회차를 기다리는 중');
-assert.equal(noteFor(at('IDLE', { positionSec: null }), ''), '방장이 재생하면 시작돼요');
+assert.equal(noteFor(at('IDLE', { positionSec: null }), ''), '스트리머가 재생하면 시작돼요', '스트리머 방 호칭(HP-850) — 방장이라고 쓰지 않는다');
 for (const t of [...Object.values(CHIP_TEXT), ...Object.values(MARK_TEXT), noteFor(at('AD'), '1:02:05'), noteFor(at('EPISODE_END'), ''), noteFor(at('IDLE'), '')]) {
   assert.doesNotMatch(t, /·/, '화면 글자에 중간점을 쓰지 않는다 — ' + t);
 }
