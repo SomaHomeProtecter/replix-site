@@ -157,16 +157,24 @@
     var VERSIONS = ['corner', 'bar', 'clock', 'chip'];
     var VERSION_SOURCE = { corner: [480, 200], bar: [1320, 120], clock: [440, 360], chip: [360, 96] };
     function chooseVersion(v) { return VERSIONS.indexOf(v) >= 0 ? v : 'corner'; }
-    // 회차 표기 — 익스텐션 replix-net.js formatEpisodeLabel 의 사본(초대 페이지와 같다). 시즌은 2 이상일 때만 붙인다. key 에만 쓴다.
-    function formatEpisodeLabel(seasonNumber, episodeNumber) {
-      if (typeof episodeNumber !== 'number') return '';
-      var season = typeof seasonNumber === 'number' && seasonNumber > 1 ? '시즌' + seasonNumber + ' ' : '';
+    // 회차 표기(HP-807) — 작품 탐색 catalog/app/src/episode-pure.js episodeLabel 과 같은 규칙의 사본이다(초대 페이지 docs/invite 도 같다).
+    // 정적 페이지라 import 하지 못한다 — 규칙을 바꾸면 세 곳을 함께 고친다(scripts/test-episode.mjs 가 견준다).
+    // 시즌은 플랫폼이 준 그대로 붙이고(시즌 1 포함 — '시즌1 3화'), 진짜 회차 번호가 없으면(영화·잠정 회차의 자리 채움) ''.
+    // data = 응답(contentType·hasEpisodeNumber — HP-807 BE 부터, 옛 서버엔 없어 번호만 본다). key 에만 쓴다.
+    function hasEpisodeNumber(episodeNumber, data) {
+      var d = data || {};
+      if (d.contentType === 'MOVIE' || d.hasEpisodeNumber === false) return false;
+      return typeof episodeNumber === 'number' && isFinite(episodeNumber) && episodeNumber > 0;
+    }
+    function formatEpisodeLabel(seasonNumber, episodeNumber, data) {
+      if (!hasEpisodeNumber(episodeNumber, data)) return '';
+      var season = typeof seasonNumber === 'number' && isFinite(seasonNumber) && seasonNumber > 0 ? '시즌' + seasonNumber + ' ' : '';
       return season + episodeNumber + '화';
     }
-    // 카드의 짧은 회차 표기(시안) — 'S1 E3', 시즌을 모르면 'E3', 영화는 ''. 칸 사이는 공백(화면 글자에 중간점을 쓰지 않는다).
-    function episodeCode(seasonNumber, episodeNumber) {
-      if (typeof episodeNumber !== 'number') return '';
-      return (typeof seasonNumber === 'number' && seasonNumber > 0 ? 'S' + seasonNumber + ' ' : '') + 'E' + episodeNumber;
+    // 카드의 짧은 회차 표기(시안) — 'S1 E3', 시즌을 모르면 'E3', 영화·자리 채움은 ''. 칸 사이는 공백(화면 글자에 중간점을 쓰지 않는다).
+    function episodeCode(seasonNumber, episodeNumber, data) {
+      if (!hasEpisodeNumber(episodeNumber, data)) return '';
+      return (typeof seasonNumber === 'number' && isFinite(seasonNumber) && seasonNumber > 0 ? 'S' + seasonNumber + ' ' : '') + 'E' + episodeNumber;
     }
     // 초 → '12:26' · 한 시간이 넘으면 '1:02:05'. 소수는 버린다(넷플릭스 플레이어 표시와 같다).
     function formatClock(sec) {
@@ -180,7 +188,7 @@
     // key 는 같은 흐름(플랫폼·작품·회차·상태)인지 가르는 값이다(steadyPosition).
     function overlayView(data, elapsedSec) {
       if (!data || typeof data.contentTitle !== 'string' || !data.contentTitle.trim()) return null;
-      var label = formatEpisodeLabel(data.seasonNumber, data.episodeNumber);
+      var label = formatEpisodeLabel(data.seasonNumber, data.episodeNumber, data);
       var pos = typeof data.positionSec === 'number' ? data.positionSec : null;
       if (pos !== null && data.state === 'PLAYING') {
         pos += Math.max(0, elapsedSec || 0) * (typeof data.rate === 'number' && data.rate > 0 ? data.rate : 1);
@@ -194,8 +202,8 @@
         state: STATE_TEXT[data.state] || '',
         wait: data.state === 'AD',
         work: work,
-        ep: episodeCode(data.seasonNumber, data.episodeNumber),
-        epShort: typeof data.episodeNumber === 'number' ? 'E' + data.episodeNumber : '',
+        ep: episodeCode(data.seasonNumber, data.episodeNumber, data),
+        epShort: hasEpisodeNumber(data.episodeNumber, data) ? 'E' + data.episodeNumber : '',
         st: STATE_KEY[data.state] || 'play',
         chip: CHIP_TEXT[data.state] || '',
         mark: MARK_TEXT[data.state] || '',

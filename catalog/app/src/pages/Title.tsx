@@ -4,7 +4,6 @@ import { PlayIcon, ArrowUpRightIcon, PuzzlePieceIcon, HeartIcon } from '@phospho
 import {
   api,
   decodeEntities,
-  episodeLabel,
   fmtTime,
   ApiError,
   type CatalogContent,
@@ -16,6 +15,7 @@ import {
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../route-pure.js'
+import { episodeLabel, episodeLine, episodeName, episodeTitle, hasEpisodeNumber, joinParts, seasonLabel } from '../episode-pure.js'
 import { storeUrl } from '../store-pure.js'
 import { platformName, watchCta, watchUrl } from '../watch-pure.js'
 import { engaged, trackWatch } from '../analytics'
@@ -49,10 +49,12 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
   // (순위 행 titleId 와 같은 규칙, BE CatalogQueryService) → 링크 없음(HP-709).
   const play = ep ? watchUrl(c.platform, ep.platformEpisodeId, undefined, c.platformContentId) : null
   const maxShare = Math.max(1, ...c.episodes.map((e) => e.heatShare))
-  // 시즌별 묶음(시즌 오름차순, 안에서 회차 오름차순). 영화나 시즌 정보가 없는 회차는 season 0.
+  // 시즌별 묶음(시즌 오름차순, 안에서 회차 오름차순). 영화·잠정 회차(진짜 회차 번호 없음, HP-807)나 시즌 정보가 없는 회차는 season 0.
   const seasons = Array.from(
-    c.episodes.reduce((m, e) => { const k = e.seasonNumber ?? 0; (m.get(k) ?? m.set(k, []).get(k)!).push(e); return m }, new Map<number, CatalogEpisode[]>()),
-  ).sort((a, b) => a[0] - b[0]).map(([season, eps]) => ({ season, eps: [...eps].sort((a, b) => a.episodeNumber - b.episodeNumber) }))
+    c.episodes.reduce((m, e) => { const k = hasEpisodeNumber(e, c.contentType) ? e.seasonNumber ?? 0 : 0; (m.get(k) ?? m.set(k, []).get(k)!).push(e); return m }, new Map<number, CatalogEpisode[]>()),
+  ).sort((a, b) => a[0] - b[0]).map(([season, eps]) => ({ season, eps: [...eps].sort((a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)) }))
+  // 히어로 메타 줄의 회차 — 표기('시즌1 3화'), 없으면 작품명과 다른 회차 제목. 영화는 앞에 '영화'가 이미 있어 비운다(HP-807).
+  const epName = ep ? episodeName(ep, ep.title, c.title, c.contentType) : ''
 
   return (
     <section className={`border-b border-line bg-raise ${SEC}`}>
@@ -65,7 +67,7 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
             <span>{c.contentType === 'MOVIE' ? '영화' : '시리즈'}</span>
             <Rule />
             <span>{platformName(c.platform)}</span>
-            {ep && (<><Rule /><span>{episodeLabel(ep, c.contentType) || ep.title}</span></>)}
+            {epName && (<><Rule /><span>{epName}</span></>)}
           </div>
 
           <div className="mt-6 grid gap-6 border-t border-line pt-5 lg:grid-cols-[150px_150px_240px_1fr] lg:gap-8">
@@ -82,7 +84,7 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
               {peak?.quote ? (
                 <>
                   <p className="mt-1.5 text-[14px] font-bold leading-snug text-ink">“{decodeEntities(peak.quote)}”</p>
-                  <p className="num mt-1 font-mono text-[11px] text-muted">{ep ? episodeLabel(ep, c.contentType) : ''} {fmtTime(peak.at)}</p>
+                  <p className="num mt-1 font-mono text-[11px] text-muted">{joinParts([ep ? episodeLabel(ep, c.contentType) : '', fmtTime(peak.at)], ' ')}</p>
                 </>
               ) : (
                 <p className="mt-1.5 text-[12.5px] text-faint">아직 인용할 채팅이 없습니다</p>
@@ -101,10 +103,10 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
                    고정 폭을 쓰면 회차가 많을 때 셀을 밀어내 히어로 밖으로 넘친다(2026-09-07 실측). */
                 <div className="mt-2.5 flex min-w-0 items-end gap-4">
                   {seasons.map((g) => (
-                    <div key={g.season} className="min-w-0" style={{ flex: `${g.eps.length} 1 0`, minWidth: Math.min(g.eps.length, 3) * 16 + 16 /* '108'·'시즌 4'가 잘리지 않는 최소 폭 */ }}>
+                    <div key={g.season} className="min-w-0" style={{ flex: `${g.eps.length} 1 0`, minWidth: Math.min(g.eps.length, 3) * 16 + 16 /* '108'·'시즌4'가 잘리지 않는 최소 폭 */ }}>
                       <div className="flex h-[76px] items-end gap-[3px]">
                         {g.eps.map((e) => (
-                          <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)} title={episodeLabel(e, c.contentType) || e.title || ''} onClick={() => engaged('episode_list', 'select')}
+                          <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)} title={episodeLine(e, e.title, c.title, c.contentType)} onClick={() => engaged('episode_list', 'select')}
                             className="flex h-full min-w-0 flex-1 flex-col justify-end">
                             <div className="rounded-t-[2px]" style={{ height: `${Math.max(3, (e.heatShare / maxShare) * 100)}%`, background: e.episodeId === ep?.episodeId ? 'var(--color-accent)' : 'rgba(16,16,24,0.16)' }} />
                           </a>
@@ -114,14 +116,14 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
                       <div className="mt-1.5 flex gap-[3px]">
                         {g.eps.map((e) => (
                           <a key={e.episodeId} href={titleHref(c.contentId, e.episodeId)} onClick={() => engaged('episode_list', 'select')}
-                            className={`num min-w-0 flex-1 py-[8px] -my-[8px] whitespace-nowrap text-center font-mono leading-none hover:text-ink ${e.episodeNumber >= 100 ? 'text-[9px]' : 'text-[10px]'} ${e.episodeId === ep?.episodeId ? 'font-bold text-accent' : 'text-muted'}`}>
-                            {e.episodeNumber || '·'}
+                            className={`num min-w-0 flex-1 py-[8px] -my-[8px] whitespace-nowrap text-center font-mono leading-none hover:text-ink ${(e.episodeNumber ?? 0) >= 100 ? 'text-[9px]' : 'text-[10px]'} ${e.episodeId === ep?.episodeId ? 'font-bold text-accent' : 'text-muted'}`}>
+                            {hasEpisodeNumber(e, c.contentType) ? e.episodeNumber : '·'}
                           </a>
                         ))}
                       </div>
                       {seasons.length > 1 && (
                         <p className="mt-1.5 truncate border-t border-line pt-1 text-[10.5px] font-semibold text-muted">
-                          {g.season > 0 ? `시즌 ${g.season}` : '시즌 없음'}
+                          {seasonLabel(g.season) || '시즌 없음'}
                         </p>
                       )}
                     </div>
@@ -137,7 +139,8 @@ function Hero({ c, ep, live, peak, rating }: { c: CatalogContent; ep: CatalogEpi
                 className="inline-flex items-center gap-2 whitespace-nowrap rounded-btn bg-accent px-4 py-2.5 text-[14px] font-bold text-white transition-all hover:brightness-110 active:translate-y-px">
                 <PlayIcon size={15} weight="fill" />
                 {/* 플랫폼 이름은 platformName — 라프텔 작품에 넷플릭스 문구가 붙지 않게(HP-709). */}
-                {platformName(c.platform)}에서 {ep ? episodeLabel(ep, c.contentType) || '이 회차' : ''} 보기
+                {/* 영화는 회차 칸 없이 '넷플릭스에서 보기', 번호 없는 시리즈 회차는 '이 회차'(HP-807). */}
+                {platformName(c.platform)}에서 {ep && c.contentType !== 'MOVIE' ? episodeLabel(ep, c.contentType) || '이 회차' : ''} 보기
                 <ArrowUpRightIcon size={13} weight="bold" className="opacity-80" />
               </a>
             )}
@@ -191,19 +194,22 @@ function EpisodeCard({ c, e, selected, i }: { c: CatalogContent; e: CatalogEpiso
   const list = [...e.moments].sort((a, b) => b.strength - a.strength).slice(0, 3).sort((a, b) => a.at - b.at)
   const top = list.reduce<Moment | null>((a, x) => (!a || x.strength > a.strength ? x : a), null)
   const duration = list.length ? Math.max(...list.map((x) => x.at)) * 1.15 : 1
+  // 제목 줄 — 카드 제목이 표기('시즌1 3화')일 때만 회차 제목을 덧붙인다. 표기가 없으면 제목이 이미 카드 제목이다(HP-807).
+  const sub = episodeLabel(e, c.contentType) ? episodeTitle(e.title, e, c.title, c.contentType) : ''
   return (
     <Reveal delay={Math.min(i, 6) * 0.03} className="flex">
       <a href={titleHref(c.contentId, e.episodeId) + '#moments'} onClick={() => engaged('episode_list', 'select')}
         className={`flex w-full flex-col rounded-md border p-4 transition-colors ${selected ? 'border-accent/30 bg-accentw' : 'border-line bg-raise hover:bg-soft'}`}>
         <div className="flex items-baseline justify-between gap-3">
           <div className="flex items-baseline gap-2">
-            <h3 className="text-[20px]">{episodeLabel(e, c.contentType) || e.title || '회차'}</h3>
+            {/* 영화 카드는 회차 칸이 없어(HP-807) 이 자리만 종류 이름 '영화'를 직접 적는다. */}
+            <h3 className="text-[20px]">{c.contentType === 'MOVIE' ? '영화' : episodeName(e, e.title, c.title, c.contentType) || '회차'}</h3>
             {list.length > 0 && <span className="text-[11.5px] text-muted">순간 {list.length}개</span>}
           </div>
           {e.heatShare > 0 && <span className="text-[11px] text-faint">채팅 반응 {e.heatShare}</span>}
         </div>
         <p className="mt-1 truncate text-[13px] text-ink2">
-          {top ? (<><span className={`num font-mono font-bold ${selected ? 'text-accent' : 'text-ink'}`}>{fmtTime(top.at)}</span> 최고 반응 장면</>) : (e.title ?? ' ')}
+          {top ? (<><span className={`num font-mono font-bold ${selected ? 'text-accent' : 'text-ink'}`}>{fmtTime(top.at)}</span> 최고 반응 장면</>) : (sub || ' ')}
         </p>
         <ul className="mt-3 flex min-h-[64px] flex-col gap-1.5 border-t border-line pt-3">
           {list.filter((x) => x.quote).map((x) => (
@@ -225,7 +231,7 @@ function EpisodeCard({ c, e, selected, i }: { c: CatalogContent; e: CatalogEpiso
 function Episodes({ c, selected }: { c: CatalogContent; selected: CatalogEpisode | null }) {
   const [sort, setSort] = useState<'ep' | 'heat'>('ep')
   const list = [...c.episodes].sort((a, b) =>
-    sort === 'ep' ? a.seasonNumber - b.seasonNumber || a.episodeNumber - b.episodeNumber : b.heatShare - a.heatShare)
+    sort === 'ep' ? (a.seasonNumber ?? 0) - (b.seasonNumber ?? 0) || (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0) : b.heatShare - a.heatShare)
   return (
     <section id="episodes" className={`scroll-mt-28 ${SEC}`}>
       <SectionHead title="회차"
@@ -278,7 +284,7 @@ function Moments({ c, ep, moments, momentsLoading, bars, onPeak }: { c: CatalogC
 
   return (
     <section id="moments" className={`scroll-mt-28 border-y border-line bg-soft ${SEC}`}>
-      <SectionHead title="순간" chip={ep ? <Chip>{episodeLabel(ep, c.contentType) || ep.title || '회차'}</Chip> : undefined}
+      <SectionHead title="순간" chip={ep && c.contentType !== 'MOVIE' ? <Chip>{episodeName(ep, ep.title, c.title, c.contentType) || '회차'}</Chip> : undefined}
       />
 
       {moments.length === 0 ? (

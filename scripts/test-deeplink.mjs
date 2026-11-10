@@ -60,7 +60,7 @@ const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|
 assert.doesNotMatch(stripComments(home + title + me), /넷플릭스에서/, '재생 문구는 watchCta·watchSceneTitle·platformName 으로');
 assert.match(home, /\{watchCta\(top\.platform, peak \? fmtTime\(peak\.at\) : undefined\)\}/, '홈 빌보드 버튼');
 assert.match(title, /\{watchCta\(c\.platform, fmtTime\(m\.at\)\)\}/, '작품 상세 순간 버튼');
-assert.match(title, /\{platformName\(c\.platform\)\}에서 \{ep \? episodeLabel\(ep, c\.contentType\) \|\| '이 회차' : ''\} 보기/, '작품 상세 첫 화면 버튼');
+assert.match(title, /\{platformName\(c\.platform\)\}에서 \{ep && c\.contentType !== 'MOVIE' \? episodeLabel\(ep, c\.contentType\) \|\| '이 회차' : ''\} 보기/, '작품 상세 첫 화면 버튼(영화는 회차 칸 없이, HP-807)');
 assert.match(title, /<span>\{platformName\(c\.platform\)\}<\/span>/, '작품 상세 플랫폼 표기');
 assert.equal((me.match(/title=\{watchSceneTitle\(w\.platform\)\}/g) || []).length, 2, '내 활동 채팅·좋아요 줄 툴팁');
 assert.match(me, /title=\{watchSceneTitle\(w\.platform, span\)\}/, '내 활동 장면 칩 툴팁(구간)');

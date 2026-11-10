@@ -136,11 +136,18 @@
     var PREVIEW_TIMEOUT_MS = 3000; // 방 요약이 이보다 늦으면 요약 없이 안내한다
     // 방 요약 → 화면 문구(순수 — scripts/test-invite.mjs 가 이 구간을 꺼내 검사한다).
     /* inviteCopy:start */
-    // 회차 표기 — 익스텐션 replix-net.js formatEpisodeLabel 의 사본(정적 페이지라 import 하지 못한다).
-    // 회차가 숫자일 때만, 시즌은 2 이상일 때만 앞에 붙인다("시즌2 3화", "5화"). 영화(둘 다 null)는 빈 문자열.
-    function formatEpisodeLabel(seasonNumber, episodeNumber) {
-      if (typeof episodeNumber !== 'number') return '';
-      var season = typeof seasonNumber === 'number' && seasonNumber > 1 ? '시즌' + seasonNumber + ' ' : '';
+    // 회차 표기(HP-807) — 작품 탐색 catalog/app/src/episode-pure.js episodeLabel 과 같은 규칙의 사본이다(타이머 docs/overlay 도 같다).
+    // 정적 페이지라 import 하지 못한다 — 규칙을 바꾸면 세 곳을 함께 고친다(scripts/test-episode.mjs 가 견준다).
+    // 시즌은 플랫폼이 준 그대로 붙이고(시즌 1 포함 — "시즌1 3화"), 시즌을 모르면 "5화", 진짜 회차 번호가 없으면(영화·잠정 회차의
+    // 자리 채움 — 서버가 contentType 'MOVIE' 나 hasEpisodeNumber false 로 알린다, 옛 서버엔 없어 번호만 본다) 빈 문자열.
+    function hasEpisodeNumber(episodeNumber, data) {
+      var d = data || {};
+      if (d.contentType === 'MOVIE' || d.hasEpisodeNumber === false) return false;
+      return typeof episodeNumber === 'number' && isFinite(episodeNumber) && episodeNumber > 0;
+    }
+    function formatEpisodeLabel(seasonNumber, episodeNumber, data) {
+      if (!hasEpisodeNumber(episodeNumber, data)) return '';
+      var season = typeof seasonNumber === 'number' && isFinite(seasonNumber) && seasonNumber > 0 ? '시즌' + seasonNumber + ' ' : '';
       return season + episodeNumber + '화';
     }
     // preview = invite-preview 응답, 실패(404, 네트워크, 시간 초과)면 null. 작품명이 없으면 요약 없는 제목으로 떨어진다.
@@ -148,7 +155,7 @@
     function inviteCopy(preview, platformName) {
       var pv = preview || {};
       var work = typeof pv.contentTitle === 'string' ? pv.contentTitle.trim() : '';
-      var ep = formatEpisodeLabel(pv.seasonNumber, pv.episodeNumber);
+      var ep = formatEpisodeLabel(pv.seasonNumber, pv.episodeNumber, pv);
       var n = pv.onlineCount;
       var copy = {
         title: work ? '『' + work + '』' + (ep ? ' ' + ep : '') : '리플릭스 그룹방 초대',
