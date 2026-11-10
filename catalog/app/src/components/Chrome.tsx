@@ -383,7 +383,9 @@ export function Footer() {
         {/* TMDB 약관 §3 이 요구하는 출처 표시 — TMDB 로고로 사용을 밝히고 지정 문구(약관 원문)를 둔다(HP-386).
             로고 = themoviedb.org/about/logos-attribution 의 'Primary short (blue)' SVG 원본(docs/assets/logo/tmdb-primary-short-blue.svg,
             랜딩과 같은 파일 — SHA-256 이 TMDB 파일명 지문 8e7b30f7… 과 일치). 브랜드 지침: 색·비율 변경·뒤집기·회전 금지,
-            앱 브랜드보다 덜 두드러지게(위 워드마크 28px > 로고 12px). */}
+            앱 브랜드보다 덜 두드러지게(위 워드마크 28px > 로고 12px).
+            JustWatch 줄(HP-771): 서버가 포스터 매칭에 TMDB 제공처 데이터(watch/providers, JustWatch 제휴)를 쓰고, TMDB 문서가 이
+            데이터를 '쓰면' JustWatch 를 출처로 밝히라고 한다(어기면 API 접근 차단). 매칭에서 그 데이터를 빼기 전엔 지우지 말 것. */}
         <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11.5px] leading-relaxed text-faint">
           <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0" aria-label="TMDB">
             <img src={tmdbLogo} alt="TMDB" width={92} height={12} className="block h-3 w-auto" />
@@ -392,6 +394,7 @@ export function Footer() {
             포스터 이미지 출처: TMDB. This product uses TMDB and the TMDB APIs but is not
             endorsed, certified, or otherwise approved by TMDB.
           </p>
+          <p>제공처 정보 출처: JustWatch.</p>
         </div>
       </div>
       <FeedbackModal open={feedback} onClose={closeFeedback} />
