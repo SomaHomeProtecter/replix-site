@@ -66,4 +66,10 @@ assert.deepEqual([ico.readUInt16LE(0), ico.readUInt16LE(2)], [0, 1], 'favicon.ic
 assert.ok(ico.readUInt16LE(4) >= 2, 'favicon.ico 는 여러 크기(16·32·48)');
 assert.ok(existsSync(resolve(root, 'notes/og-assets.md')), 'og 이미지의 출처(로고 자산)·만드는 법을 남긴다');
 
+// ⑤ JustWatch 출처(HP-771) — 서버가 포스터 매칭에 TMDB 제공처 데이터(JustWatch 제휴)를 쓰는 동안, TMDB 문서대로 출처를 밝힌다.
+// 랜딩 푸터의 TMDB 출처 옆, 작품 탐색 푸터(소스와 커밋된 산출물 둘 다).
+assert.match(read('docs/index.html'), /<p class="foot-tmdb">[\s\S]*?<span>[^<]*JustWatch[^<]*<\/span>[\s\S]*?<\/p>/, '랜딩 푸터에 JustWatch 출처');
+assert.match(read('catalog/app/src/components/Chrome.tsx'), /<p>[^<]*JustWatch[^<]*<\/p>/, '작품 탐색 푸터(소스)에 JustWatch 출처');
+assert.ok(read('docs/catalog/index.html').includes('제공처 정보 출처: JustWatch.'), '작품 탐색 산출물을 다시 빌드했다(JustWatch 출처)');
+
 console.log('scripts/test-mobile-polish.mjs: 통과');
