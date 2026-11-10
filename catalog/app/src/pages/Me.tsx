@@ -8,12 +8,13 @@
    들어오는 길 = 헤더 닉네임 메뉴 「내 활동」(Chrome.tsx) · 익스텐션의 「전체 활동 보기」(HP-442). */
 import { useCallback, useState, type ReactElement } from 'react'
 import { EyeSlashIcon, HeartIcon, TrashIcon } from '@phosphor-icons/react'
-import { api, ApiError, decodeEntities, deleteMyComment, episodeLabel, fmtTime, type MyActivityChat, type MyActivityLiked, type MyActivityScene, type MyActivityWork } from '../api'
+import { api, ApiError, decodeEntities, deleteMyComment, fmtTime, type MyActivityChat, type MyActivityLiked, type MyActivityScene, type MyActivityWork } from '../api'
 import { login, useAuth } from '../auth'
 import { useAsync } from '../hooks'
 import { engaged, trackWatch } from '../analytics'
 import { reviewHref, titleHref } from '../route-pure.js'
 import { watchSceneTitle, watchUrl } from '../watch-pure.js'
+import { episodeLabel, type EpisodeRef } from '../episode-pure.js'
 import { Chip, PosterSlot } from '../components/primitives'
 import { Stars } from '../components/Comments'
 import {
@@ -26,6 +27,11 @@ import {
 
 const WRAP = 'wrap min-h-[60vh] py-10'
 
+/** 줄·칩 앞의 회차 칸 — '시즌1 3화'(episode-pure.js, HP-807). 영화는 회차 칸이 없어 비우고, 번호 없는 시리즈 회차(잠정)만 '회차'. */
+function epCell(e: EpisodeRef, w: MyActivityWork): string {
+  return episodeLabel(e, w.contentType) || (w.contentType === 'MOVIE' ? '' : '회차')
+}
+
 /** 채팅 한 줄 — 회차·시각을 누르면 그 플랫폼의 장면(넷플릭스·라프텔)이 새 탭(뜨거운 순간과 같은 watchUrl). 답글이면 본문 위에 원문 한 줄.
  *  watchUrl 이 null(지원 플랫폼이 아니거나 회차·작품 id 없음)이면 링크가 아니라 글만 둔다. 라프텔 작품 id 는 Work.platformContentId(HP-709). */
 function ChatRow({ w, c }: { w: MyActivityWork; c: MyActivityChat }) {
@@ -33,7 +39,7 @@ function ChatRow({ w, c }: { w: MyActivityWork; c: MyActivityChat }) {
   const ref = parentView(c.parent)
   const body = (
     <>
-      <span className="text-[12px] font-bold text-ink2">{episodeLabel(c, w.contentType) || '회차'}</span>
+      <span className="text-[12px] font-bold text-ink2">{epCell(c, w)}</span>
       <span className="num whitespace-nowrap rounded-sm bg-accentw px-1.5 py-0.5 text-center font-mono text-[11px] text-accent">{fmtTime(c.playbackTime)}</span>
       <span className="min-w-0 text-[13.5px] text-ink">
         {c.parentId && (
@@ -70,7 +76,7 @@ function SceneChip({ w, sc }: { w: MyActivityWork; sc: MyActivityScene }) {
   const span = `${fmtTime(sc.slotStart)}~${fmtTime(sceneEndSec(sc.slotStart))}`
   const body = (
     <>
-      <span className="text-[12px] font-bold text-ink2">{episodeLabel(sc, w.contentType) || '회차'}</span>
+      <span className="text-[12px] font-bold text-ink2">{epCell(sc, w)}</span>
       <span className="num font-mono text-[11.5px] text-accent">{fmtTime(sc.slotStart)}</span>
       <span className="inline-flex flex-wrap gap-1.5">
         {emojisOf(sc).map((e) => (
@@ -102,7 +108,7 @@ function LikedRow({ w, l }: { w: MyActivityWork; l: MyActivityLiked }) {
   const v = likedView(l)
   const body = (
     <>
-      <span className="text-[12px] font-bold text-ink2">{episodeLabel(l, w.contentType) || '회차'}</span>
+      <span className="text-[12px] font-bold text-ink2">{epCell(l, w)}</span>
       <span className="num whitespace-nowrap rounded-sm bg-accentw px-1.5 py-0.5 text-center font-mono text-[11px] text-accent">{fmtTime(l.playbackTime)}</span>
       <span className="min-w-0 text-[13.5px] text-ink">
         {/* 이름은 잘리지 않게 줄바꿈을 허용하고(nowrap 이면 ol 의 overflow-hidden 이 글자 중간을 자른다) 본문과 공백으로 뗀다 —

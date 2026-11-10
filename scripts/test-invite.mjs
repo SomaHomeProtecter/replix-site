@@ -27,21 +27,29 @@ const block = /\/\* inviteCopy:start \*\/([\s\S]*?)\/\* inviteCopy:end \*\//.exe
 assert.ok(block, '초대 페이지에 문구 구간(inviteCopy:start~end)이 있다');
 const { formatEpisodeLabel, inviteCopy } = new Function(`${block[1]}; return { formatEpisodeLabel, inviteCopy };`)();
 
-// 회차 표기 — 익스텐션 replix-net.js formatEpisodeLabel 과 같은 규칙(사례도 익스텐션 replix-net.test.js 와 같다).
+// 회차 표기(HP-807) — 작품 탐색 episode-pure.js 와 같은 규칙(세 곳 대조는 scripts/test-episode.mjs). 시즌 1도 붙인다.
 assert.equal(formatEpisodeLabel(8, 35), '시즌8 35화');
-assert.equal(formatEpisodeLabel(1, 3), '3화', '시즌 1은 군더더기라 뺀다');
+assert.equal(formatEpisodeLabel(1, 3), '시즌1 3화', '시즌은 플랫폼이 준 그대로 — 시즌 1도 붙인다');
 assert.equal(formatEpisodeLabel(null, 3), '3화', '시즌 미상도 회차만');
 assert.equal(formatEpisodeLabel(8, null), '', '영화 — 회차 개념이 없다');
 assert.equal(formatEpisodeLabel(null, null), '');
 
 const INSTALL = '리플릭스 익스텐션을 설치하면 이 방으로 바로 들어가요.';
 assert.deepEqual(inviteCopy({ platform: 'netflix', platformEpisodeId: '81234567', contentTitle: '흑백요리사',
-  seasonNumber: 1, episodeNumber: 2, onlineCount: 3 }), { title: '『흑백요리사』 2화', desc: '3명이 함께 보고 있어요. ' + INSTALL },
+  seasonNumber: 1, episodeNumber: 2, onlineCount: 3 }), { title: '『흑백요리사』 시즌1 2화', desc: '3명이 함께 보고 있어요. ' + INSTALL },
 '설계 §3.1 응답 예시 그대로');
 assert.equal(inviteCopy({ contentTitle: '오징어 게임', seasonNumber: 2, episodeNumber: 3, onlineCount: 1 }).title,
   '『오징어 게임』 시즌2 3화');
 assert.deepEqual(inviteCopy({ contentTitle: '헤어질 결심', seasonNumber: null, episodeNumber: null, onlineCount: 1 }),
   { title: '『헤어질 결심』', desc: '1명이 함께 보고 있어요. ' + INSTALL }, '영화는 회차 표기 없이 작품명만(뒤 공백 없음)');
+// 서버는 영화도 자리 채움 회차(시즌 1·1화)를 싣는다 — contentType·hasEpisodeNumber(HP-807 BE)가 오면 '1화'를 붙이지 않는다.
+assert.equal(inviteCopy({ contentTitle: '헤어질 결심', seasonNumber: 1, episodeNumber: 1, contentType: 'MOVIE', hasEpisodeNumber: false }).title,
+  '『헤어질 결심』', '영화 — 자리 채움 1화를 적지 않는다');
+assert.equal(inviteCopy({ contentTitle: '헤어질 결심', seasonNumber: 1, episodeNumber: 1, contentType: 'MOVIE' }).title, '『헤어질 결심』', 'contentType 만 와도');
+assert.equal(inviteCopy({ contentTitle: '잠정 작품', seasonNumber: 1, episodeNumber: 1, contentType: 'SERIES', hasEpisodeNumber: false }).title,
+  '『잠정 작품』', '잠정 회차의 자리 채움 번호도 적지 않는다');
+assert.equal(inviteCopy({ contentTitle: '흑백요리사', seasonNumber: 1, episodeNumber: 2, contentType: 'SERIES', hasEpisodeNumber: true }).title,
+  '『흑백요리사』 시즌1 2화');
 assert.equal(inviteCopy({ contentTitle: '흑백요리사', episodeNumber: 2, onlineCount: 0 }).desc, INSTALL, '0명이면 인원 문장을 뺀다');
 assert.equal(inviteCopy({ contentTitle: '흑백요리사', episodeNumber: 2 }).desc, INSTALL, '인원이 없어도 뺀다');
 // 요약 실패(404·네트워크·시간 초과 = null)나 작품명이 빈 응답은 일반 제목으로.

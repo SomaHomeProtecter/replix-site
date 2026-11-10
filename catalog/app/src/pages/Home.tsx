@@ -4,7 +4,6 @@ import { PlayIcon, ListPlusIcon, ArrowUpRightIcon, ClockIcon, ChatIcon, FireIcon
 import {
   api,
   decodeEntities,
-  episodeLabel,
   fmtTime,
   fmtDuration,
   type LiveShow,
@@ -15,6 +14,7 @@ import {
 } from '../api'
 import { useAsync, useFillCount } from '../hooks'
 import { titleHref } from '../route-pure.js'
+import { episodeLabel, episodeLine, episodeTitle, joinParts } from '../episode-pure.js'
 import { watchCta, watchUrl } from '../watch-pure.js'
 import { engaged, trackWatch } from '../analytics'
 import { Chip, PosterSlot, Reveal, Rule, SectionHead, Waveform } from '../components/primitives'
@@ -288,11 +288,15 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: RankItem | 
   const peak = list.reduce<Moment | null>((a, m) => (!a || m.strength > a.strength ? m : a), null)
   // 라프텔은 작품 id 가 필수라 titleId 를 함께 넘긴다(잠정 작품이면 null → 링크 없음, HP-709). 넷플릭스는 쓰지 않는다.
   const play = top ? watchUrl(top.platform, top.platformEpisodeId, peak?.at, top.titleId) : null
-  const epTitle = top ? (top.episodeTitle ?? (episodeLabel({ seasonNumber: top.seasonNumber, episodeNumber: top.episodeNumber }, top.contentType) || '대표 회차')) : ''
+  // 부제 = 회차 표기 · 회차 제목(HP-807 — 표기가 회차의 이름이고 제목은 덧붙이는 정보). 영화는 둘 다 없어 비운다.
   // 예능 회차 제목은 `2026-09-16 4일 차에…` 처럼 방영일로 시작하곤 한다 — 날짜는 떼어 `09.16` 으로 작게 보인다.
-  const epMatch = /^(\d{4})[-.](\d{2})[-.](\d{2})\s+(.+)$/.exec(epTitle)
+  const epLabel = top ? episodeLabel(top, top.contentType) : ''
+  const rawTitle = top ? episodeTitle(top.episodeTitle, top, top.title, top.contentType) : ''
+  const epMatch = /^(\d{4})[-.](\d{2})[-.](\d{2})\s+(.+)$/.exec(rawTitle)
   const epDate = epMatch ? `${epMatch[2]}.${epMatch[3]}` : ''
-  const epName = epMatch ? epMatch[4] : epTitle
+  const epName = epMatch ? epMatch[4] : rawTitle
+  // 표기도 제목도 없는 시리즈(잠정 회차)만 '대표 회차'로 채운다 — 영화는 비운다.
+  const epFallback = top && !epLabel && !epName && top.contentType !== 'MOVIE' ? '대표 회차' : ''
 
   if (!top) {
     const tone = loading ? 'skeleton' : 'bg-sink/60'
@@ -332,8 +336,9 @@ function BillboardSlide({ top, live, loading, rank, footer }: { top: RankItem | 
 
           {/* 작품명 → 회차(부제) → 수치 세 단으로 강약을 준다(2026-10-02 조현빈, 시안 A). 회차 제목 앞 날짜는 작게 낮춘다. */}
           <p className="mt-2.5 text-[17px] font-semibold tracking-[-0.02em] text-ink2 [text-wrap:balance]">
+            {epLabel}{epLabel && epName ? ' · ' : ''}
             {epDate && <span className="num mr-2 text-[13px] font-medium text-faint">{epDate}</span>}
-            {epName}
+            {epName || epFallback}
           </p>
           {(bars.duration > 0 || list.length > 0) && (
             <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-muted">
@@ -451,7 +456,7 @@ function Ranking({ items, loading, window, onWindow }: { items: RankItem[]; load
                   </span>
                 </div>
                 <p className="mt-2.5 truncate text-[13.5px] font-bold text-ink">{w.title}</p>
-                <p className="mt-0.5 truncate text-[12px] text-muted">{w.episodeTitle ?? (episodeLabel({ seasonNumber: w.seasonNumber, episodeNumber: w.episodeNumber }, w.contentType) || ' ')}</p>
+                <p className="mt-0.5 truncate text-[12px] text-muted">{episodeLine(w, w.episodeTitle, w.title, w.contentType) || ' '}</p>
                 {w.quoteText && <p className="mt-1 truncate text-[12px] text-ink2">“{decodeEntities(w.quoteText)}”</p>}
               </a>
             </Reveal>
@@ -505,7 +510,7 @@ function HotMoments({ top, live, loading }: { top: RankItem | null; live: LiveSh
           </a>
           <div className="min-w-0 md:mt-3">
             <p className="text-[15px] font-bold text-ink">{top.title}</p>
-            <p className="mt-0.5 text-[12.5px] text-muted">{top.episodeTitle ?? episodeLabel({ seasonNumber: top.seasonNumber, episodeNumber: top.episodeNumber }, top.contentType)}</p>
+            <p className="mt-0.5 text-[12.5px] text-muted">{episodeLine(top, top.episodeTitle, top.title, top.contentType)}</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {list.length > 0 && (
                 <span className={`${BUBBLE} bg-ink text-white`}><ChatIcon size={12} weight="fill" />하이라이트 {list.length}</span>
@@ -620,7 +625,7 @@ function LiveRail({ shows, loading }: { shows: LiveShow[]; loading: boolean }) {
                   </span>
                 </div>
                 <p className="mt-2 truncate text-[12.5px] font-bold text-ink">{s.show}</p>
-                <p className="mt-0.5 truncate text-[12px] text-muted">{episodeLabel(s)}{hot ? `, ${fmtTime(hot.at)} 근처` : ''}</p>
+                <p className="mt-0.5 truncate text-[12px] text-muted">{joinParts([episodeLabel(s, s.contentType), hot ? `${fmtTime(hot.at)} 근처` : ''], ', ')}</p>
               </a>
             </li>
           )
@@ -641,14 +646,14 @@ function WeeklyMoments({ items, top, loading }: { items: RankItem[]; top: TopMom
   const limit = Math.max(fill.limit, 1)
   const rows = top
     ? top.slice(0, limit).map((m) => ({
-        key: `${m.episodeId}-${m.at}`, work: m.title, episode: m.episodeTitle ?? episodeLabel(m, m.contentType),
+        key: `${m.episodeId}-${m.at}`, work: m.title, episode: episodeLine(m, m.episodeTitle, m.title, m.contentType),
         at: fmtTime(m.at), quote: m.quoteText, poster: m.posterUrl, contentId: m.contentId,
       }))
     // 순간이 있는 작품을 먼저 거르고 나서 열 수만큼 자른다(HP-609). 자른 뒤에 거르면 순위 위쪽 작품에 순간이 없을 때
     // 데스크톱(열 3개)에서 1개만 남았다 — 휴대폰 레일은 제한이 없어 다 보여서 폭에 따라 개수가 달랐다.
     : items.filter((w) => w.episodeId && w.moments.length > 0).slice(0, limit).map((w) => {
         const m = [...w.moments].sort((a, b) => b.strength - a.strength)[0]
-        return { key: `${w.episodeId}-${m.at}`, work: w.title, episode: w.episodeTitle ?? episodeLabel({ seasonNumber: w.seasonNumber, episodeNumber: w.episodeNumber }, w.contentType), at: fmtTime(m.at), quote: m.quote ?? '', poster: w.posterUrl, contentId: w.contentId }
+        return { key: `${w.episodeId}-${m.at}`, work: w.title, episode: episodeLine(w, w.episodeTitle, w.title, w.contentType), at: fmtTime(m.at), quote: m.quote ?? '', poster: w.posterUrl, contentId: w.contentId }
       })
   const busy = loading
   if (rows.length === 0) {

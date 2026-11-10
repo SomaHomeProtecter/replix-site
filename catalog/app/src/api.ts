@@ -32,6 +32,8 @@ export type LiveShow = {
   seasonNumber: number | null
   episodeNumber: number | null
   episodeTitle: string | null
+  contentType?: 'MOVIE' | 'SERIES'   // HP-807 BE — 옛 서버엔 없다
+  hasEpisodeNumber?: boolean        // HP-807 BE — 영화·잠정 회차의 자리 채움 번호면 false(옛 서버엔 없다). 표기는 episode-pure.js
   posterUrl: string | null
   color: string
   segments: LiveSegment[]
@@ -57,8 +59,9 @@ export type MessagePage = { items: ChatMessage[]; nextFrom: number | null; total
 export type EpisodeSummary = {
   episodeId: number
   platformEpisodeId: string
-  seasonNumber: number
-  episodeNumber: number
+  seasonNumber: number | null      // HP-807 BE 부터 자리 채움 회차면 null 일 수 있다
+  episodeNumber: number | null
+  hasEpisodeNumber?: boolean        // HP-807 BE — 영화·잠정 회차의 자리 채움 번호면 false(옛 서버엔 없다). 표기는 episode-pure.js
   title: string | null
   heatShare: number
 }
@@ -94,6 +97,7 @@ export type RankItem = {
   seasonNumber: number | null
   episodeNumber: number | null
   episodeTitle: string | null
+  hasEpisodeNumber?: boolean        // HP-807 BE — 영화·잠정 회차의 자리 채움 번호면 false(옛 서버엔 없다). 표기는 episode-pure.js
   quoteText: string | null
   quoteAuthor: string | null
   moments: Moment[]           // 전부에 채워진다(순간 시각순)
@@ -113,6 +117,7 @@ export type TopMoment = {
   seasonNumber: number | null
   episodeNumber: number | null
   episodeTitle: string | null
+  hasEpisodeNumber?: boolean        // HP-807 BE — 영화·잠정 회차의 자리 채움 번호면 false(옛 서버엔 없다). 표기는 episode-pure.js
   at: number          // 회차 안 초(구간 시작)
   quoteText: string
 }
@@ -121,8 +126,9 @@ export type CatalogHome = { window: Window; liveViewers: number; liveRooms: numb
 export type CatalogEpisode = {
   episodeId: number
   platformEpisodeId: string
-  seasonNumber: number
-  episodeNumber: number
+  seasonNumber: number | null      // HP-807 BE 부터 자리 채움 회차면 null 일 수 있다
+  episodeNumber: number | null
+  hasEpisodeNumber?: boolean        // HP-807 BE — 영화·잠정 회차의 자리 채움 번호면 false(옛 서버엔 없다). 표기는 episode-pure.js
   title: string | null
   heatShare: number
   heatShare7d: number
@@ -193,6 +199,7 @@ export type MyActivityChat = {
   episodeId: number
   seasonNumber: number
   episodeNumber: number
+  hasEpisodeNumber?: boolean        // HP-807 BE — 영화·잠정 회차의 자리 채움 번호면 false(옛 서버엔 없다). 표기는 episode-pure.js
   platformEpisodeId: string
   playbackTime: number
   message: string
@@ -207,6 +214,7 @@ export type MyActivityScene = {
   episodeId: number
   seasonNumber: number
   episodeNumber: number
+  hasEpisodeNumber?: boolean        // HP-807 BE — 영화·잠정 회차의 자리 채움 번호면 false(옛 서버엔 없다). 표기는 episode-pure.js
   platformEpisodeId: string
   slotStart: number
   emojis: { emoji: string; count: number }[]
@@ -218,6 +226,7 @@ export type MyActivityLiked = {
   episodeId: number
   seasonNumber: number
   episodeNumber: number
+  hasEpisodeNumber?: boolean        // HP-807 BE — 영화·잠정 회차의 자리 채움 번호면 false(옛 서버엔 없다). 표기는 episode-pure.js
   platformEpisodeId: string
   playbackTime: number
   createdAt: string
@@ -408,10 +417,3 @@ export function fmtDuration(sec: number): string {
   return h ? (m ? `${h}시간 ${m}분` : `${h}시간`) : `${m}분`
 }
 
-export function episodeLabel(e: { seasonNumber: number | null; episodeNumber: number | null }, contentType?: string): string {
-  if (contentType === 'MOVIE') return '영화'
-  const s = e.seasonNumber ?? 0
-  const n = e.episodeNumber ?? 0
-  if (!n) return ''
-  return s > 1 ? `시즌${s} ${n}화` : `${n}화`
-}
