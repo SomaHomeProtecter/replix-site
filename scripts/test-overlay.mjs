@@ -95,6 +95,13 @@ assert.equal(formatRemain(null, 746.2), '');
 assert.equal(formatRemain(undefined, 10), '', '빈 칸에 - 하나만 남기지 않는다');
 assert.equal(formatRemain(Infinity, 10), '');
 assert.equal(formatRemain(4054.6, null), '', '재생 전이면 빈 글자');
+// 재생 중에 흘린 위치는 회차 길이에서 멈춘다(HP-858) — 스트리머의 표본이 끊긴 채 재생 중으로 남으면 길이를 지나 계속 흘렀다('51:03 / 50:51')
+const vOver = rawView({ ...base, state: 'PLAYING', positionSec: 3050, durationSec: 3051.5 }, 13);
+assert.equal(vOver.pos, 3051.5, '받은 뒤 흘린 위치가 길이를 넘지 않는다');
+assert.deepEqual(timesFor(vOver, null, null), { pos: 3051.5, time: '50:51', remain: '-0:00' });
+assert.equal(rawView({ ...base, state: 'PLAYING', positionSec: 9000, durationSec: 3051.5 }, 0).pos, 3051.5, '서버가 이미 길이를 지난 위치를 실어도');
+assert.equal(rawView({ ...base, state: 'PLAYING', positionSec: 3050 }, 13).pos, 3063, '길이를 모르면 그대로 흘린다');
+assert.equal(rawView({ ...base, state: 'PLAYING', positionSec: 100, durationSec: 3051.5 }, 4).pos, 104, '길이 안에서는 그대로');
 // 그릴 때 — 뒤로 가지 않는 위치로 세고, 회차 끝에서는 뺀다
 const v1 = rawView({ ...base, state: 'PLAYING', positionSec: 746.2, durationSec: 4054.6 }, 0);
 assert.deepEqual(timesFor(v1, null, null), { pos: 746.2, time: '12:26', remain: '-55:08' });
@@ -178,7 +185,7 @@ assert.equal(noteFor(at('PAUSED'), '23:41'), '');
 assert.equal(noteFor(at('AD'), '23:41'), '광고가 끝나면 23:41부터 이어져요');
 assert.equal(noteFor(at('AD', { positionSec: null }), ''), '광고가 끝나면 이어져요');
 assert.equal(noteFor(at('EPISODE_END'), '52:10'), '다음 회차를 기다리는 중');
-assert.equal(noteFor(at('IDLE', { positionSec: null }), ''), '방장이 재생하면 시작돼요');
+assert.equal(noteFor(at('IDLE', { positionSec: null }), ''), '스트리머가 재생하면 시작돼요', '스트리머 방 호칭(HP-850) — 방장이라고 쓰지 않는다');
 for (const t of [...Object.values(CHIP_TEXT), ...Object.values(MARK_TEXT), noteFor(at('AD'), '1:02:05'), noteFor(at('EPISODE_END'), ''), noteFor(at('IDLE'), '')]) {
   assert.doesNotMatch(t, /·/, '화면 글자에 중간점을 쓰지 않는다 — ' + t);
 }
