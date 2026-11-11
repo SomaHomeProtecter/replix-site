@@ -105,7 +105,7 @@ img { max-width: 100%; }
 .nav-links { display: flex; gap: 24px; margin-left: 12px; }
 .nav-links a { font-size: 14px; color: var(--muted); text-decoration: none; transition: color .18s var(--ease); }
 .nav-links a:hover { color: var(--ink); }
-/* 로고는 줄이지 않는다 — flex 로 줄면 높이(34px)는 그대로라 이미지 비율이 깨진다(320px 에서 가로 36% 찌그러짐, HP-477). */
+/* 로고는 줄이지 않는다 — flex 로 줄면 높이(42px)는 그대로라 이미지 비율이 깨진다(320px 에서 가로 36% 찌그러짐, HP-477). */
 .nav .wordmark { flex-shrink: 0; }
 .nav .btn { margin-left: auto; }
 .nav .btn + .btn { margin-left: 10px; }

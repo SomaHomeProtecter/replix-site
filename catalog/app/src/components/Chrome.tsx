@@ -27,14 +27,14 @@ const NAV = [
 
 /* 원 시안과 같은 60px 한 줄 바, 좌우 48px 거터. */
 export function Nav({ current }: { current: Route['page'] }) {
-  /* 랜딩 .nav 와 같은 치수: sticky 66px, 같은 배경·블러, .wrap 안에 gap 26px, 로고 34px, 메뉴 14px gap 24px,
+  /* 랜딩 .nav 와 같은 치수: sticky 66px, 같은 배경·블러, .wrap 안에 gap 26px, 로고 42px(HP-868 — 마스코트 칸이 높이를 다 써서, 글자 크기를 옛 34px 로고와 같게 맞춘 값), 메뉴 14px gap 24px,
      오른쪽 끝 .btn--primary.btn--sm. 랜딩과 다른 것은 '홈으로' 버튼 하나뿐이다(작품 탐색에서 랜딩으로 돌아가는 길).
      폭별 구성(HP-474 — 전엔 휴대폰·태블릿에서 버튼이 화면 밖으로 밀려 잘렸다):
      · 1,240px 이상: 위 그대로.
      · 761~1,239px: 섹션 링크를 숨기고(푸터·홈 스크롤로 닿는다) 검색은 돋보기로 접는다, 간격 18px. 경계가 1,240px 인 이유 —
        그보다 좁으면 늘 열린 검색창이 눌려(1,100px 에서 73px, '작'만 보였다) 1,240px 에서야 200px 가 된다(2026-10-02 실측).
      · 760px 이하(휴대폰): 로고 · '작품' · 돋보기 · 로그인(로그인 뒤엔 닉네임 메뉴). 설치 버튼·'홈으로'·공지는 숨긴다 —
-       휴대폰엔 익스텐션을 깔 수 없고(설치 안내는 HP-477), 랜딩으로는 로고가, 공지로는 공지 띠·푸터가 간다. 360px 미만은 로고를 28px 로. */
+       휴대폰엔 익스텐션을 깔 수 없고(설치 안내는 HP-477), 랜딩으로는 로고가, 공지로는 공지 띠·푸터가 간다. 360px 미만은 로고를 35px 로. */
   return (
     <header
       className="sticky top-0 z-40 flex h-[66px] items-center border-b border-line"
@@ -42,7 +42,7 @@ export function Nav({ current }: { current: Route['page'] }) {
     >
       <div className="wrap flex w-full items-center gap-3 min-[761px]:gap-[18px] min-[1240px]:gap-[26px]">
         <a href="/" className="inline-flex shrink-0 items-center" aria-label="Replix 홈">
-          <img src={logo} alt="Replix" height={34} className="h-[28px] w-auto min-[360px]:h-[34px]" />
+          <img src={logo} alt="Replix" height={42} className="h-[35px] w-auto min-[360px]:h-[42px]" />
         </a>
         {/* 표면 이름. 랜딩에는 없는 요소 — 이것이 두 바를 구분한다. */}
         <a href="#/" className="-ml-1 inline-flex shrink-0 items-center gap-2 text-[15px] font-bold text-ink min-[1240px]:-ml-3 min-[1240px]:gap-3">
@@ -360,7 +360,7 @@ export function Footer() {
       <div className="wrap py-8">
         <div className="flex flex-wrap items-start justify-between gap-x-12 gap-y-6">
           <a href="/" className="inline-flex items-center" aria-label="Replix 홈">
-            <img src={logo} alt="Replix" style={{ height: 28, width: 'auto', opacity: 0.9 }} />
+            <img src={logo} alt="Replix" style={{ height: 35, width: 'auto', opacity: 0.9 }} />
           </a>
           <div className="flex gap-10 text-[12.5px]">
             <ul className="space-y-1.5 text-muted">
@@ -383,7 +383,7 @@ export function Footer() {
         {/* TMDB 약관 §3 이 요구하는 출처 표시 — TMDB 로고로 사용을 밝히고 지정 문구(약관 원문)를 둔다(HP-386).
             로고 = themoviedb.org/about/logos-attribution 의 'Primary short (blue)' SVG 원본(docs/assets/logo/tmdb-primary-short-blue.svg,
             랜딩과 같은 파일 — SHA-256 이 TMDB 파일명 지문 8e7b30f7… 과 일치). 브랜드 지침: 색·비율 변경·뒤집기·회전 금지,
-            앱 브랜드보다 덜 두드러지게(위 워드마크 28px > 로고 12px).
+            앱 브랜드보다 덜 두드러지게(위 워드마크 35px > 로고 12px).
             JustWatch 줄(HP-771): 서버가 포스터 매칭에 TMDB 제공처 데이터(watch/providers, JustWatch 제휴)를 쓰고, TMDB 문서가 이
             데이터를 '쓰면' JustWatch 를 출처로 밝히라고 한다(어기면 API 접근 차단). 매칭에서 그 데이터를 빼기 전엔 지우지 말 것. */}
         <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11.5px] leading-relaxed text-faint">
