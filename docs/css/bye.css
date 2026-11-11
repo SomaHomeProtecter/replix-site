@@ -11,7 +11,7 @@ body::before {
 }
 
 .by-top { display: flex; align-items: center; height: 72px; padding: 0 var(--gut); }
-.by-top img { display: block; height: 28px; width: auto; }
+.by-top img { display: block; height: 35px; width: auto; }
 
 .by-main { display: flex; flex-direction: column; align-items: center; padding: 12px var(--gut) 0; }
 .by-card {

@@ -112,7 +112,7 @@
   border-left: 1px solid rgba(16,16,24,.08); }
 .xt-phead { display: flex; flex: 0 0 auto; align-items: center; height: 40px; padding: 0 14px; background: #fff;
   border-bottom: 1px solid rgba(16,16,24,.08); }
-.xt-phead img { display: block; height: 15px; width: auto; }
+.xt-phead img { display: block; height: 19px; width: auto; }
 
 /* ═══ ① 랜딩 — 움직이는 디스코드 창 ═══════════════════════════════
    9초 한 바퀴(2026-10-05 조현빈: 랜딩 체류가 짧으니 빠르고 또렷하게). 장면 비율은 키프레임 %, 길이는 --dx-dur 하나.
