@@ -283,8 +283,13 @@ assert.match(rule('.v-corner-card .top'), /height: 32rem;/);
 assert.match(rule('.v-corner-card .row'), /height: 56rem;[^}]*align-items: baseline;/, '코너 카드 시각 줄은 높이를 잡고 글자 밑선으로 맞춘다');
 assert.match(rule('.v-clock-card'), /width: 440rem;/, '큰 시계 폭 400 → 440');
 assert.match(rule('.v-clock-card .top'), /height: 32rem;/);
-assert.match(rule('.v-clock-card .epl'), /height: 28rem;/, '회차 줄은 영화라 비어도 자리를 지킨다');
-assert.match(cardOf('clock'), /<div class="epl"><span class="ep"><\/span><\/div>/);
+// 큰 시계 회차는 윗줄의 작품명 바로 뒤(2026-11-12 조현빈 결정) — 따로 둔 회차 줄은 영화에서 빈 줄로 남았다. 작품명만 말줄임, 회차는 줄지 않는다
+assert.match(cardOf('clock'), /<div class="top"><span class="pf"><span class="pf-t ink"><\/span><\/span><span class="ttl ink"><\/span><span class="ep ink"><\/span><\/div>/,
+  '큰 시계 회차는 윗줄 작품명 뒤, 획 맞춤 대상');
+assert.doesNotMatch(code, /class="epl"|\.epl\b/, '회차 줄(.epl)이 없다');
+assert.match(page, /\.ttl \{ min-width: 0; overflow: hidden; text-overflow: ellipsis;/, '작품명만 말줄임으로 준다');
+assert.match(page, /\.ep \{ flex: none;/, '회차는 줄지 않는다');
+assert.match(page, /paintText\(parts\.ep, box === cards\.chip \? view\.epShort : view\.ep\);/, '영화면 회차 칸이 빈 글자로 숨는다(paintText)');
 assert.match(rule('.v-clock-card .now'), /height: 112rem;[^}]*font-size: calc\(112rem \* var\(--k, 1\)\);/, '큰 숫자는 한 시간이 넘어도 112 그대로(안전장치만 줄인다)');
 assert.match(rule('.v-clock-card .foot'), /height: 36rem;/, '아랫줄은 상태 표시가 있든 없든 같은 높이');
 assert.deepEqual(VERSION_SOURCE.clock, [480, 360], '큰 시계 권장 소스 440×360 → 480×360');
@@ -315,8 +320,8 @@ assert.ok(fitBody, 'fitLine 이 있다');
 assert.match(fitBody[1], /var key = fontGen \+ '\|' \+ document\.documentElement\.className \+ '\|' \+ innerWidth \+ 'x' \+ innerHeight \+ '\|' \+ digitShape\(line\.textContent\) \+ '\|' \+ shown;/,
   '다시 재는 열쇠 — 글꼴·폭 모드·소스 크기·숫자를 0 으로 바꾼 글자·보이는 칸');
 assert.match(fitBody[1], /if \(line\.getAttribute\('data-fit-key'\) === key\) return;/, '모양이 같으면 다시 재지 않는다(글자 크기가 떨리지 않게)');
-assert.match(page, /var FIT_LINES = \{ corner: \['\.top', '\.row'\], clock: \['\.now', '\.foot'\], chip: \[''\], bar: \[\] \};/,
-  '재는 줄 — 큰 시계의 큰 숫자·아랫줄, 코너 카드의 두 줄, 미니 칩 한 줄');
+assert.match(page, /var FIT_LINES = \{ corner: \['\.top', '\.row'\], clock: \['\.top', '\.now', '\.foot'\], chip: \[''\], bar: \[\] \};/,
+  '재는 줄 — 큰 시계의 윗줄·큰 숫자·아랫줄, 코너 카드의 두 줄, 미니 칩 한 줄');
 assert.match(page, /paint\(box, 'hidden', false\);\s*alignInk\(\);\s*fitText\(\);/, '보인 뒤에 잰다');
 for (const [sel, base] of [['.v-corner-card .now', 56], ['.v-corner-card .dim', 24], ['.v-chip-card .now', 44]]) {
   assert.match(rule(sel), new RegExp('font-size: calc\\(' + base + 'rem \\* var\\(--k, 1\\)\\);'), sel + ' 글자 크기는 --k 를 따른다');

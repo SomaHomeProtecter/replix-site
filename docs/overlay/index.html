@@ -104,10 +104,11 @@
     .v-bar-card .chip { font-size: 20rem; padding: 4rem 13rem; }
 
     /* clock — 큰 시계(캠 자리 없이): 소스 480×360, 카드 폭 440(HP-869 — 400 에서는 '전체 1:03:10 남은 -50:36 멈춤' 이 카드 밖으로 나갔다).
-       회차 줄(.epl)은 영화라 회차가 비어도 자리를 지킨다. 큰 숫자 줄은 한 시간이 넘어도 112 그대로, 아랫줄은 상태 표시가 있든 없든 같은 높이. */
+       회차(S3 E2)는 윗줄의 작품명 바로 뒤 — 코너 카드 윗줄과 같은 규칙으로 작품명만 말줄임으로 줄고 회차는 줄지 않는다(2026-11-12 조현빈 팀장 결정 —
+       따로 둔 회차 줄은 영화에서 빈 줄로 남아 어색했다). 영화면 회차 칸이 없고 작품명이 줄 전체를 쓴다. 큰 숫자 줄은 한 시간이 넘어도 112 그대로,
+       아랫줄은 상태 표시가 있든 없든 같은 높이 — 그래서 시리즈든 영화든 카드 높이가 같다. 권장 소스 480×360 은 그대로(카드가 소스 위쪽에 놓인다). */
     .v-clock-card { width: 440rem; padding: 22rem 26rem; border-radius: 16rem; display: flex; flex-direction: column; gap: 6rem; font-size: 22rem; }
-    .v-clock-card .top { height: 32rem; display: flex; align-items: center; gap: 10rem; }
-    .v-clock-card .epl { height: 28rem; display: flex; align-items: center; }
+    .v-clock-card .top { height: 32rem; display: flex; align-items: center; gap: calc(10rem * var(--k, 1)); font-size: calc(22rem * var(--k, 1)); }
     .v-clock-card .now { height: 112rem; display: flex; align-items: center; font-size: calc(112rem * var(--k, 1)); margin: 6rem 0 4rem; }
     .v-clock-card .foot { height: 36rem; display: flex; align-items: center; gap: calc(14rem * var(--k, 1)); font-size: calc(24rem * var(--k, 1)); }
     .v-clock-card .chip { margin-left: auto; font-size: calc(19rem * var(--k, 1)); padding: calc(4rem * var(--k, 1)) calc(12rem * var(--k, 1)); }
@@ -156,8 +157,7 @@
     <span class="now ink" data-ink="0123456789"></span><span class="dim dur ink"></span><span class="dim rem ink" data-ink="0123456789"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span>
   </div>
   <div class="ov v-clock-card" data-v="clock" hidden>
-    <div class="top"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span></div>
-    <div class="epl"><span class="ep"></span></div>
+    <div class="top"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span><span class="ep ink"></span></div>
     <span class="now"></span>
     <div class="foot"><span class="dim dur ink"></span><span class="dim rem ink"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span></div>
   </div>
@@ -314,8 +314,9 @@
     var last = null, receivedAt = 0;
     var shownPos = null, shownKey = null, painted = [];
 
-    // 안전장치가 재는 줄(HP-869) — 큰 시계의 큰 숫자·아랫줄, 코너 카드의 두 줄, 미니 칩 한 줄(카드 자신). 플레이어 바는 폭이 넉넉해 재지 않는다.
-    var FIT_LINES = { corner: ['.top', '.row'], clock: ['.now', '.foot'], chip: [''], bar: [] };
+    // 안전장치가 재는 줄(HP-869) — 큰 시계의 윗줄·큰 숫자·아랫줄, 코너 카드의 두 줄, 미니 칩 한 줄(카드 자신). 플레이어 바는 폭이 넉넉해 재지 않는다.
+    // 큰 시계 윗줄은 작품명이 말줄임으로 줄어 보통은 넘치지 않지만, 플랫폼 표시 + 'S12 E123' 만으로 넘치는 넓은 글꼴에 대비해 코너 카드 윗줄처럼 잰다.
+    var FIT_LINES = { corner: ['.top', '.row'], clock: ['.top', '.now', '.foot'], chip: [''], bar: [] };
     // 고른 버전의 카드만 쓴다 — 다른 카드는 늘 감춘 채 둔다. 글자 크기 기준(html.v-*)도 그 버전으로, fit=1 이면 html.fit(폭이 내용만큼, HP-869).
     function useVersion(v, fit) {
       document.documentElement.className = 'v-' + v + (fit ? ' fit' : '');
