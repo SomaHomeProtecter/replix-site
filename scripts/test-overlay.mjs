@@ -8,14 +8,16 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(resolve(root, p), 'utf8');
 
 const page = read('docs/overlay/index.html');
+// 주석을 뺀 코드 — 없앤 것이 '없다'를 볼 때 쓴다(주석은 없앤 까닭을 적느라 옛 이름을 부른다)
+const code = page.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'])\/\/.*$/gm, '$1');
 const invite = read('docs/invite/index.html');
 
 const block = /\/\* overlayView:start \*\/([\s\S]*?)\/\* overlayView:end \*\//.exec(page);
 assert.ok(block, '오버레이 페이지에 순수 함수 구간(overlayView:start~end)이 있다');
 const { formatEpisodeLabel, formatClock, overlayView: rawView, steadyPosition, formatRemain, timesFor, readHash, apiBase, PLATFORM_NAMES,
-  episodeCode, chooseVersion, progressPct, noteFor, VERSIONS, VERSION_SOURCE, CHIP_TEXT, MARK_TEXT, MARK_ICON, inkShiftEm } = new Function(
+  episodeCode, chooseVersion, progressPct, VERSIONS, VERSION_SOURCE, CHIP_TEXT, MARK_TEXT, MARK_ICON, inkShiftEm, digitShape, shrinkFactor, FIT_MIN_K } = new Function(
   `${block[1]}; return { formatEpisodeLabel, formatClock, overlayView, steadyPosition, formatRemain, timesFor, readHash, apiBase, PLATFORM_NAMES,
-    episodeCode, chooseVersion, progressPct, noteFor, VERSIONS, VERSION_SOURCE, CHIP_TEXT, MARK_TEXT, MARK_ICON, inkShiftEm };`)();
+    episodeCode, chooseVersion, progressPct, VERSIONS, VERSION_SOURCE, CHIP_TEXT, MARK_TEXT, MARK_ICON, inkShiftEm, digitShape, shrinkFactor, FIT_MIN_K };`)();
 // 화면 글자만 견준다 — 카드 칸(work·ep·chip·mark …)과 pos(초)·key(흐름)·duration(길이)은 아래에서 따로 본다.
 const overlayView = (d, e) => { const v = rawView(d, e); if (!v) return v; const { platform, title, time, state, wait } = v; return { platform, title, time, state, wait }; };
 
@@ -119,13 +121,17 @@ assert.ok(Object.keys(navNames).length >= 3, '초대 페이지 NAV 표를 읽었
 for (const [code, name] of Object.entries(navNames)) assert.equal(PLATFORM_NAMES[code], name, code + ' 이름이 초대 페이지와 같다');
 
 // ── 해시·API 주소
-assert.deepEqual(readHash('#t=abc_DEF-123'), { token: 'abc_DEF-123', env: '', v: 'corner' }, '버전이 없으면 코너 카드');
-assert.deepEqual(readHash('#t=abc&env=dev'), { token: 'abc', env: 'dev', v: 'corner' });
-assert.deepEqual(readHash('#t=abc&v=bar&env=dev'), { token: 'abc', env: 'dev', v: 'bar' });
+assert.deepEqual(readHash('#t=abc_DEF-123'), { token: 'abc_DEF-123', env: '', v: 'corner', fit: false }, '버전이 없으면 코너 카드, 폭 모드가 없으면 크기 고정');
+assert.deepEqual(readHash('#t=abc&env=dev'), { token: 'abc', env: 'dev', v: 'corner', fit: false });
+assert.deepEqual(readHash('#t=abc&v=bar&env=dev'), { token: 'abc', env: 'dev', v: 'bar', fit: false });
+// HP-869 — fit=1 이면 폭이 내용만큼. '1' 이 아니면(없음·0·true·빈 값) 크기 고정 — 그 전 익스텐션(1.6.0)이 만든 링크에는 fit 이 없다
+assert.deepEqual(readHash('#t=abc&v=clock&fit=1&env=dev'), { token: 'abc', env: 'dev', v: 'clock', fit: true });
+assert.equal(readHash('#t=abc&fit=1').fit, true);
+for (const odd of ['', '0', 'true', 'yes', '2']) assert.equal(readHash('#t=abc&fit=' + odd).fit, false, "fit 은 '1' 일 때만 — " + JSON.stringify(odd));
 for (const v of ['corner', 'bar', 'clock', 'chip']) assert.equal(readHash('#t=a&v=' + v).v, v);
 assert.equal(readHash('#t=a&v=cam').v, 'corner', '모르는 버전(채택하지 않은 캠 하단 패널 등)은 코너 카드');
 assert.equal(readHash('#t=a&v=').v, 'corner');
-assert.deepEqual(readHash(''), { token: '', env: '', v: 'corner' });
+assert.deepEqual(readHash(''), { token: '', env: '', v: 'corner', fit: false });
 assert.equal(chooseVersion('CHIP'), 'corner', '대소문자도 그대로 견준다');
 assert.equal(apiBase('https://api.replix.tv', ''), 'https://api.replix.tv');
 assert.equal(apiBase('https://api.replix.tv', 'dev'), 'https://api.replix-dev.site');
@@ -164,29 +170,29 @@ for (const v of VERSIONS) {
 }
 assert.doesNotMatch(page, /data-v="(cam|frame)"/, '채택하지 않은 캠 하단 패널·테마 액자는 없다');
 assert.match(page, /<html lang="ko" class="v-corner">/, '처음 글자 크기 기준은 코너 카드');
-assert.match(page, /useVersion\(hash\.v\);/, '해시의 버전으로 카드를 고른다');
-assert.match(page, /if \(hash\.v !== before\.v\) \{ useVersion\(hash\.v\);/, '해시가 바뀌면 버전도 다시 고른다');
+assert.match(page, /useVersion\(hash\.v, hash\.fit\);/, '해시의 버전(과 폭 모드)으로 카드를 고른다');
+assert.match(page, /useVersion\(hash\.v, hash\.fit\);\s*setInterval\(render, TICK_MS\);/, '해시의 폭 모드도 처음부터 쓴다');
+assert.match(page, /if \(hash\.v !== before\.v \|\| hash\.fit !== before\.fit\) \{ useVersion\(hash\.v, hash\.fit\);/, '해시가 바뀌면 버전·폭 모드도 다시 고른다');
+assert.match(page, /document\.documentElement\.className = 'v-' \+ v \+ \(fit \? ' fit' : ''\);/, 'fit=1 은 html.fit 로 건다');
 // 치수는 rem 으로만 — px 로 쓰면 소스를 키울 때 같이 커지지 않는다(카드 스타일 구간)
 const cardCss = page.slice(page.indexOf('.ov {'), page.indexOf('</style>'));
 assert.doesNotMatch(cardCss, /\d+px/, '카드 치수는 rem(소스 크기 비례)으로만 쓴다');
 
-// 상태 다섯 — 카드 data-st·칩·미니 칩 표·밑 한 줄
+// 상태 다섯 — 카드 data-st·칩·미니 칩 표
 const at = (state, extra) => rawView({ ...base, state, positionSec: 1421, durationSec: 3130, ...extra }, 0);
 assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).st), ['play', 'pause', 'ad', 'end', 'idle']);
-assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).chip), ['', '멈춤', '광고 대기', '회차 끝', '시작 전'],
-  '재생 중에는 칩이 없다 — 멈춤의 ‖ 는 글자가 아니라 그림(HP-817)');
+assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).chip), ['', '멈춤', '광고', '회차 끝', '시작 전'],
+  "재생 중에는 칩이 없다 — 멈춤의 ‖ 는 글자가 아니라 그림(HP-817). 광고는 '광고 대기'가 아니라 '광고'(HP-869 — 미니 칩과 같은 말)");
 assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).mark), ['', '', '광고', '끝', '대기']);
 assert.deepEqual(['PLAYING', 'PAUSED', 'AD', 'EPISODE_END', 'IDLE'].map((s) => at(s).markIcon), ['play', 'pause', '', '', ''],
   '미니 칩의 재생 중 ●·멈춤 ‖ 는 그림(HP-817)');
 for (const t of [...Object.values(CHIP_TEXT), ...Object.values(MARK_TEXT)]) assert.doesNotMatch(t, /[‖●]/, '상태 기호를 글자로 쓰지 않는다 — ' + t);
 assert.deepEqual(MARK_ICON, { PLAYING: 'play', PAUSED: 'pause' });
-assert.equal(noteFor(at('PLAYING'), '23:41'), '');
-assert.equal(noteFor(at('PAUSED'), '23:41'), '');
-assert.equal(noteFor(at('AD'), '23:41'), '광고가 끝나면 23:41부터 이어져요');
-assert.equal(noteFor(at('AD', { positionSec: null }), ''), '광고가 끝나면 이어져요');
-assert.equal(noteFor(at('EPISODE_END'), '52:10'), '다음 회차를 기다리는 중');
-assert.equal(noteFor(at('IDLE', { positionSec: null }), ''), '스트리머가 재생하면 시작돼요', '스트리머 방 호칭(HP-850) — 방장이라고 쓰지 않는다');
-for (const t of [...Object.values(CHIP_TEXT), ...Object.values(MARK_TEXT), noteFor(at('AD'), '1:02:05'), noteFor(at('EPISODE_END'), ''), noteFor(at('IDLE'), '')]) {
+// HP-869 — 카드 밑 안내 한 줄(광고가 끝나면…·다음 회차를 기다리는 중·스트리머가 재생하면 시작돼요)을 없앴다. 상태는 칩 글자가 말하고, 줄이 붙었다
+// 떨어지며 카드 높이가 바뀌지 않는다.
+assert.doesNotMatch(code, /noteFor|class="note"|\.note\b/, '안내 한 줄의 함수·칸·스타일이 없다');
+assert.doesNotMatch(code, /광고가 끝나면|다음 회차를 기다리는 중|재생하면 시작돼요/, '안내 한 줄의 글이 없다');
+for (const t of [...Object.values(CHIP_TEXT), ...Object.values(MARK_TEXT)]) {
   assert.doesNotMatch(t, /·/, '화면 글자에 중간점을 쓰지 않는다 — ' + t);
 }
 assert.match(page, /paint\(parts\.now, 'textContent', time \|\| '--:--'\);/, '재생 전에는 --:--');
@@ -244,7 +250,10 @@ assert.match(cardOf('clock'), /<div class="foot"><span class="dim dur ink"><\/sp
 assert.match(page, /\.pf \{ flex: none; display: inline-flex; align-items: center;/, '플랫폼 칩 글자는 안쪽 칸이라 칩 가운데에서 옮긴다');
 assert.match(page, /paint\(parts\.pf, 'hidden', !view\.platform\);\s*paintText\(parts\.pfT, view\.platform\);/);
 assert.match(page, /paint\(parts\.mark, 'className', 'mark' \+ \(view\.markIcon \? ' has-ic' : ''\)\);/);
-assert.match(page, /\.v-chip-card \.mark\.has-ic \{ min-width: 0;/, '그림일 때는 표시 칸 최소 폭을 푼다 — 그림 양옆이 비지 않게');
+// HP-869 — 크기 고정에서는 그림이든 글자든 같은 폭(2.6em)이라 시각의 자리가 움직이지 않는다. fit=1 에서만 그림일 때 최소 폭을 푼다.
+assert.match(page, /\.v-chip-card \.mark\.has-ic \{ display: inline-flex;/);
+assert.doesNotMatch(page, /(^|\n)\s*\.v-chip-card \.mark\.has-ic \{[^}]*min-width: 0/, '크기 고정에서는 그림일 때도 최소 폭을 풀지 않는다');
+assert.match(page, /html\.fit \.v-chip-card \.mark\.has-ic \{ min-width: 0; \}/, 'fit=1 에서는 그림 양옆이 비지 않게 푼다');
 assert.match(page, /\.ink \{ transform: translateY\(var\(--ink, 0em\)\); \}/);
 assert.match(page, /paint\(box, 'hidden', false\);\s*alignInk\(\);/, '보인 뒤에 잰다(감춘 칸은 상자가 없다)');
 assert.match(page, /el\.style\.setProperty\('--ink', '0em'\);[\s\S]{0,800}inkShiftEm\(rect\.top, rect\.height, first\.top, inkCtx\.measureText\(sample\), parseFloat\(cs\.fontSize\)\)/,
@@ -263,12 +272,89 @@ assert.equal(inkShiftEm(0, 10, 0, m(8, 6, 0), 0), 0);
 assert.match(page, /\.v-chip-card \.mark \{ flex: none; min-width: 2\.6em; text-align: center; white-space: nowrap; word-break: keep-all;/,
   '미니 칩 상태 글자는 폭을 잡고 줄바꿈하지 않는다');
 assert.match(page, /\.ov \{[^}]*white-space: nowrap;/, '카드 글자는 줄바꿈하지 않는다');
-assert.match(page, /\.v-chip-card \{[^}]*display: inline-flex;/, '미니 칩은 글자 폭만큼 — 상태 글자가 길어지면 칩이 늘어난다(자르지 않는다)');
-// 한 시간 넘는 시각은 코너 카드·큰 시계에서 줄인다
-assert.match(page, /\.v-corner-card\.is-long \.now \{ font-size: 48rem; \}/);
-assert.match(page, /\.v-clock-card\.is-long \.now \{ font-size: 80rem; \}/);
-assert.match(page, /var long = time\.length > 5 \|\| \(view\.duration !== null && view\.duration >= 3600\);/);
+// ── HP-869 크기 고정 — 카드 폭·줄 높이를 미리 잡는다(실제 크기가 일곱 상태에서 같은지는 headless 크롬으로 잰다 — PR 의 실측 표)
+const rule = (sel) => { const m = new RegExp('(?:^|\\n)\\s*' + sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{([^}]*)\\}').exec(page); assert.ok(m, sel + ' 규칙이 있다'); return m[1]; };
+assert.match(rule('.v-chip-card'), /width: 296rem;[^}]*height: 64rem;[^}]*display: flex;/, '미니 칩은 폭 296 고정 — 상태·시각이 바뀌어도 칩이 늘지 않는다');
+assert.doesNotMatch(rule('.v-chip-card'), /inline-flex/);
+assert.match(rule('.v-chip-card .ep'), /margin-left: auto;/, '회차는 오른쪽 끝 — 빈자리가 가운데로 가 시각의 자리가 움직이지 않는다');
+assert.match(rule('.v-chip-card .mark'), /min-width: 2\.6em;/);
+assert.match(rule('.v-corner-card'), /width: 440rem;/);
+assert.match(rule('.v-corner-card .top'), /height: 32rem;/);
+assert.match(rule('.v-corner-card .row'), /height: 56rem;[^}]*align-items: baseline;/, '코너 카드 시각 줄은 높이를 잡고 글자 밑선으로 맞춘다');
+assert.match(rule('.v-clock-card'), /width: 440rem;/, '큰 시계 폭 400 → 440');
+assert.match(rule('.v-clock-card .top'), /height: 32rem;/);
+// 큰 시계 회차는 윗줄의 작품명 바로 뒤(2026-11-12 조현빈 결정) — 따로 둔 회차 줄은 영화에서 빈 줄로 남았다. 작품명만 말줄임, 회차는 줄지 않는다
+assert.match(cardOf('clock'), /<div class="top"><span class="pf"><span class="pf-t ink"><\/span><\/span><span class="ttl ink"><\/span><span class="ep ink"><\/span><\/div>/,
+  '큰 시계 회차는 윗줄 작품명 뒤, 획 맞춤 대상');
+assert.doesNotMatch(code, /class="epl"|\.epl\b/, '회차 줄(.epl)이 없다');
+assert.match(page, /\.ttl \{ min-width: 0; overflow: hidden; text-overflow: ellipsis;/, '작품명만 말줄임으로 준다');
+assert.match(page, /\.ep \{ flex: none;/, '회차는 줄지 않는다');
+assert.match(page, /paintText\(parts\.ep, box === cards\.chip \? view\.epShort : view\.ep\);/, '영화면 회차 칸이 빈 글자로 숨는다(paintText)');
+assert.match(rule('.v-clock-card .now'), /height: 112rem;[^}]*font-size: calc\(112rem \* var\(--k, 1\)\);/, '큰 숫자는 한 시간이 넘어도 112 그대로(안전장치만 줄인다)');
+assert.match(rule('.v-clock-card .foot'), /height: 36rem;/, '아랫줄은 상태 표시가 있든 없든 같은 높이');
+assert.deepEqual(VERSION_SOURCE.clock, [480, 360], '큰 시계 권장 소스 440×360 → 480×360');
+// 1시간 넘는 회차에서 숫자를 줄이던 규칙(is-long)은 없다 — 카드 높이가 회차 길이에 따라 바뀌었다
+assert.doesNotMatch(code, /is-long|var long =/, 'is-long 이 없다');
+assert.doesNotMatch(page, /paint\(box, 'className'/, '카드 class 를 회차마다 바꾸지 않는다');
+// fit=1 — 폭만 내용만큼, 플레이어 바는 그대로
+assert.match(page, /html\.fit \.v-corner-card, html\.fit \.v-clock-card \{ width: max-content; max-width: 440rem; \}/);
+assert.match(page, /html\.fit \.v-chip-card \{ width: max-content; max-width: 320rem; \}/, '미니 칩은 소스 폭(360) − 좌우 20 을 넘지 않는다');
+assert.doesNotMatch(page, /html\.fit [^{]*\.v-bar-card/, '플레이어 바는 fit 을 보지 않는다');
+assert.doesNotMatch(page, /html\.fit [^{]*\{[^}]*height/, 'fit 은 폭만 바꾼다 — 높이는 두 모드가 같다');
+
+// ── HP-869 안전장치 — 넓은 글꼴로 한 줄이 넘칠 때만 그 줄의 글자를 줄인다(카드 크기는 그대로)
+assert.equal(digitShape('1:01:07'), '0:00:00');
+assert.equal(digitShape('12:34'), digitShape('59:59'), '자릿수가 같으면 같은 모양 — 초마다 다시 재지 않는다');
+assert.notEqual(digitShape('59:59'), digitShape('1:00:00'), '자릿수가 바뀌면 다시 잰다');
+assert.notEqual(digitShape('전체 58:02멈춤'), digitShape('전체 58:02광고'), '상태 글자가 바뀌면 다시 잰다');
+assert.equal(digitShape(null), '');
+assert.equal(shrinkFactor(392, 380, 1), 1, '들어가면 그대로');
+assert.equal(shrinkFactor(392, 392.4, 1), 1, '반 px 안쪽 차이는 넘친 것으로 보지 않는다');
+assert.equal(shrinkFactor(392, 420, 1), 0.924, '넘친 비율만큼 조금 더(1%) 줄인다 — floor(392/420*0.99*1000)/1000');
+assert.equal(shrinkFactor(392, 400, 0.9), 0.873, '이미 줄인 배율에서 이어 줄인다');
+assert.equal(shrinkFactor(100, 1000, 1), FIT_MIN_K, '0.5 아래로는 줄이지 않는다');
+assert.equal(shrinkFactor(0, 10, 1), 1, '상자가 없으면 그대로');
+assert.equal(shrinkFactor(NaN, 10, 0.8), 0.8);
+const fitBody = /function fitLine\(line\) \{([\s\S]*?)\n    \}/.exec(page);
+assert.ok(fitBody, 'fitLine 이 있다');
+assert.match(fitBody[1], /var key = fontGen \+ '\|' \+ document\.documentElement\.className \+ '\|' \+ innerWidth \+ 'x' \+ innerHeight \+ '\|' \+ digitShape\(line\.textContent\) \+ '\|' \+ shown;/,
+  '다시 재는 열쇠 — 글꼴·폭 모드·소스 크기·숫자를 0 으로 바꾼 글자·보이는 칸');
+assert.match(fitBody[1], /if \(line\.getAttribute\('data-fit-key'\) === key\) return;/, '모양이 같으면 다시 재지 않는다(글자 크기가 떨리지 않게)');
+assert.match(page, /var FIT_LINES = \{ corner: \['\.top', '\.row'\], clock: \['\.top', '\.now', '\.foot'\], chip: \[''\], bar: \[\] \};/,
+  '재는 줄 — 큰 시계의 윗줄·큰 숫자·아랫줄, 코너 카드의 두 줄, 미니 칩 한 줄');
+assert.match(page, /paint\(box, 'hidden', false\);\s*alignInk\(\);\s*fitText\(\);/, '보인 뒤에 잰다');
+for (const [sel, base] of [['.v-corner-card .now', 56], ['.v-corner-card .dim', 24], ['.v-chip-card .now', 44]]) {
+  assert.match(rule(sel), new RegExp('font-size: calc\\(' + base + 'rem \\* var\\(--k, 1\\)\\);'), sel + ' 글자 크기는 --k 를 따른다');
+}
+assert.doesNotMatch(rule('.v-chip-card'), /padding: calc/, '미니 칩 안쪽 여백은 카드 크기라 줄이지 않는다');
 // 법적 게이트 — 포스터·스틸컷·플랫폼 로고(이미지) 없음
-assert.doesNotMatch(page, /<img|<image|background-image|url\(/, '이미지를 싣지 않는다(포스터·로고 없음) — 상태 그림은 인라인 SVG 도형뿐(HP-817)');
+// 글꼴(HP-869)의 @font-face 만 url( 을 쓴다 — 그것을 빼고 본다(글꼴 검사는 아래)
+const fontFaces = page.match(/@font-face \{[^}]*\}/g) || [];
+assert.doesNotMatch(page.replace(/@font-face \{[^}]*\}/g, ''), /<img|<image|background-image|url\(/, '이미지를 싣지 않는다(포스터·로고 없음) — 상태 그림은 인라인 SVG 도형뿐(HP-817)');
+
+// ── HP-869 글꼴 — 숫자·영문 Replix Timer Digits(Source Sans 3), 한글 Replix Timer KR(본고딕). 같은 출처의 파일만, 실은 글꼴이 준비된 뒤 그린다
+assert.equal(fontFaces.length, 2, '@font-face 둘');
+const faces = Object.fromEntries(fontFaces.map((f) => [/font-family: '([^']+)'/.exec(f)[1], f]));
+assert.deepEqual(Object.keys(faces).sort(), ['Replix Timer Digits', 'Replix Timer KR'], "글꼴 이름은 우리 것 — 원본의 예약 이름 'Source' 를 쓰지 않는다(OFL 조건 3)");
+for (const [fam, f] of Object.entries(faces)) {
+  const src = /src: url\('([^']+)'\) format\('woff2'\)/.exec(f);
+  assert.ok(src && /^\/overlay\/fonts\/[A-Za-z]+\.woff2$/.test(src[1]), fam + ' 은 같은 출처의 파일 — ' + (src && src[1]));
+  assert.ok(readFileSync(resolve(root, 'docs' + src[1])).length > 1000, fam + ' 파일이 레포에 있다');
+  assert.match(f, /font-weight: 600 800;/, fam + ' 굵기는 카드가 쓰는 600~800');
+  assert.match(f, /font-display: block;/, fam + ' — 기기 글꼴로 그렸다가 바뀌며 깜빡이지 않게');
+}
+assert.match(faces['Replix Timer Digits'], /unicode-range: U\+0020-007E, U\+00A0;/, '숫자·영문·기호');
+assert.match(faces['Replix Timer KR'], /unicode-range: U\+AC00-D7A3,/, '한글');
+assert.doesNotMatch(fontFaces.join(''), /https?:|\/\/fonts\.g/, '구글 글꼴 서버를 부르지 않는다');
+for (const lic of ['OFL-SourceSans3.txt', 'OFL-NotoSansKR.txt']) {
+  assert.match(read('docs/overlay/fonts/' + lic), /SIL Open Font License, Version 1\.1/, lic + ' — 라이선스 전문을 글꼴 옆에');
+}
+assert.match(page, /body \{ overflow: hidden; font-family: 'Replix Timer Digits', 'Replix Timer KR', 'Pretendard',/, '실은 글꼴을 앞에, 기기 글꼴을 뒤에(못 받으면 기기 글꼴로)');
+assert.match(page, /function render\(\) \{\s*if \(!fontsReady\) return;/, '글꼴이 준비되기 전에는 그리지 않는다');
+assert.match(page, /var FONT_WAIT_MS = 3000, fontsReady = false;/, '3초 안에 못 받으면 기기 글꼴로 그린다');
+assert.match(page, /setTimeout\(done, FONT_WAIT_MS\);/);
+assert.match(page, /document\.fonts\.load\("800 100px 'Replix Timer Digits'", '0123456789:'\), document\.fonts\.load\("700 100px 'Replix Timer KR'", '가'\)\]\)\s*\.then\(done, done\);/,
+  '두 글꼴을 부르고, 받지 못했다는 답에도 바로 그린다');
+assert.match(page, /fontsReady = true; fontGen\+\+;/, '준비되면 획 맞춤·안전장치를 다시 잰다');
 
 console.log('scripts/test-overlay.mjs: 통과');

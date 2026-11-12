@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 같이보기 타이머(HP-757 방송 화면 오버레이 → HP-791 여러 버전) — https://replix.tv/overlay#t=<오버레이 토큰>[&v=corner|bar|clock|chip][&env=dev]
+<!-- 같이보기 타이머(HP-757 방송 화면 오버레이 → HP-791 여러 버전) — https://replix.tv/overlay#t=<오버레이 토큰>[&v=corner|bar|clock|chip][&fit=1][&env=dev]
      역할: 스트리머 방의 방송인이 OBS 브라우저 소스로 띄운다. 익스텐션 없이 방송만 따라 보는 시청자도 방장 위치를 알게, 보는 플랫폼·작품명·
      회차와 방장 위치·상태를 카드 하나로 보여 준다. 방송과 함께 늦게 나가므로 '방송 기준 시각'이 된다.
      · 버전(v) 네 가지(2026-11-03 조현빈 결정, 시안 GiLmzKjiZQ7GYKTBGWSNVU) — corner 코너 카드(기본) · bar 플레이어 바 · clock 큰 시계 ·
@@ -7,6 +7,12 @@
      · 배경은 칠하지 않는다(OBS 투명 합성) — 카드만 그린다. 위치·크기는 방송인이 OBS 에서 옮기고 늘린다. 배율 옵션은 두지 않고, 모든 치수를
        rem(= 권장 소스 크기에서 1px)으로 써서 소스 크기(뷰포트)에 맞춰 다시 그린다 — OBS 에서 소스 너비·높이를 바꾸면 이미지를 늘리지 않고
        글자가 선명하게 커진다. 가로세로 비가 다르면 작은 쪽에 맞춘다(카드가 잘리지 않게). 익스텐션 방 관리의 작은 미리보기도 같은 규칙으로 줄어든다.
+     · 카드 크기 고정(HP-869, 2026-11-12 조현빈 결정) — 방송인은 OBS 에 카드 크기를 미리 맞춰 두므로, 작품·회차·상태가 바뀌어도 카드의 폭·높이가
+       변하지 않게 가장 긴 내용(시각 시:분:초, 세 자리 회차 E123, 가장 긴 상태 글자) 기준으로 크기를 미리 잡는다. 그래서 상태마다 카드 밑에 붙던
+       안내 한 줄(광고·회차 끝·시작 전에 붙던 문장)을 없앴고(상태는 칩 글자가 말한다), 한 시간이 넘는 회차에서
+       숫자를 줄이던 규칙(is-long)도 없앴다. 방송 PC 글꼴이 넓어 한 줄이 카드 안쪽 폭을 넘을 때만 그 줄의 글자를 줄인다(fitText — 카드 크기는 그대로).
+       fit=1 이면 큰 시계·코너 카드·미니 칩의 폭이 내용만큼 된다(익스텐션 방 설정의 '크기 고정'을 끈 링크). 높이는 두 모드가 같고, 플레이어 바는
+       fit 을 보지 않는다. fit 이 없거나 다른 값이면 고정이다 — 그 전 익스텐션(1.6.0)이 만든 링크도 고정으로 보인다.
      · 토큰은 해시(#)로만 받는다 — GitHub Pages 서버·리퍼러로 가지 않는다. 묻는 곳은 우리 API(공개 stream-overlay, Replix-be HP-757)뿐이다.
      · 2초마다 묻고, 그 사이는 받은 위치에 흐른 시간 × 재생 속도를 더해 초를 흘린다. 서버가 응답 시각의 위치를 실어 주므로 방송 PC
        시계가 어긋나도 틀어지지 않는다. 30초 넘게 답을 못 받으면 낡은 값을 띄우지 않게 감춘다.
@@ -22,7 +28,12 @@
        가운데로 맞춘 줄(미니 칩·코너 카드 윗줄·플레이어 바·큰 시계 윗줄과 아랫줄)과 작은 카드(플랫폼·상태 칩)의 글자는 줄 상자가 아니라
        글자 획이 가운데에 오게, 이 PC 의 글꼴로 획을 재서 옮긴다(alignInk). CSS text-box 는 OBS 32(Chromium 127)에 없어 쓰지 않는다.
        기준선으로 맞춘 코너 카드 시각 줄과 위아래로 쌓는 큰 시계 가운데는 옮기지 않는다.
-     외부 리소스 0, 계측 없음 — 단일 파일. 검사 = scripts/test-overlay.mjs -->
+     · 글꼴(HP-869, 2026-11-12 조현빈 팀장 결정) — 숫자·영문은 Replix Timer Digits(Source Sans 3 를 추린 것), 한글은 Replix Timer KR(본고딕
+       Noto Sans KR 을 추린 것). 방송 PC 마다 기기 글꼴이 달라 같은 시각의 폭이 달랐다. 파일은 이 레포의 docs/overlay/fonts 에 있다(구글 글꼴 서버를
+       부르지 않는다 — 방송 PC 가 외부 회사로 요청하지 않게). 추린 방법·원본·라이선스 = scripts/subset-timer-fonts.py · notes/overlay-fonts.md.
+       글꼴이 준비되기 전에는 카드를 그리지 않는다(waitFonts — 기기 글꼴로 그렸다가 바뀌며 글자가 깜빡이고 크기가 달라지지 않게). 3초 안에 못 받으면
+       기기 글꼴로 그리고, 그때도 안전장치가 카드 크기를 지킨다.
+     받는 것은 우리 API 와 같은 출처의 글꼴 파일뿐이다, 계측 없음 — 단일 파일. 검사 = scripts/test-overlay.mjs -->
 <html lang="ko" class="v-corner">
 <head>
   <meta charset="utf-8">
@@ -33,14 +44,21 @@
   <meta name="api-base" content="https://api.replix.tv">
   <title>Replix 같이보기 타이머</title>
   <style>
+    /* 글꼴(HP-869) — 같은 출처(replix.tv/overlay/fonts)의 파일만 받는다. 숫자·영문·기호는 Digits, 한글·자모·문장 부호는 KR 이 맡게 unicode-range 로
+       나눈다(한글이 없는 카드는 KR 파일을 받지 않는다). 그 밖의 글자(한자·일본어·드문 한글)는 뒤의 기기 글꼴이 그린다.
+       font-display: block — 실은 글꼴이 오기 전에 기기 글꼴로 그렸다가 바꾸면 방송 화면에서 글자가 깜빡이고 줄 폭이 달라진다. 카드는 waitFonts 가
+       글꼴을 받을 때까지(최대 3초) 그리지 않고, 크롬의 block 기간(3초)도 그와 같아서 3초가 지나 기기 글꼴로 그린 뒤 글꼴이 늦게 오면 한 번만 바뀐다
+       (그때 alignInk·fitText 가 다시 잰다 — fontGen). 굵기는 카드가 쓰는 600~800 만 들어 있다. 주소는 절대 경로 — /overlay 와 /overlay/ 어느 쪽으로 열어도 같다. */
+    @font-face { font-family: 'Replix Timer Digits'; src: url('/overlay/fonts/ReplixTimerDigits.woff2') format('woff2'); font-weight: 600 800; font-style: normal; font-display: block; unicode-range: U+0020-007E, U+00A0; }
+    @font-face { font-family: 'Replix Timer KR'; src: url('/overlay/fonts/ReplixTimerKR.woff2') format('woff2'); font-weight: 600 800; font-style: normal; font-display: block; unicode-range: U+AC00-D7A3, U+3131-3163, U+00B7, U+2018-2019, U+201C-201D, U+2026, U+3001-3002, U+3008-300F; }
     /* OBS 브라우저 소스는 배경을 투명하게 합성한다 — 페이지 배경을 칠하지 않는다. */
     html, body { margin: 0; background: transparent; }
     /* 1rem = 권장 소스 크기에서의 1px. 소스가 그보다 크거나 작으면 가로·세로 가운데 작은 쪽 비율로 다시 그린다(VERSION_SOURCE 와 같은 값). */
     html.v-corner { font-size: min(calc(100vw / 480), calc(100vh / 200)); }
     html.v-bar { font-size: min(calc(100vw / 1320), calc(100vh / 120)); }
-    html.v-clock { font-size: min(calc(100vw / 440), calc(100vh / 360)); }
+    html.v-clock { font-size: min(calc(100vw / 480), calc(100vh / 360)); }
     html.v-chip { font-size: min(calc(100vw / 360), calc(100vh / 96)); }
-    body { overflow: hidden; font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif; }
+    body { overflow: hidden; font-family: 'Replix Timer Digits', 'Replix Timer KR', 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif; }
     .ov[hidden], .ov [hidden] { display: none !important; }
     .ov {
       position: absolute; left: 20rem; top: 20rem; box-sizing: border-box;
@@ -53,29 +71,28 @@
     .ep { flex: none; font-weight: 700; color: #b4b4be; }
     .now { font-weight: 800; line-height: 1; letter-spacing: -0.01em; }
     .dim { font-weight: 700; color: #b4b4be; }
-    .note { font-weight: 500; color: #b4b4be; }
     .chip { flex: none; display: inline-flex; align-items: center; gap: 0.38em; font-weight: 700; border-radius: 999rem; background: rgba(255, 255, 255, 0.14); color: #e6e6ec; }
     .bar { overflow: hidden; background: rgba(255, 255, 255, 0.16); }
     .bar i { display: block; height: 100%; width: var(--p, 0%); background: rgb(61, 220, 151); }
-    /* 상태 — 멈춤·시작 전은 숫자를 낮추고, 광고 대기는 주황(칩·막대 줄무늬). */
+    /* 상태 — 멈춤·시작 전은 숫자를 낮추고, 광고는 주황(칩·막대 줄무늬). */
     .ov[data-st="pause"] .now, .ov[data-st="idle"] .now { color: #b4b4be; }
     .ov[data-st="ad"] .chip { background: rgb(245, 158, 11); color: #1a1206; }
     .ov[data-st="ad"] .bar i { background: repeating-linear-gradient(-45deg, #f59e0b 0 0.6em, #b77306 0.6em 1.2em); }
     .ov[data-st="pause"] .bar i, .ov[data-st="idle"] .bar i { background: rgb(180, 180, 190); }
 
-    /* corner — 코너 카드(기본): 소스 480×200(광고·회차 끝·시작 전의 밑 한 줄까지), 카드 폭 440, 두 줄 + 아래 진행 막대 */
+    /* 크기 고정(HP-869) — 줄마다 높이를 미리 잡고(상태·회차가 바뀌어도 카드 높이가 같다), 줄 글자 크기에 --k 를 곱한다. --k 는 그 줄이 카드 안쪽
+       폭을 넘을 때만 fitText 가 1 보다 작게 넣는다(방송 PC 글꼴이 넓을 때의 안전장치 — 카드 크기는 그대로). 간격도 함께 줄인다. */
+    /* corner — 코너 카드(기본): 소스 480×200, 카드 폭 440, 두 줄 + 아래 진행 막대. 시각 줄은 글자 밑선(baseline)으로 맞춘다.
+       한 시간이 넘는 회차도 숫자를 줄이지 않고 전체 길이를 그대로 둔다 — 1시간 3분 회차의 '1:01:07 / 1:03:10 -2:03' 까지 기본 글꼴로 들어가고,
+       더 긴 영화처럼 넘치면 안전장치가 그 줄만 줄인다(HP-869). */
     .v-corner-card { width: 440rem; padding: 18rem 24rem 24rem; border-radius: 14rem; display: flex; flex-direction: column; gap: 8rem; overflow: hidden; font-size: 22rem; }
     .v-corner-card[data-st="pause"] { background: rgba(10, 10, 14, 0.7); }
-    .v-corner-card .top { display: flex; align-items: center; gap: 10rem; }
-    .v-corner-card .row { display: flex; align-items: baseline; gap: 10rem; }
-    .v-corner-card .now { font-size: 56rem; }
-    .v-corner-card .dim { font-size: 24rem; }
-    .v-corner-card .chip { margin-left: auto; font-size: 18rem; padding: 3rem 12rem; }
-    .v-corner-card .note { font-size: 20rem; }
+    .v-corner-card .top { height: 32rem; display: flex; align-items: center; gap: calc(10rem * var(--k, 1)); font-size: calc(22rem * var(--k, 1)); }
+    .v-corner-card .row { height: 56rem; display: flex; align-items: baseline; gap: calc(10rem * var(--k, 1)); }
+    .v-corner-card .now { font-size: calc(56rem * var(--k, 1)); }
+    .v-corner-card .dim { font-size: calc(24rem * var(--k, 1)); }
+    .v-corner-card .chip { margin-left: auto; font-size: calc(18rem * var(--k, 1)); padding: calc(3rem * var(--k, 1)) calc(12rem * var(--k, 1)); }
     .v-corner-card .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 5rem; }
-    /* 한 시간이 넘는 회차(영화 등) — '1:02:05' 가 카드 폭을 넘지 않게 숫자를 줄이고 전체 길이는 뺀다(남은 시간이 맞추기에 더 쓰인다). */
-    .v-corner-card.is-long .now { font-size: 48rem; }
-    .v-corner-card.is-long .dur { display: none !important; }
 
     /* bar — 플레이어 바: 소스 1320×120, 띠 1280×88 */
     .v-bar-card { top: 16rem; width: 1280rem; height: 88rem; padding: 0 28rem; border-radius: 16rem; display: flex; align-items: center; gap: 20rem; font-size: 26rem; }
@@ -86,29 +103,40 @@
     .v-bar-card .dim { font-size: 28rem; }
     .v-bar-card .chip { font-size: 20rem; padding: 4rem 13rem; }
 
-    /* clock — 큰 시계(캠 자리 없이): 소스 440×360(밑 한 줄까지), 카드 폭 400 */
-    .v-clock-card { width: 400rem; padding: 22rem 26rem; border-radius: 16rem; display: flex; flex-direction: column; gap: 6rem; font-size: 22rem; }
-    .v-clock-card .top { display: flex; align-items: center; gap: 10rem; }
-    .v-clock-card .now { font-size: 112rem; margin: 6rem 0 4rem; }
-    .v-clock-card .foot { display: flex; align-items: center; gap: 14rem; font-size: 24rem; }
-    .v-clock-card .chip { margin-left: auto; font-size: 19rem; padding: 4rem 12rem; }
-    .v-clock-card .note { font-size: 20rem; }
-    .v-clock-card.is-long .now { font-size: 80rem; }
+    /* clock — 큰 시계(캠 자리 없이): 소스 480×360, 카드 폭 440(HP-869 — 400 에서는 '전체 1:03:10 남은 -50:36 멈춤' 이 카드 밖으로 나갔다).
+       회차(S3 E2)는 윗줄의 작품명 바로 뒤 — 코너 카드 윗줄과 같은 규칙으로 작품명만 말줄임으로 줄고 회차는 줄지 않는다(2026-11-12 조현빈 팀장 결정 —
+       따로 둔 회차 줄은 영화에서 빈 줄로 남아 어색했다). 영화면 회차 칸이 없고 작품명이 줄 전체를 쓴다. 큰 숫자 줄은 한 시간이 넘어도 112 그대로,
+       아랫줄은 상태 표시가 있든 없든 같은 높이 — 그래서 시리즈든 영화든 카드 높이가 같다. 권장 소스 480×360 은 그대로(카드가 소스 위쪽에 놓인다). */
+    .v-clock-card { width: 440rem; padding: 22rem 26rem; border-radius: 16rem; display: flex; flex-direction: column; gap: 6rem; font-size: 22rem; }
+    .v-clock-card .top { height: 32rem; display: flex; align-items: center; gap: calc(10rem * var(--k, 1)); font-size: calc(22rem * var(--k, 1)); }
+    .v-clock-card .now { height: 112rem; display: flex; align-items: center; font-size: calc(112rem * var(--k, 1)); margin: 6rem 0 4rem; }
+    .v-clock-card .foot { height: 36rem; display: flex; align-items: center; gap: calc(14rem * var(--k, 1)); font-size: calc(24rem * var(--k, 1)); }
+    .v-clock-card .chip { margin-left: auto; font-size: calc(19rem * var(--k, 1)); padding: calc(4rem * var(--k, 1)) calc(12rem * var(--k, 1)); }
 
-    /* chip — 미니 칩: 소스 360×96(한 시간 넘는 시각까지), 높이 64. 상태 표(재생·멈춤 그림, 광고·끝·대기 글자)는 폭을 잡고 줄바꿈하지 않는다 — 글자가 깨지거나 잘리지 않게. */
-    .v-chip-card { top: 16rem; height: 64rem; padding: 0 20rem 0 18rem; border-radius: 12rem; display: inline-flex; align-items: center; gap: 12rem; font-size: 20rem; }
+    /* chip — 미니 칩: 소스 360×96, 높이 64, 폭 296 고정('광고 1:01:07 E123' 이 들어가는 폭, HP-869). 상태·시각은 왼쪽, 회차는 오른쪽 끝 — 빈자리가
+       가운데로 가서 시각의 자리가 움직이지 않는다. 상태 표(재생·멈춤 그림, 광고·끝·대기 글자)는 그림이든 글자든 같은 폭(2.6em)을 잡고 줄바꿈하지
+       않는다 — 글자가 깨지거나 잘리지 않게. 안쪽 여백은 카드 크기라 줄이지 않는다. */
+    .v-chip-card { top: 16rem; width: 296rem; height: 64rem; padding: 0 20rem 0 18rem; border-radius: 12rem; display: flex; align-items: center; gap: calc(12rem * var(--k, 1)); font-size: calc(20rem * var(--k, 1)); }
     .v-chip-card .mark { flex: none; min-width: 2.6em; text-align: center; white-space: nowrap; word-break: keep-all; font-weight: 800; color: #3ddc97; }
     .v-chip-card[data-st="pause"] .mark, .v-chip-card[data-st="idle"] .mark, .v-chip-card[data-st="end"] .mark { color: #b4b4be; }
     .v-chip-card[data-st="ad"] .mark { color: #f59e0b; }
-    .v-chip-card .now { flex: none; font-size: 44rem; }
-    .v-chip-card .ep { flex: none; }
+    .v-chip-card .now { flex: none; font-size: calc(44rem * var(--k, 1)); }
+    .v-chip-card .ep { flex: none; margin-left: auto; }
+
+    /* fit=1 — 내용에 맞춰 폭이 변하는 형태(HP-869 옵션). 폭만 내용만큼(max-content)이고, 소스를 넘지 않게 고정 폭(미니 칩은 소스 폭 − 좌우 20)에서
+       멈춘다 — 넘치는 줄은 안전장치가 줄인다. 미니 칩의 그림 표시는 종전처럼 표시 칸 최소 폭을 풀어 그림 양옆이 비지 않게 한다. 플레이어 바는 그대로. */
+    html.fit .v-corner-card, html.fit .v-clock-card { width: max-content; max-width: 440rem; }
+    html.fit .v-chip-card { width: max-content; max-width: 320rem; }
+    html.fit .v-chip-card .ep { margin-left: 0; }
 
     /* 상태 그림(HP-817) — ‖·● 를 글자 대신 도형으로. 색은 글자색(currentColor)이라 상태 색 규칙을 그대로 따른다. */
     .ic { flex: none; display: block; }
     .ic svg { display: block; width: 100%; height: 100%; }
     .chip .ic { width: 0.72em; height: 0.72em; }
-    /* 표시 칸의 최소 폭(2.6em)은 '광고'·'대기' 같은 두 글자가 깨지지 않게 둔 것이다 — 그림일 때는 풀어 그림 양옆이 비지 않게 한다. */
-    .v-chip-card .mark.has-ic { min-width: 0; display: inline-flex; justify-content: center; align-items: center; }
+    /* 표시 칸의 최소 폭(2.6em)은 '광고'·'대기' 같은 두 글자가 깨지지 않게 둔 것이다 — 크기 고정에서는 그림일 때도 같은 폭을 써서 시각의 자리가
+       움직이지 않게 하고(HP-869), fit=1 에서만 풀어 그림 양옆이 비지 않게 한다. */
+    .v-chip-card .mark.has-ic { display: inline-flex; justify-content: center; align-items: center; }
+    html.fit .v-chip-card .mark.has-ic { min-width: 0; }
     .v-chip-card .mark .ic-pause { width: 0.85em; height: 0.85em; }
     .v-chip-card .mark .ic-play { width: 0.62em; height: 0.62em; }
     /* 글자 획 가운데 맞춤(HP-817) — 옮길 양(--ink, em)은 alignInk 가 이 PC 의 글꼴로 재서 넣는다. */
@@ -121,7 +149,6 @@
   <div class="ov v-corner-card" data-v="corner" hidden>
     <div class="top"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span><span class="ep ink"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span></div>
     <div class="row"><span class="now"></span><span class="dim dur"></span><span class="dim rem"></span></div>
-    <span class="note"></span>
     <div class="bar"><i></i></div>
   </div>
   <div class="ov v-bar-card" data-v="bar" hidden>
@@ -130,11 +157,9 @@
     <span class="now ink" data-ink="0123456789"></span><span class="dim dur ink"></span><span class="dim rem ink" data-ink="0123456789"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span>
   </div>
   <div class="ov v-clock-card" data-v="clock" hidden>
-    <div class="top"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span></div>
-    <span class="ep"></span>
+    <div class="top"><span class="pf"><span class="pf-t ink"></span></span><span class="ttl ink"></span><span class="ep ink"></span></div>
     <span class="now"></span>
     <div class="foot"><span class="dim dur ink"></span><span class="dim rem ink"></span><span class="chip"><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="chip-t ink"></span></span></div>
-    <span class="note"></span>
   </div>
   <div class="ov v-chip-card" data-v="chip" hidden>
     <span class="mark"><span class="ic ic-play" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="12"/></svg></span><span class="ic ic-pause" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="4.6" height="17" rx="1.6"/><rect x="14.4" y="3.5" width="4.6" height="17" rx="1.6"/></svg></span><span class="mark-t ink"></span></span>
@@ -150,12 +175,14 @@
     // 카드에 쓰는 상태 이름(data-st)·칩 글자·미니 칩 표. 재생 중에는 칩을 띄우지 않는다(평소엔 조용하게 — 시안).
     var STATE_KEY = { PLAYING: 'play', PAUSED: 'pause', AD: 'ad', EPISODE_END: 'end', IDLE: 'idle' };
     // 멈춤·재생 중의 표시는 글자가 아니라 그림이다(HP-817 — MARK_ICON, 칩의 멈춤 그림은 st 가 pause 일 때).
-    var CHIP_TEXT = { PAUSED: '멈춤', AD: '광고 대기', EPISODE_END: '회차 끝', IDLE: '시작 전' };
+    // 광고는 '광고 대기'에서 '광고'로 줄였다(HP-869, 2026-11-12 조현빈 결정 — 미니 칩과 같은 말, 카드 폭을 가장 긴 상태 글자로 잡는다).
+    var CHIP_TEXT = { PAUSED: '멈춤', AD: '광고', EPISODE_END: '회차 끝', IDLE: '시작 전' };
     var MARK_TEXT = { AD: '광고', EPISODE_END: '끝', IDLE: '대기' };
     var MARK_ICON = { PLAYING: 'play', PAUSED: 'pause' };
     // 버전과 권장 소스 크기(px) — 페이지 CSS 의 html.v-* 글자 크기와 같은 값이어야 한다(시험이 대조한다). 익스텐션 방 관리가 같은 표를 안내한다.
     var VERSIONS = ['corner', 'bar', 'clock', 'chip'];
-    var VERSION_SOURCE = { corner: [480, 200], bar: [1320, 120], clock: [440, 360], chip: [360, 96] };
+    // 큰 시계는 카드 폭을 400 에서 440 으로 넓히며 480×360 이 됐다(HP-869).
+    var VERSION_SOURCE = { corner: [480, 200], bar: [1320, 120], clock: [480, 360], chip: [360, 96] };
     function chooseVersion(v) { return VERSIONS.indexOf(v) >= 0 ? v : 'corner'; }
     // 회차 표기(HP-807) — 작품 탐색 catalog/app/src/episode-pure.js episodeLabel 과 같은 규칙의 사본이다(초대 페이지 docs/invite 도 같다).
     // 정적 페이지라 import 하지 못한다 — 규칙을 바꾸면 세 곳을 함께 고친다(scripts/test-episode.mjs 가 견준다).
@@ -233,13 +260,6 @@
       if (idle || typeof pos !== 'number' || !isFinite(pos)) return 0;
       return Math.max(0, Math.min(100, pos / duration * 100));
     }
-    // 카드 밑 한 줄(코너 카드·큰 시계) — 재생·멈춤에는 없다. 광고 대기는 이어질 자리를, 회차 끝·시작 전은 기다리는 까닭을 말한다.
-    function noteFor(view, time) {
-      if (view.wait) return time ? '광고가 끝나면 ' + time + '부터 이어져요' : '광고가 끝나면 이어져요';
-      if (view.ended) return '다음 회차를 기다리는 중';
-      if (view.idle) return '스트리머가 재생하면 시작돼요'; // 타이머는 스트리머 방에만 있다 — 방장이 아니라 '스트리머'(익스텐션 HP-850 호칭, 방 설정 미리보기와 같은 글)
-      return '';
-    }
     // 그릴 시각 두 개 — 뒤로 가지 않는 위치(steadyPosition)와 그 위치로 센 남은 시간. 회차 끝에서는 남은 시간을 빼고('-0:00'이 상태와 겹친다),
     // 뒤로 가지 않는 위치를 다음 판정에 넘긴다.
     function timesFor(view, prevPos, prevKey) {
@@ -263,10 +283,21 @@
       var d = (boxTop + boxHeight / 2 - inkMid) / fontPx;
       return isFinite(d) ? Math.round(d * 10000) / 10000 : 0;
     }
-    // 해시에서 토큰·버전·환경을 읽는다(#t=…&v=bar&env=dev).
+    // 해시에서 토큰·버전·폭 모드·환경을 읽는다(#t=…&v=bar&fit=1&env=dev). fit 은 '1' 일 때만 켠다 — 없거나 다른 값이면 크기 고정(HP-869).
     function readHash(hash) {
       var p = new URLSearchParams(String(hash || '').replace(/^#/, ''));
-      return { token: p.get('t') || '', env: p.get('env') || '', v: chooseVersion(p.get('v') || '') };
+      return { token: p.get('t') || '', env: p.get('env') || '', v: chooseVersion(p.get('v') || ''), fit: p.get('fit') === '1' };
+    }
+    // 안전장치(HP-869) — 줄마다 '언제 다시 재는가'와 '얼마나 줄이는가'. 숫자는 고른 폭(tabular-nums)이라 자릿수가 같으면 폭이 같다 — 숫자를 0 으로
+    // 바꾼 글자가 같으면 다시 재지 않는다(초마다 바뀌어도 글자 크기가 떨리지 않게). 자릿수·상태 글자·보이는 칸이 바뀔 때만 다시 잰다.
+    function digitShape(text) { return String(text == null ? '' : text).replace(/[0-9]/g, '0'); }
+    // avail = 줄 안쪽 폭, need = 지금 글자가 차지하는 폭(px), k = 지금 배율. 들어가면 그대로, 넘치면 넘친 비율만큼 조금 더(1%) 줄인다.
+    // 간격·여백 일부는 배율을 따르지 않아 한 번에 다 맞지 않을 수 있다 — 부르는 쪽이 한 번 더 잰다. 0.5 아래로는 줄이지 않는다(읽히지 않는다).
+    var FIT_MIN_K = 0.5;
+    function shrinkFactor(avail, need, k) {
+      var cur = k > 0 ? k : 1;
+      if (!(avail > 0) || !(need > avail + 0.5)) return cur;
+      return Math.max(FIT_MIN_K, Math.floor(cur * avail / need * 0.99 * 1000) / 1000);
     }
     function apiBase(metaBase, env) {
       return env === 'dev' ? 'https://api.replix-dev.site' : metaBase;
@@ -279,20 +310,23 @@
     var hash = readHash(location.hash);
     var cards = {};
     Array.prototype.forEach.call(document.querySelectorAll('.ov[data-v]'), function (el) { cards[el.getAttribute('data-v')] = el; });
-    var box = null, parts = null, baseClass = '';
+    var box = null, parts = null, fitEls = [];
     var last = null, receivedAt = 0;
     var shownPos = null, shownKey = null, painted = [];
 
-    // 고른 버전의 카드만 쓴다 — 다른 카드는 늘 감춘 채 둔다. 글자 크기 기준(html.v-*)도 그 버전으로.
-    function useVersion(v) {
-      document.documentElement.className = 'v-' + v;
+    // 안전장치가 재는 줄(HP-869) — 큰 시계의 윗줄·큰 숫자·아랫줄, 코너 카드의 두 줄, 미니 칩 한 줄(카드 자신). 플레이어 바는 폭이 넉넉해 재지 않는다.
+    // 큰 시계 윗줄은 작품명이 말줄임으로 줄어 보통은 넘치지 않지만, 플랫폼 표시 + 'S12 E123' 만으로 넘치는 넓은 글꼴에 대비해 코너 카드 윗줄처럼 잰다.
+    var FIT_LINES = { corner: ['.top', '.row'], clock: ['.top', '.now', '.foot'], chip: [''], bar: [] };
+    // 고른 버전의 카드만 쓴다 — 다른 카드는 늘 감춘 채 둔다. 글자 크기 기준(html.v-*)도 그 버전으로, fit=1 이면 html.fit(폭이 내용만큼, HP-869).
+    function useVersion(v, fit) {
+      document.documentElement.className = 'v-' + v + (fit ? ' fit' : '');
       if (box) box.hidden = true;
       box = cards[v];
-      baseClass = box.className.replace(/ is-long/g, '');
       var q = function (sel) { return box.querySelector(sel); };
       parts = { pf: q('.pf'), pfT: q('.pf-t'), ttl: q('.ttl'), ep: q('.ep'), chip: q('.chip'), chipT: q('.chip-t'), chipIc: q('.chip .ic-pause'),
         mark: q('.mark'), markT: q('.mark-t'), mkPlay: q('.mark .ic-play'), mkPause: q('.mark .ic-pause'), now: q('.now'),
-        dur: q('.dur'), rem: q('.rem'), note: q('.note'), bar: q('.bar') };
+        dur: q('.dur'), rem: q('.rem'), bar: q('.bar') };
+      fitEls = FIT_LINES[v].map(function (sel) { return sel ? q(sel) : box; });
       painted = [];
     }
     // 바뀐 칸만 쓴다 — 0.25초마다 도는데 멈춤·광고처럼 그대로인 동안 방송 PC 에서 스타일 계산이 쉬게. 없는 칸(버전마다 다르다)은 건너뛴다.
@@ -309,6 +343,7 @@
     }
     function paintText(el, text) { paint(el, 'textContent', text); paint(el, 'hidden', !text); }
     function render() {
+      if (!fontsReady) return; // 글꼴을 기다리는 중 — 카드는 감춘 채(waitFonts)
       var now = performance.now();
       var view = last && now - receivedAt <= STALE_MS ? overlayView(last, (now - receivedAt) / 1000) : null;
       if (!view) { shownPos = null; shownKey = null; paint(box, 'hidden', true); return; }
@@ -317,9 +352,7 @@
       var time = times.time;
       var dur = view.duration && !view.idle ? '/ ' + formatClock(view.duration) : '';
       var pct = progressPct(view.duration, times.pos, view.ended, view.idle);
-      // 한 시간이 넘으면 숫자를 줄인다(is-long — 코너 카드·큰 시계가 카드 폭을 넘지 않게)
-      var long = time.length > 5 || (view.duration !== null && view.duration >= 3600);
-      paint(box, 'className', baseClass + (long ? ' is-long' : ''));
+      // 한 시간이 넘어도 숫자를 줄이지 않는다(HP-869 — 종전 is-long 은 카드 높이를 바꿨다). 넘치는 줄은 fitText 가 맡는다.
       if (box.getAttribute('data-st') !== view.st) box.setAttribute('data-st', view.st);
       paint(parts.pf, 'hidden', !view.platform);
       paintText(parts.pfT, view.platform);
@@ -337,13 +370,60 @@
       paint(parts.now, 'textContent', time || '--:--');
       paintText(parts.dur, box === cards.clock && dur ? '전체 ' + dur.slice(2) : dur);
       paintText(parts.rem, box === cards.clock && times.remain ? '남은 ' + times.remain : times.remain);
-      paintText(parts.note, noteFor(view, time));
       if (parts.bar) {
         paint(parts.bar, 'hidden', pct === null);
         if (pct !== null) parts.bar.firstElementChild.style.setProperty('--p', pct.toFixed(2) + '%');
       }
       paint(box, 'hidden', false);
       alignInk();
+      fitText();
+    }
+
+    // 안전장치(HP-869) — 방송 PC 글꼴이 넓어 한 줄이 카드 안쪽 폭을 넘을 때만 그 줄의 글자를 줄인다(--k). 카드 크기는 그대로다. 다시 재는 것은
+    // 그 줄의 모양(숫자를 0 으로 바꾼 글자·보이는 칸)·글꼴·소스 크기·폭 모드가 바뀔 때뿐이다 — 초마다 재지 않아 글자 크기가 떨리지 않는다.
+    function fitText() {
+      for (var i = 0; i < fitEls.length; i++) fitLine(fitEls[i]);
+    }
+    function fitLine(line) {
+      if (!line) return;
+      var els = line.getElementsByTagName('*'), shown = '';
+      for (var i = 0; i < els.length; i++) shown += els[i].hidden ? '0' : '1';
+      var key = fontGen + '|' + document.documentElement.className + '|' + innerWidth + 'x' + innerHeight + '|' + digitShape(line.textContent) + '|' + shown;
+      if (line.getAttribute('data-fit-key') === key) return;
+      line.style.setProperty('--k', '1');
+      var k = 1;
+      for (var pass = 0; pass < 3; pass++) {
+        var m = lineExtent(line);
+        if (!m) return; // 상자가 없다(감춘 카드) — 다음에 다시 잰다
+        var next = shrinkFactor(m.avail, m.need, k);
+        if (next === k) break;
+        k = next;
+        line.style.setProperty('--k', String(k));
+      }
+      line.setAttribute('data-fit-key', key);
+    }
+    // 줄 안쪽 폭과 글자가 차지하는 폭(px). 칸(요소)이 있으면 보이는 칸의 오른쪽 끝으로 잰다 — 작품명처럼 말줄임으로 잘리는 칸의 글자는 칸 상자로만
+    // 센다. 칸 없이 글자만 있는 줄(큰 시계 숫자)은 글자 영역으로 잰다.
+    function lineExtent(line) {
+      var r = line.getBoundingClientRect();
+      if (!r.width) return null;
+      var cs = getComputedStyle(line);
+      var left = r.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft);
+      var avail = r.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight) - left;
+      var right = left, kids = line.children;
+      if (kids.length) {
+        for (var i = 0; i < kids.length; i++) {
+          if (kids[i].hidden) continue;
+          var kr = kids[i].getBoundingClientRect();
+          if (kr.width && kr.right > right) right = kr.right;
+        }
+      } else if (line.firstChild) {
+        var range = document.createRange();
+        range.selectNodeContents(line);
+        var tr = range.getBoundingClientRect();
+        if (tr.width) right = tr.right;
+      }
+      return { avail: avail, need: right - left };
     }
 
     // 글자 획 가운데 맞춤(HP-817) — .ink 칸마다 이 PC 의 글꼴로 획을 재서 --ink(em)를 넣는다. 다시 재는 것은 그 칸의 견본·글꼴이 바뀔 때뿐이다.
@@ -372,6 +452,18 @@
     }
     // 글꼴을 늦게 받으면(대신 쓰인 글꼴로 잰 값이 남지 않게) 다시 잰다.
     if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', function () { fontGen++; render(); });
+
+    // 실은 글꼴(HP-869)이 준비될 때까지 카드를 그리지 않는다 — 기기 글꼴로 그렸다가 바뀌며 깜빡이지 않게. 3초 안에 못 받으면(느린 망·파일 없음)
+    // 기기 글꼴로 그린다. 받지 못했다는 답(404)이 오면 기다리지 않고 바로 그린다. 한글 글꼴은 견본 '가'로 함께 부른다(unicode-range 라 부르지 않으면 받지 않는다).
+    var FONT_WAIT_MS = 3000, fontsReady = false;
+    function waitFonts() {
+      var done = function () { if (fontsReady) return; fontsReady = true; fontGen++; if (box) render(); }; // box 는 아래 useVersion 이 정한다
+      if (!document.fonts || typeof document.fonts.load !== 'function') { done(); return; }
+      setTimeout(done, FONT_WAIT_MS);
+      Promise.all([document.fonts.load("800 100px 'Replix Timer Digits'", '0123456789:'), document.fonts.load("700 100px 'Replix Timer KR'", '가')])
+        .then(done, done);
+    }
+    waitFonts();
 
     // 공개 GET 이라 쿠키·인증을 싣지 않는다. 다음 묻기까지의 간격을 돌려준다. 답이 오는 사이 링크(해시)가 바뀌었으면 옛 토큰의 답은 버린다.
     var inflight = null;
@@ -413,15 +505,15 @@
     window.addEventListener('hashchange', function () {
       var before = hash;
       hash = readHash(location.hash);
-      if (hash.v !== before.v) { useVersion(hash.v); shownPos = null; shownKey = null; }
-      if (hash.token === before.token && hash.env === before.env) { render(); return; } // 버전만 바뀌었다 — 받은 값으로 바로 다시 그린다
+      if (hash.v !== before.v || hash.fit !== before.fit) { useVersion(hash.v, hash.fit); shownPos = null; shownKey = null; }
+      if (hash.token === before.token && hash.env === before.env) { render(); return; } // 버전·폭 모드만 바뀌었다 — 받은 값으로 바로 다시 그린다
       last = null;
       render();
       if (inflight) inflight.abort(); // 옛 토큰의 요청을 거둔다
       clearTimeout(timer);
       loop(); // 바로 다시 묻는다 — 토큰이 막 붙었으면 5초를 기다리지 않게
     });
-    useVersion(hash.v);
+    useVersion(hash.v, hash.fit);
     setInterval(render, TICK_MS);
     loop();
   })();
