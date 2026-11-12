@@ -323,6 +323,33 @@ for (const [sel, base] of [['.v-corner-card .now', 56], ['.v-corner-card .dim', 
 }
 assert.doesNotMatch(rule('.v-chip-card'), /padding: calc/, '미니 칩 안쪽 여백은 카드 크기라 줄이지 않는다');
 // 법적 게이트 — 포스터·스틸컷·플랫폼 로고(이미지) 없음
-assert.doesNotMatch(page, /<img|<image|background-image|url\(/, '이미지를 싣지 않는다(포스터·로고 없음) — 상태 그림은 인라인 SVG 도형뿐(HP-817)');
+// 글꼴(HP-869)의 @font-face 만 url( 을 쓴다 — 그것을 빼고 본다(글꼴 검사는 아래)
+const fontFaces = page.match(/@font-face \{[^}]*\}/g) || [];
+assert.doesNotMatch(page.replace(/@font-face \{[^}]*\}/g, ''), /<img|<image|background-image|url\(/, '이미지를 싣지 않는다(포스터·로고 없음) — 상태 그림은 인라인 SVG 도형뿐(HP-817)');
+
+// ── HP-869 글꼴 — 숫자·영문 Replix Timer Digits(Source Sans 3), 한글 Replix Timer KR(본고딕). 같은 출처의 파일만, 실은 글꼴이 준비된 뒤 그린다
+assert.equal(fontFaces.length, 2, '@font-face 둘');
+const faces = Object.fromEntries(fontFaces.map((f) => [/font-family: '([^']+)'/.exec(f)[1], f]));
+assert.deepEqual(Object.keys(faces).sort(), ['Replix Timer Digits', 'Replix Timer KR'], "글꼴 이름은 우리 것 — 원본의 예약 이름 'Source' 를 쓰지 않는다(OFL 조건 3)");
+for (const [fam, f] of Object.entries(faces)) {
+  const src = /src: url\('([^']+)'\) format\('woff2'\)/.exec(f);
+  assert.ok(src && /^\/overlay\/fonts\/[A-Za-z]+\.woff2$/.test(src[1]), fam + ' 은 같은 출처의 파일 — ' + (src && src[1]));
+  assert.ok(readFileSync(resolve(root, 'docs' + src[1])).length > 1000, fam + ' 파일이 레포에 있다');
+  assert.match(f, /font-weight: 600 800;/, fam + ' 굵기는 카드가 쓰는 600~800');
+  assert.match(f, /font-display: block;/, fam + ' — 기기 글꼴로 그렸다가 바뀌며 깜빡이지 않게');
+}
+assert.match(faces['Replix Timer Digits'], /unicode-range: U\+0020-007E, U\+00A0;/, '숫자·영문·기호');
+assert.match(faces['Replix Timer KR'], /unicode-range: U\+AC00-D7A3,/, '한글');
+assert.doesNotMatch(fontFaces.join(''), /https?:|\/\/fonts\.g/, '구글 글꼴 서버를 부르지 않는다');
+for (const lic of ['OFL-SourceSans3.txt', 'OFL-NotoSansKR.txt']) {
+  assert.match(read('docs/overlay/fonts/' + lic), /SIL Open Font License, Version 1\.1/, lic + ' — 라이선스 전문을 글꼴 옆에');
+}
+assert.match(page, /body \{ overflow: hidden; font-family: 'Replix Timer Digits', 'Replix Timer KR', 'Pretendard',/, '실은 글꼴을 앞에, 기기 글꼴을 뒤에(못 받으면 기기 글꼴로)');
+assert.match(page, /function render\(\) \{\s*if \(!fontsReady\) return;/, '글꼴이 준비되기 전에는 그리지 않는다');
+assert.match(page, /var FONT_WAIT_MS = 3000, fontsReady = false;/, '3초 안에 못 받으면 기기 글꼴로 그린다');
+assert.match(page, /setTimeout\(done, FONT_WAIT_MS\);/);
+assert.match(page, /document\.fonts\.load\("800 100px 'Replix Timer Digits'", '0123456789:'\), document\.fonts\.load\("700 100px 'Replix Timer KR'", '가'\)\]\)\s*\.then\(done, done\);/,
+  '두 글꼴을 부르고, 받지 못했다는 답에도 바로 그린다');
+assert.match(page, /fontsReady = true; fontGen\+\+;/, '준비되면 획 맞춤·안전장치를 다시 잰다');
 
 console.log('scripts/test-overlay.mjs: 통과');

@@ -28,7 +28,12 @@
        가운데로 맞춘 줄(미니 칩·코너 카드 윗줄·플레이어 바·큰 시계 윗줄과 아랫줄)과 작은 카드(플랫폼·상태 칩)의 글자는 줄 상자가 아니라
        글자 획이 가운데에 오게, 이 PC 의 글꼴로 획을 재서 옮긴다(alignInk). CSS text-box 는 OBS 32(Chromium 127)에 없어 쓰지 않는다.
        기준선으로 맞춘 코너 카드 시각 줄과 위아래로 쌓는 큰 시계 가운데는 옮기지 않는다.
-     외부 리소스 0, 계측 없음 — 단일 파일. 검사 = scripts/test-overlay.mjs -->
+     · 글꼴(HP-869, 2026-11-12 조현빈 팀장 결정) — 숫자·영문은 Replix Timer Digits(Source Sans 3 를 추린 것), 한글은 Replix Timer KR(본고딕
+       Noto Sans KR 을 추린 것). 방송 PC 마다 기기 글꼴이 달라 같은 시각의 폭이 달랐다. 파일은 이 레포의 docs/overlay/fonts 에 있다(구글 글꼴 서버를
+       부르지 않는다 — 방송 PC 가 외부 회사로 요청하지 않게). 추린 방법·원본·라이선스 = scripts/subset-timer-fonts.py · notes/overlay-fonts.md.
+       글꼴이 준비되기 전에는 카드를 그리지 않는다(waitFonts — 기기 글꼴로 그렸다가 바뀌며 글자가 깜빡이고 크기가 달라지지 않게). 3초 안에 못 받으면
+       기기 글꼴로 그리고, 그때도 안전장치가 카드 크기를 지킨다.
+     받는 것은 우리 API 와 같은 출처의 글꼴 파일뿐이다, 계측 없음 — 단일 파일. 검사 = scripts/test-overlay.mjs -->
 <html lang="ko" class="v-corner">
 <head>
   <meta charset="utf-8">
@@ -39,6 +44,13 @@
   <meta name="api-base" content="https://api.replix.tv">
   <title>Replix 같이보기 타이머</title>
   <style>
+    /* 글꼴(HP-869) — 같은 출처(replix.tv/overlay/fonts)의 파일만 받는다. 숫자·영문·기호는 Digits, 한글·자모·문장 부호는 KR 이 맡게 unicode-range 로
+       나눈다(한글이 없는 카드는 KR 파일을 받지 않는다). 그 밖의 글자(한자·일본어·드문 한글)는 뒤의 기기 글꼴이 그린다.
+       font-display: block — 실은 글꼴이 오기 전에 기기 글꼴로 그렸다가 바꾸면 방송 화면에서 글자가 깜빡이고 줄 폭이 달라진다. 카드는 waitFonts 가
+       글꼴을 받을 때까지(최대 3초) 그리지 않고, 크롬의 block 기간(3초)도 그와 같아서 3초가 지나 기기 글꼴로 그린 뒤 글꼴이 늦게 오면 한 번만 바뀐다
+       (그때 alignInk·fitText 가 다시 잰다 — fontGen). 굵기는 카드가 쓰는 600~800 만 들어 있다. 주소는 절대 경로 — /overlay 와 /overlay/ 어느 쪽으로 열어도 같다. */
+    @font-face { font-family: 'Replix Timer Digits'; src: url('/overlay/fonts/ReplixTimerDigits.woff2') format('woff2'); font-weight: 600 800; font-style: normal; font-display: block; unicode-range: U+0020-007E, U+00A0; }
+    @font-face { font-family: 'Replix Timer KR'; src: url('/overlay/fonts/ReplixTimerKR.woff2') format('woff2'); font-weight: 600 800; font-style: normal; font-display: block; unicode-range: U+AC00-D7A3, U+3131-3163, U+00B7, U+2018-2019, U+201C-201D, U+2026, U+3001-3002, U+3008-300F; }
     /* OBS 브라우저 소스는 배경을 투명하게 합성한다 — 페이지 배경을 칠하지 않는다. */
     html, body { margin: 0; background: transparent; }
     /* 1rem = 권장 소스 크기에서의 1px. 소스가 그보다 크거나 작으면 가로·세로 가운데 작은 쪽 비율로 다시 그린다(VERSION_SOURCE 와 같은 값). */
@@ -46,7 +58,7 @@
     html.v-bar { font-size: min(calc(100vw / 1320), calc(100vh / 120)); }
     html.v-clock { font-size: min(calc(100vw / 480), calc(100vh / 360)); }
     html.v-chip { font-size: min(calc(100vw / 360), calc(100vh / 96)); }
-    body { overflow: hidden; font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif; }
+    body { overflow: hidden; font-family: 'Replix Timer Digits', 'Replix Timer KR', 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif; }
     .ov[hidden], .ov [hidden] { display: none !important; }
     .ov {
       position: absolute; left: 20rem; top: 20rem; box-sizing: border-box;
@@ -330,6 +342,7 @@
     }
     function paintText(el, text) { paint(el, 'textContent', text); paint(el, 'hidden', !text); }
     function render() {
+      if (!fontsReady) return; // 글꼴을 기다리는 중 — 카드는 감춘 채(waitFonts)
       var now = performance.now();
       var view = last && now - receivedAt <= STALE_MS ? overlayView(last, (now - receivedAt) / 1000) : null;
       if (!view) { shownPos = null; shownKey = null; paint(box, 'hidden', true); return; }
@@ -438,6 +451,18 @@
     }
     // 글꼴을 늦게 받으면(대신 쓰인 글꼴로 잰 값이 남지 않게) 다시 잰다.
     if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', function () { fontGen++; render(); });
+
+    // 실은 글꼴(HP-869)이 준비될 때까지 카드를 그리지 않는다 — 기기 글꼴로 그렸다가 바뀌며 깜빡이지 않게. 3초 안에 못 받으면(느린 망·파일 없음)
+    // 기기 글꼴로 그린다. 받지 못했다는 답(404)이 오면 기다리지 않고 바로 그린다. 한글 글꼴은 견본 '가'로 함께 부른다(unicode-range 라 부르지 않으면 받지 않는다).
+    var FONT_WAIT_MS = 3000, fontsReady = false;
+    function waitFonts() {
+      var done = function () { if (fontsReady) return; fontsReady = true; fontGen++; if (box) render(); }; // box 는 아래 useVersion 이 정한다
+      if (!document.fonts || typeof document.fonts.load !== 'function') { done(); return; }
+      setTimeout(done, FONT_WAIT_MS);
+      Promise.all([document.fonts.load("800 100px 'Replix Timer Digits'", '0123456789:'), document.fonts.load("700 100px 'Replix Timer KR'", '가')])
+        .then(done, done);
+    }
+    waitFonts();
 
     // 공개 GET 이라 쿠키·인증을 싣지 않는다. 다음 묻기까지의 간격을 돌려준다. 답이 오는 사이 링크(해시)가 바뀌었으면 옛 토큰의 답은 버린다.
     var inflight = null;
