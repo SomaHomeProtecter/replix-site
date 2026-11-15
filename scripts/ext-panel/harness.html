@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replix 패널 녹화용 하네스 — 랜딩의 익스텐션 화면 굽기(HP-677)</title>
+<!-- replix.tv 랜딩에 넣는 익스텐션 화면(docs/ext)을 **굽는** 페이지다. 랜딩에는 실리지 않는다 — scripts/ext-panel/bake.mjs 가 이 페이지를 연다.
+     Replix-extension 의 styles.css · content.js 패널 골격 · core/* · replix-net.js · features/{playback,chat,scenes,report,room-dialog,room-lobby,toast,room}.js 를
+     그대로 싣고(주소 ./ext/ — bake.mjs 가 익스텐션 폴더를 그 주소로 내준다) 서버 응답만 흉내 낸다. 익스텐션 test/manual/room-window.html 과 같은 방식이고,
+     어디로도 요청을 보내지 않는다. 장면은 주소의 # 뒤 이름이다: hero · friends · discord · solo · live (friends·discord 는 라이트 테마).
+     장면마다 대본(SCRIPTS)이 정한 시각에 사건을 일으키고, RX.record() 가 그동안 패널을 125ms 마다 떠서 '보이는 것만 남긴 HTML' 장면 목록을 돌려준다. -->
+<link rel="stylesheet" href="./ext/styles.css">
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+  #replix-root #replix-tab, #replix-root #replix-live-tab, #replix-root #replix-live, #replix-root .rx-resize-handle { display: none !important; }
+  #replix-root #replix-panel { width: 100vw !important; }
+  /* 굽는 동안 글자 깜빡임(입력 커서)·스크롤 막대가 장면 비교를 흔들지 않게 */
+  #replix-root * { caret-color: transparent !important; }
+</style>
+<div id="replix-root" class="replix-open"></div>
+<!-- 익스텐션 content.js 의 패널 골격(root.innerHTML 템플릿) 원문 — 조립할 때 넣는다 -->
+<template id="rx-tpl">@@TEMPLATE@@</template>
+<script>
+  // 장면은 주소의 # 뒤 이름으로 고른다(hero · friends · discord · solo · live). friends·discord 는 라이트 테마.
+  const SCENE = (location.hash || '#hero').slice(1);
+  const LIGHT = SCENE === 'friends' || SCENE === 'discord';
+  const CFG = {
+    hero:    { me: 1, host: 1, title: '밤의 정원', season: 1, ep: 3, start: 1972, dur: 2892, people: [[1, '지우']], room: false },
+    friends: { me: 1, host: 1, title: '밤의 정원', season: 1, ep: 3, start: 1960, dur: 2892, people: [[1, '지혜'], [2, '수민'], [3, '현우']], room: true },
+    discord: { me: 4, host: 1, title: '밤의 정원', season: 2, ep: 1, start: 1210, dur: 3010, people: [[1, '지혜'], [2, '수민'], [3, '현우'], [4, '민지']], room: true },
+    solo:    { me: 9, host: 9, title: '밤의 정원', season: 1, ep: 3, start: 1935, dur: 2892, people: [[9, '나']], room: false, side: 'chat' },
+    live:    { me: 9, host: 9, title: '밤의 정원', season: 1, ep: 3, start: 1935, dur: 2892, people: [[9, '나']], room: false, side: 'chat' },
+  }[SCENE];
+  const NAME = Object.fromEntries(CFG.people);
+  window.__canon = { time: CFG.start, playing: true, at: Date.now(), seq: 1 };
+  window.__now = () => window.__canon.playing ? window.__canon.time + (Date.now() - window.__canon.at) / 1000 : window.__canon.time;
+  try { navigator.clipboard.writeText = async () => {}; } catch (_) {}
+  // 멤버 폴링(15초)을 대본이 바로 일으킬 수 있게 긴 타이머를 모아 둔다
+  window.__long = [];
+  (function () { const si = window.setInterval, st = window.setTimeout; window.__st = st.bind(window);   // 대본은 원래 타이머로 건다(아래에 모이지 않게)
+    window.setInterval = function (fn, ms) { if (ms >= 8000 && typeof fn === 'function') window.__long.push(fn); return si.apply(this, arguments); };
+    window.setTimeout = function (fn, ms) { if (ms >= 8000 && typeof fn === 'function') window.__long.push(fn); return st.apply(this, arguments); };
+  })();
+  window.__poll = () => window.__long.slice().forEach((fn) => { try { fn(); } catch (e) {} });
+  window.chrome = { storage: { local: { get: async () => ({}), set: async () => {} } } };
+  window.ReplixAuthUi = { refresh() {} };
+  window.ReplixReaction = { onIncomingRoom() {} };
+  window.ReplixSpoiler = { applyScore() {}, refreshRendering() {} };
+</script>
+<script src="./ext/core/dom.js"></script>
+<script src="./ext/core/icons.js"></script>
+<script src="./ext/core/motion.js"></script>
+<script src="./ext/core/header-fit.js"></script>
+<script src="./ext/core/lifecycle.js"></script>
+<script src="./ext/core/bus.js"></script>
+<script src="./ext/core/link-rules.js"></script>
+<script src="./ext/replix-net.js"></script>
+<script src="./ext/features/playback.js"></script>
+<script src="./ext/features/chat.js"></script>
+<script src="./ext/features/scenes.js"></script>
+<script src="./ext/features/report.js"></script>
+<script src="./ext/features/room-dialog.js"></script>
+<script src="./ext/features/room-lobby.js"></script>
+<script src="./ext/features/toast.js"></script>
+<script src="./ext/features/room.js"></script>
+<script>
+window.__ready = (async function () {
+  const root = document.getElementById('replix-root');
+  root.innerHTML = document.getElementById('rx-tpl').innerHTML;
+  if (LIGHT) root.dataset.rxTheme = 'light';
+  const $ = (s) => root.querySelector(s);
+
+  // 로그인한 상단바 — 팝콘 칩과 내 얼굴(features/auth-ui.js·points.js 가 만드는 것과 같은 마크업)
+  const myName = NAME[CFG.me];
+  $('#rx-auth').innerHTML = '<span class="rx-user-avatar" style="background:' + ReplixDom.avatarColor(myName) + ';--rx-ava-h:' + Number(ReplixDom.avatarHue(myName)) + '">' + ReplixDom.escapeHtml(myName[0]) + '</span>';
+  const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'rx-popcorn'; chip.textContent = '128';
+  $('#rx-popcorn-slot').insertBefore(chip, $('#rx-pop-today'));
+  ReplixHeaderFit.init({ panel: $('#replix-panel') });
+
+  const EP = { contentId: 1, contentTitle: CFG.title, seasonNumber: CFG.season, episodeNumber: CFG.ep, platform: 'netflix', platformEpisodeId: '222' };
+  const m = (userId, displayName, online) => ({ userId, displayName, profileImageUrl: null, online });
+  const state = { hostUserId: CFG.host, controllerUserId: null, kind: 'BASIC', controlMode: 'ALL', streamMode: false, chatOpen: false,
+    members: (SCENE === 'hero' ? CFG.people.slice(0, 1) : SCENE === 'discord' ? CFG.people : CFG.people).map((p) => m(p[0], p[1], true)) };
+  const json = (o, status = 200) => ({ ok: status < 400, status, json: async () => o, text: async () => JSON.stringify(o) });
+  const membersRes = () => ({ roomId: 'r1', members: state.members, hostAbsent: false, hostUserId: state.hostUserId, kind: state.kind,
+    controlMode: state.controlMode, controllerUserId: null, streamMode: false, chatOpen: false });
+  // 공개 채팅(커뮤니티) 기록 — 이 장면을 먼저 본 사람들의 글
+  const PUBLIC = [
+    [1900, 21, '민지', '소름 돋았다 진짜', 3], [1912, 22, '준호', '이 복선 아까부터 느꼈어', 0], [1921, 23, '하은', '와 여기서 터지는 거였어?!', 5],
+    [1930, 24, '도윤', '정원 불 켜지는 거 봐', 0],
+  ];
+  window.fetch = async (url, opts) => {
+    const u = String(url), method = (opts && opts.method) || 'GET', path = u.replace(/^.*\/api\/v1/, '').replace(/\?.*$/, '');
+    const body = opts && opts.body ? JSON.parse(opts.body) : null;
+    if (/^\/episodes\/\d+\/messages$/.test(path)) return json({ items: PUBLIC.map((p, i) => ({ id: 'h' + i, episodeId: 202, userId: p[1], displayName: p[2], message: p[3], likeCount: p[4], playbackTime: p[0], createdAt: new Date(Date.now() - 86400000 * (3 - i)).toISOString() })),
+      episodes: { 202: EP }, nextBefore: null });
+    if (/\/messages$/.test(path)) return json({ items: [], episodes: { 202: EP }, nextBefore: null });
+    if (/\/presence$/.test(path)) return json({ onlineCount: state.members.length });
+    if (/\/members$/.test(path) && method === 'GET') return json(membersRes());
+    if (/\/playback$/.test(path)) { const c = window.__canon; return json({ episodeId: 202, time: c.time, playing: c.playing, pauseReason: null, updatedBy: CFG.host, updatedAtMs: c.at, seq: c.seq, adWaiting: 0, adWatcherIds: [], platformEpisodeId: '222', contentVersion: 0, episode: EP }); }
+    if (/\/rooms$/.test(path) && method === 'POST') { window.__canon = { time: window.__now(), playing: true, at: Date.now(), seq: 1 };
+      return json({ roomId: 'r1', episodeId: 202, platformEpisodeId: '222', hostUserId: CFG.me, contentVersion: 0, inviteToken: 'tk-r1', controlMode: (body && body.controlMode) || 'ALL', kind: 'BASIC', streamMode: false, chatOpen: false, navIntent: false, episode: EP }); }
+    if (/\/rooms\/mine$/.test(path)) return json({ limit: null, keptLimit: 3, rooms: CFG.room ? [{ roomId: 'r1', inviteToken: 'tk-r1', hostUserId: CFG.host, memberCount: state.members.length, onlineCount: state.members.length, kind: 'BASIC', owned: CFG.me === CFG.host, evictAt: null, lastActiveAt: new Date().toISOString(), members: state.members, episode: EP }] : [] });
+    return json(method === 'GET' ? {} : membersRes(), method === 'DELETE' ? 204 : 200);
+  };
+
+  const feed = $('#rx-feed'), inputEl = $('#rx-input');
+  const subs = [];
+  const chat = { subscribeTopic: (topic, fn) => { subs.push({ topic, fn }); return subs.length; }, unsubscribeTopic() {}, setSegments() {}, sendTo: () => true };
+  const notice = (text, kind, opt) => { try { ReplixToast.show(text, kind || 'info', (opt && opt.action) || null); } catch (_) {} };
+  const label = CFG.title + ' ' + ReplixNet.formatEpisodeLabel(CFG.season, CFG.ep);
+  const deps = { root, feed, inputEl, getChat: () => chat, getEpisodeId: () => 202, getContentId: () => 1, getContentEpisode: () => ({ seasonNumber: CFG.season, episodeNumber: CFG.ep }),
+    getContentTitle: () => CFG.title, getUserId: () => CFG.me, getDisplayName: () => myName, isTorndown: () => false,
+    getAccessToken: async () => 'token', getCurrentTime: () => window.__now(), getWatchId: () => '222', isGroupMode: () => ReplixRoom.isGroupMode(),
+    getRoomId: () => ReplixRoom.currentRoomId(), scrollGroupToBottom: () => ReplixRoom.scrollGroupToBottom(), notice, clearNotice() {},
+    noticeEl: () => $('#rx-notice'), sendBg: async (msg) => (msg.type === 'REPLIX_ROOM_COMMIT' ? { ok: true, generation: 'g', userId: CFG.me } : { ok: true }),
+    slideSegments() {}, setPanel() {}, onUserPanelOpen() {}, setAutoOpened() {}, track() {}, isBlocked: () => false, closeEmotePanel() {},
+    episodeLabel: () => label };
+  try {
+    sessionStorage.removeItem('replix_panel_side'); sessionStorage.removeItem('replix_room_layer_last');
+    if (CFG.room) sessionStorage.setItem('replix_room', JSON.stringify({ roomId: 'r1' })); else sessionStorage.removeItem('replix_room');
+    if (CFG.side === 'chat') sessionStorage.setItem('replix_panel_side', 'chat');
+  } catch (_) {}
+  try { ReplixToast.init({ root, inputEl, focusSink() {} }); } catch (_) {}
+  ReplixPlayback.init();
+  // 재생기 대신 대본의 시계를 읽게 한다(이 페이지에는 영상이 없다 — 영상은 랜딩 쪽에 있다)
+  Object.assign(ReplixPlayback, { getAxisDurationSec: () => CFG.dur, getClockDurationSec: () => CFG.dur, isPaused: () => !window.__canon.playing, getTime: () => window.__now(),
+    getRoomSample: () => ({ rawTime: window.__now(), rawAt: Date.now(), inAd: false, time: window.__now(), precise: true, rate: 1, rateKnown: true, rateCapable: true, rateAt: Date.now() }),
+    read: () => ({ time: window.__now(), inAd: false }) });
+  ReplixChat.init(deps); ReplixReport.init(deps); ReplixRoom.init(deps);
+  ReplixScenes.init({ root, isGroupMode: () => ReplixRoom.isGroupMode(), getCurrentTime: () => window.__now(), nextChatAfter: () => null, seekTo() {}, isFollowing: () => true, realign() {} });
+  if (CFG.room) ReplixRoom.enterRoom({ roomId: 'r1', hostUserId: CFG.host, controllerUserId: null, kind: 'BASIC', controlMode: 'ALL', streamMode: false, chatOpen: false,
+    episodeId: 202, contentId: 1, contentVersion: 0, inviteToken: 'tk-r1', platformEpisodeId: '222', episode: EP });
+
+  const topic = (suffix) => subs.filter((s) => s.topic.endsWith(suffix)).at(-1);
+  let mid = 100, seq = 10;
+  const pb = (patch, by) => { Object.assign(window.__canon, patch, { at: Date.now(), seq: ++seq }); const c = window.__canon;
+    const t = topic('.playback'); if (t) t.fn({}, { episodeId: 202, time: c.time, playing: c.playing, pauseReason: null, updatedBy: by || CFG.host, updatedAtMs: c.at, seq: c.seq, adWaiting: 0, adWatcherIds: [], platformEpisodeId: '222', contentVersion: 0, episode: EP }); };
+  const RX = window.RX = {
+    scene: SCENE, $, 
+    rect(sel) { const e = $(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; },
+    click(sel) { const e = $(sel); if (e) e.click(); },
+    join(id, name) { state.members.push(m(id, name, true)); window.__poll(); },
+    say(id, name, text) { const t = topic('.chat'); if (t) t.fn({}, { id: ++mid, roomId: 'r1', episodeId: 202, userId: id, displayName: name, message: text, playbackTime: Math.floor(window.__now()), createdAt: new Date().toISOString(), episode: EP }); },
+    pause(by) { pb({ time: window.__now(), playing: false }, by); },
+    play(by) { pb({ playing: true }, by); },
+    seek(sec, by) { pb({ time: sec }, by); },
+    live(name, uid, text, parentId) { return ReplixChat.addMessage({ msgId: 'L' + (++mid), text, author: name, userId: uid, timeSec: window.__now(), live: true, parentId: parentId || null }); },
+  };
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // ── 장면별 대본 — [시각(ms), 사건]. 첫 화면(hero)의 시각은 랜딩 docs/js/top.js 의 대본(커서가 단추를 누르는 시각)과 같아야 한다 ──
+  const SCRIPTS = {
+    hero: { len: 13400, keep: 'all', acts: [
+      [1700, () => RX.click('#rx-room-create')],
+      [3500, () => RX.click('#rx-room-invite-copy')],
+      [4500, () => RX.join(2, '민지')],
+      [5200, () => RX.say(2, '민지', '오 바로 같은 장면이네')],
+      [5900, () => RX.join(3, '현우')],
+      [6600, () => RX.say(3, '현우', '3, 2, 1 안 해도 됨 ㅋㅋ')],
+      [7950, () => RX.pause(1)],
+      [8600, () => RX.say(2, '민지', '잠깐 이 장면 다시 보자')],
+      [9750, () => RX.seek(1950, 1)],
+      [10900, () => RX.play(1)],
+      [11400, () => RX.say(3, '현우', '여기 진짜 명장면')],
+      [12300, () => RX.say(1, '지우', '다음 화도 같이 보자')],
+    ] },
+    friends: { len: 4200, keep: 'last', acts: [
+      [700, () => window.__poll()], [1000, () => RX.play(1)], [1350, () => RX.say(1, '지혜', '여기 다시 보자')],
+      [1650, () => RX.say(2, '수민', '방금 그 표정 봤어? 소름 돋았어')], [1950, () => RX.pause(3)],
+      [2300, () => RX.say(3, '현우', '잠깐, 이 장면 한 번만 더')], [2600, () => RX.play(3)], [2900, () => RX.say(1, '지혜', '다음 화는 주말에 같이 보자')],
+    ] },
+    discord: { len: 2600, keep: 'last', acts: [[700, () => window.__poll()], [1000, () => RX.say(2, '수민', '딱 맞춰 왔네 👋')]] },
+    solo: { len: 1800, keep: 'last', acts: [] },
+    live: { len: 6500, keep: 'all', acts: [
+      [1400, () => RX.live('서윤', 31, '지금 이 장면 보는 사람 있어?')],
+      [2900, () => RX.live('수민', 32, '나! 방금 소리 지름 ㅋㅋ')],
+      [4400, () => RX.live('서윤', 31, 'ㅋㅋㅋ 나만 놀란 게 아니었네')],
+    ] },
+  };
+  if (SCENE === 'solo' || SCENE === 'live') {
+    await ReplixChat.loadHistoryAt(Math.floor(window.__now()), false);
+    ReplixChat.syncMessagesToTime(); ReplixChat.scrollToCurrentTime();
+    setInterval(() => { ReplixChat.syncMessagesToTime(); ReplixBus.emit(ReplixBus.EVENTS.PLAYBACK_TICK, {}); }, 250);
+    const dot = $('#rx-status-dot'); if (dot) dot.className = 'rx-dot rx-dot--live';
+    if (SCENE === 'live') $('#rx-viewers').textContent = '12';
+  }
+
+  // ── 뜨기 — 보이는 것만 남긴 패널 HTML. display:none 인 가지(닫힌 화면·메뉴·숨긴 줄)와 주석을 빼고, 화면 읽기용 속성도 뺀다
+  //    (랜딩에서는 iframe 통째로 그림 한 장이고 설명은 바깥의 aria-label 이 한다). ──
+  const DROP = /^(title|tabindex|aria-label|aria-controls|aria-describedby|aria-live|aria-haspopup|aria-labelledby|data-idle)$/;
+  function prune(el) {
+    if (getComputedStyle(el).display === 'none') return null;
+    const out = el.cloneNode(false);
+    [...out.attributes].forEach((a) => { if (DROP.test(a.name)) out.removeAttribute(a.name); });
+    if (el.namespaceURI === 'http://www.w3.org/2000/svg') { out.innerHTML = el.innerHTML; return out; }
+    el.childNodes.forEach((n) => {
+      if (n.nodeType === 3) { if (n.nodeValue.trim() || /\S/.test(n.nodeValue) || (n.previousSibling && n.nextSibling)) out.appendChild(document.createTextNode(n.nodeValue.replace(/\s+/g, ' '))); }
+      else if (n.nodeType === 1) { const c = prune(n); if (c) out.appendChild(c); }
+    });
+    return out;
+  }
+  const snap = () => { const p = prune($('#replix-panel')); return p ? p.outerHTML : ''; };
+  const norm = (h) => h.replace(/\d+:\d\d/g, '#');
+  // 대본을 돌리며 125ms 마다 뜬다. 바로 다음 뜨기와 같은(시계 글자는 빼고 비교) 장면만 남긴다 — 움직이는 도중의 모양은 버리고 멈춘 모양만 남는다.
+  RX.record = async function () {
+    const sc = SCRIPTS[SCENE], t0 = performance.now(), raw = [];
+    sc.acts.forEach((a) => window.__st(a[1], a[0]));
+    await new Promise((done) => {
+      const iv = setInterval(() => {
+        const t = Math.round(performance.now() - t0);
+        raw.push({ t, c: Math.floor(window.__now()), p: window.__canon.playing ? 1 : 0, h: snap() });
+        if (t >= sc.len) { clearInterval(iv); done(); }
+      }, 125);
+    });
+    const frames = [];
+    for (let i = 0; i < raw.length - 1; i++) {
+      const cur = raw[i], last = frames[frames.length - 1];
+      if (norm(cur.h) !== norm(raw[i + 1].h)) continue;            // 아직 움직이는 중
+      if (last && norm(last.h) === norm(cur.h)) continue;           // 앞 장면과 같다
+      frames.push(cur);
+    }
+    const end = raw[raw.length - 1];
+    if (!frames.length || norm(frames[frames.length - 1].h) !== norm(end.h)) frames.push(end);
+    return { scene: SCENE, light: LIGHT, acts: sc.acts.map((a) => a[0]), frames: sc.keep === 'last' ? [frames[frames.length - 1]] : frames };
+  };
+  return true;
+})();
+window.__ready.then(() => { try { parent.postMessage({ rxPanelReady: SCENE }, '*'); } catch (_) {} });
+</script>
+</html>

@@ -1,9 +1,10 @@
 /* 첫 화면(#top) 재생 화면 연출 — HP-662(2026-10-16 조현빈 결정). 스타일 = css/top.css.
-   넷플릭스 기본 플레이어 모양의 영상 칸 옆에 Replix 그룹방 패널이 열리고, 한 바퀴(13.9초) 동안 실제 기능을 차례로 보인다 —
-   패널이 닫힌 넷플릭스 화면 → 패널 열림 → 이 회차로 방 만들기 → 초대 링크 복사 → 친구 둘 입장(맞추는 중 → 함께 보는 중) →
+   넷플릭스 기본 플레이어 모양의 영상 칸 옆에 Replix 그룹방 패널이 열리고, 한 바퀴(14.7초) 동안 실제 기능을 차례로 보인다 —
+   패널이 닫힌 넷플릭스 화면 → 패널 열림 → 이 회차로 방 만들기 → 초대 링크 복사 → 친구 둘 입장 →
    대화·반응 → 내가 멈춤 → 32:30 으로 옮김 → 재생 → 패널 닫힘.
-   문구는 익스텐션 새 그룹방(HP-655·656) room.js 의 실제 문구다. 그룹방 기본값이 '방장만 재생 제어'라 멈추고 옮기는 사람은
-   방장인 나(지우)다 — 광고의 "내가 멈추면 다 같이 멈춰요"와 맞는다. 움직임 줄이기 설정이면 친구 둘이 들어온 방을 멈춘 채 보인다. */
+   패널은 둘이다(HP-677) — 761px 이상은 익스텐션의 실제 화면을 구워 둔 것(ext/panel.html#hero, 아래 '실제 패널'), 휴대폰은 정리형 띠(.yp-in).
+   대본 하나가 둘을 함께 움직인다. 정리형 띠의 문구는 익스텐션 room.js 의 실제 문구다(내가 한 일은 '내가 잠시 멈췄어요').
+   멈추고 옮기는 사람은 방을 만든 나(지우)다 — 광고의 "내가 멈추면 다 같이 멈춰요"와 맞는다. 움직임 줄이기 설정이면 친구 둘이 들어온 방을 멈춘 채 보인다. */
 (function () {
   var STILL = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var el = document.querySelector('.ys');
@@ -94,6 +95,29 @@
   function tap(target) { restart(cur, 'tap'); if (target) { target.classList.add('press'); setTimeout(function () { target.classList.remove('press'); }, 160); } }
   function hideCursor() { cur.classList.remove('on'); }
 
+  /* ── 실제 패널(ext/panel.html#hero — 익스텐션 화면을 구워 둔 것, HP-677 · notes/ext-panel.md) ──
+     761px 이상에서는 정리형 띠(.yp-in) 대신 이 패널이 보인다. 패널은 구울 때의 시각표대로 스스로 장면을 넘기므로(방 만들기 1.7초 · 초대 복사 3.5초 ·
+     입장 4.5·5.9초 · 멈춤 7.95초 · 이동 9.75초 · 재생 10.9초 — scripts/ext-panel/harness.html SCRIPTS.hero), 여기서는 한 바퀴의 처음에 play() 만
+     부르고 아래 대본의 커서·영상이 같은 시각에 움직인다. 대본의 시각을 옮기면 하네스의 시각표도 옮기고 다시 굽는다.
+     aimP = 패널 안 단추 위로 커서 옮기기(패널이 안 보이거나 아직 못 받았으면 정리형 띠의 단추로). */
+  var fr = $('.hv-panel > .rxp');
+  function rx() { try { return fr && fr.contentWindow && fr.contentWindow.RX; } catch (_) { return null; } }
+  function P(fn) { var r = rx(); if (r) { try { fn(r); } catch (_) {} } }
+  function aimP(sel, fallback) {
+    var r = rx(), box = r && fr.offsetParent ? r.rect(sel) : null;
+    if (!box) { aim(fallback); return; }
+    var b = el.getBoundingClientRect(), f = fr.getBoundingClientRect(), k = parseFloat(fr.dataset.k) || 1;
+    cur.style.transform = 'translate(' + (f.left - b.left + (box.x + box.w * .5) * k) + 'px,' + (f.top - b.top + (box.y + box.h * .55) * k) + 'px)';
+    cur.classList.add('on');
+  }
+  function whenPanel(fn) {   // 패널이 준비되면(이미 됐으면 바로) 부른다 — 패널이 없거나(휴대폰) 끝내 안 오면 부르지 않는다
+    if (rx()) { fn(); return; }
+    window.addEventListener('message', function once(e) {
+      if (e.origin !== location.origin || !e.data || e.data.rxPanelReady !== 'hero') return;
+      window.removeEventListener('message', once); fn();
+    });
+  }
+
   /* ── 패널 동작 ── */
   function line(html, still) { feed.insertAdjacentHTML('beforeend', html); var n = feed.lastElementChild; if (still) n.classList.add('still'); while (feed.children.length > 12) feed.removeChild(feed.firstChild); return n; }
   function sys(kind, text, still) { return line('<span class="yp-sys">' + IC[kind] + text + '</span>', still); }
@@ -103,8 +127,9 @@
       '<div><b>' + n + (role ? '<small>' + role + '</small>' : '') + '</b><span class="' + (cls || '') + '">' + status + '</span></div></li>');
   }
   function setState(text, ok) { state.textContent = text; state.classList.toggle('ok', !!ok); }
+  function who(n) { return n === '지우' ? '내가 ' : n + '님이 '; }   // 익스텐션은 내 행동을 '내가 …'로 쓴다
   function showToast(t) { toast.textContent = t; restart(toast, 'on'); later(function () { toast.classList.remove('on'); }, 1500); }
-  function copied() { invite.classList.add('copied'); showToast('초대 링크를 복사했어요'); later(function () { invite.classList.remove('copied'); }, 2600); }
+  function copied() { invite.classList.add('copied'); showToast('링크를 복사했어요'); later(function () { invite.classList.remove('copied'); }, 2600); }
   function sync() {
     el.classList.add('syncing'); chip.textContent = '맞추는 중';
     restart(flash, 'go');
@@ -118,15 +143,15 @@
     f.style.left = (14 + Math.random() * 56) + '%'; f.style.bottom = (40 + Math.random() * 26) + 'px';
     floaters.appendChild(f); setTimeout(function () { f.remove(); }, 2700);
   }
-  function pauseBy(n) { paused = true; el.classList.add('is-paused'); if (vid) vid.pause(); flashNf(false); showCtl(0); sys('pause', n + '님이 잠시 멈췄어요'); }
-  function playBy(n) { paused = false; el.classList.remove('is-paused'); flashNf(true); showCtl(2200); vPlay(); sys('play', n + '님이 재생했어요'); }
+  function pauseBy(n) { paused = true; el.classList.add('is-paused'); if (vid) vid.pause(); flashNf(false); showCtl(0); sys('pause', who(n) + '잠시 멈췄어요'); }
+  function playBy(n) { paused = false; el.classList.remove('is-paused'); flashNf(true); showCtl(2200); vPlay(); sys('play', who(n) + '재생했어요'); }
   function seekTo(sec, n) {
     el.classList.add('seeking');
     clock = sec; setClock();
     vSeek(V_SEEK);
     var at = mmss(sec);
     later(function () { el.classList.remove('seeking'); hidePreview(); }, 600);
-    sys('seek', n + '님이 ' + at + ro(at) + ' 이동했어요');
+    sys('seek', who(n) + at + ro(at) + ' 이동했어요');
   }
 
   function toLobby() {
@@ -159,6 +184,7 @@
 
   /* 움직임 줄이기 — 친구 둘이 들어와 함께 보는 중인 방을 멈춘 채 보인다 */
   if (STILL) {
+    whenPanel(function () { P(function (r) { r.still(); }); });
     setShut(false, true);
     el.classList.add('no-anim'); toLobby(); toRoom(true);
     mate('민지', '', '보는 중', '', true); mate('현우', '', '보는 중', '', true);
@@ -171,32 +197,37 @@
   }
 
   var seekX = .523;   // 진행 막대에서 누를 곳 — 32:30 이 그려지는 자리(60% − 22초 × 0.35%)와 맞춰, 누른 곳으로 손잡이가 간다
-  run([
+  var steps = [
     // 패널이 닫힌 넷플릭스 화면으로 시작해 0.35초에 패널이 열린다(첫 사건은 0.3~0.4초 — 광고 방문자의 첫 화면 체류 중앙값 1.3초). 커서는 열린 뒤에 나온다
-    [0, function () { toLobby(); setShut(true, true); aim(stage, .72, .52, true); hideCursor(); }],
+    [0, function () { toLobby(); P(function (r) { r.play(); }); setShut(true, true); aim(stage, .72, .52, true); hideCursor(); }],
     [350, function () { setShut(false); }],
-    [1050, function () { aim(make); }],
-    [1600, function () { tap(make); }],
-    [1750, function () { toRoom(false); }],
-    [2350, function () { aim(invite); }],
-    [2900, function () { tap(invite); copied(); }],
-    [3450, function () { hideCursor(); }],
-    [3750, function () { join('민지'); }],
-    [4450, function () { say('민지', '오 바로 같은 장면이네'); }],
-    [5050, function () { join('현우'); }],
-    [5750, function () { say('현우', '3, 2, 1 안 해도 됨 ㅋㅋ'); }],
-    [6050, function () { react('😂'); }],
-    [6550, function () { aim(stage, .5, .45); }],
-    [7100, function () { tap(); pauseBy('지우'); }],
-    [7750, function () { say('민지', '잠깐 이 장면 다시 보자'); }],
-    [8350, function () { aim(track, seekX, .5); showPreview(seekX, '32:30'); }],
-    [8900, function () { tap(); seekTo(1950, '지우'); }],
-    [9550, function () { aim(stage, .5, .45); }],
-    [10050, function () { tap(); playBy('지우'); }],
-    [10550, function () { hideCursor(); say('현우', '여기 진짜 명장면'); }],
-    [10850, function () { react('❤️'); }],
-    [11450, function () { say('지우', '다음 화도 같이 보자'); }],
-    [11850, function () { react('🔥'); }],
-    [12900, function () { setShut(true); }]   // 한 바퀴 끝에 다시 닫혀 처음(넷플릭스 화면)으로 이어진다
-  ], 13900);
+    [1100, function () { aimP('#rx-room-create', make); }],
+    [1700, function () { tap(make); }],
+    [1850, function () { toRoom(false); }],
+    [2900, function () { aimP('#rx-room-invite-copy', invite); }],
+    [3500, function () { tap(invite); copied(); }],
+    [4100, function () { hideCursor(); }],
+    [4500, function () { join('민지'); }],
+    [5200, function () { say('민지', '오 바로 같은 장면이네'); }],
+    [5900, function () { join('현우'); }],
+    [6600, function () { say('현우', '3, 2, 1 안 해도 됨 ㅋㅋ'); }],
+    [6900, function () { react('😂'); }],
+    [7400, function () { aim(stage, .5, .45); }],
+    [7950, function () { tap(); pauseBy('지우'); }],
+    [8600, function () { say('민지', '잠깐 이 장면 다시 보자'); }],
+    [9200, function () { aim(track, seekX, .5); showPreview(seekX, '32:30'); }],
+    [9750, function () { tap(); seekTo(1950, '지우'); }],
+    [10400, function () { aim(stage, .5, .45); }],
+    [10900, function () { tap(); playBy('지우'); }],
+    [11400, function () { hideCursor(); say('현우', '여기 진짜 명장면'); }],
+    [11700, function () { react('❤️'); }],
+    [12300, function () { say('지우', '다음 화도 같이 보자'); }],
+    [12700, function () { react('🔥'); }],
+    [13700, function () { setShut(true); }]   // 한 바퀴 끝에 다시 닫혀 처음(넷플릭스 화면)으로 이어진다
+  ];
+  // 실제 패널이 보이는 화면(761px 이상)에서는 패널이 준비된 뒤에 시작한다 — 먼저 돌면 패널이 대본의 중간부터 따라온다.
+  // 패널을 끝내 못 받아도 1.5초 뒤에는 시작한다(그때는 패널이 다음 바퀴부터 맞는다). 휴대폰(정리형 띠)은 바로 시작한다.
+  var began = false;
+  function begin() { if (began) return; began = true; run(steps, 14700); }
+  if (!fr || !fr.offsetParent) begin(); else { whenPanel(begin); setTimeout(begin, 1500); }
 })();
