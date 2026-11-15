@@ -29,7 +29,18 @@
     discord: { me: 4, host: 1, title: '밤의 정원', season: 2, ep: 1, start: 1210, dur: 3010, people: [[1, '지혜'], [2, '수민'], [3, '현우'], [4, '민지']], room: true },
     solo:    { me: 9, host: 9, title: '밤의 정원', season: 1, ep: 3, start: 1935, dur: 2892, people: [[9, '나']], room: false, side: 'chat' },
     live:    { me: 9, host: 9, title: '밤의 정원', season: 1, ep: 3, start: 1935, dur: 2892, people: [[9, '나']], room: false, side: 'chat' },
+    // 스트리머 방(HP-876) — 스트리머(루나) 쪽 화면과 참여자(모카) 쪽 화면. 참여자는 CROWD 로 채운다
+    streamer:     { me: 1, host: 1, stream: true, title: '밤의 정원', season: 1, ep: 3, start: 1972, dur: 2892, people: [[1, '루나']], crowd: 85, room: true },
+    streamermenu: { me: 1, host: 1, stream: true, title: '밤의 정원', season: 1, ep: 3, start: 1972, dur: 2892, people: [[1, '루나']], crowd: 85, room: true },
+    streamset:    { me: 1, host: 1, stream: true, title: '밤의 정원', season: 1, ep: 3, start: 1972, dur: 2892, people: [[1, '루나']], crowd: 85, room: true },
+    viewer:       { me: 2, host: 1, stream: true, title: '밤의 정원', season: 1, ep: 3, start: 1972, dur: 2892, people: [[1, '루나'], [2, '모카']], crowd: 84, room: true },
+    streamlobby:  { me: 1, host: 1, title: '밤의 정원', season: 1, ep: 3, start: 1972, dur: 2892, people: [[1, '루나']], room: false },
+    streamerlive: { me: 1, host: 1, stream: true, chat: true, title: '밤의 정원', season: 1, ep: 3, start: 1972, dur: 2892, people: [[1, '루나']], crowd: 85, room: true },
+    viewerlive:   { me: 2, host: 1, stream: true, chat: true, title: '밤의 정원', season: 1, ep: 3, start: 1972, dur: 2892, people: [[1, '루나'], [2, '모카']], crowd: 84, room: true },
+    viewerdelay:  { me: 2, host: 1, stream: true, title: '밤의 정원', season: 1, ep: 3, start: 1972, dur: 2892, people: [[1, '루나'], [2, '모카']], crowd: 84, room: true },
   }[SCENE];
+  const CROWD = ['단풍', '별사탕', '초코우유', '새벽감성', '고양이발', '라떼한잔', '밤하늘', '솜사탕', '여름비', '달토끼', '유자차', '민트초코', '구름빵', '하품', '노을'];
+  for (let i = 0; i < (CFG.crowd || 0); i++) CFG.people.push([100 + i, CROWD[i % CROWD.length] + (i >= CROWD.length ? Math.floor(i / CROWD.length) + 1 : '')]);
   const NAME = Object.fromEntries(CFG.people);
   window.__canon = { time: CFG.start, playing: true, at: Date.now(), seq: 1 };
   window.__now = () => window.__canon.playing ? window.__canon.time + (Date.now() - window.__canon.at) / 1000 : window.__canon.time;
@@ -78,11 +89,12 @@ window.__ready = (async function () {
 
   const EP = { contentId: 1, contentTitle: CFG.title, seasonNumber: CFG.season, episodeNumber: CFG.ep, platform: 'netflix', platformEpisodeId: '222' };
   const m = (userId, displayName, online) => ({ userId, displayName, profileImageUrl: null, online });
-  const state = { hostUserId: CFG.host, controllerUserId: null, kind: 'BASIC', controlMode: 'ALL', streamMode: false, chatOpen: false,
+  const STREAM = !!CFG.stream;
+  const state = { hostUserId: CFG.host, controllerUserId: STREAM ? CFG.host : null, kind: 'BASIC', controlMode: STREAM ? 'HOST_ONLY' : 'ALL', streamMode: STREAM, chatOpen: !!CFG.chat,
     members: (SCENE === 'hero' ? CFG.people.slice(0, 1) : SCENE === 'discord' ? CFG.people : CFG.people).map((p) => m(p[0], p[1], true)) };
   const json = (o, status = 200) => ({ ok: status < 400, status, json: async () => o, text: async () => JSON.stringify(o) });
   const membersRes = () => ({ roomId: 'r1', members: state.members, hostAbsent: false, hostUserId: state.hostUserId, kind: state.kind,
-    controlMode: state.controlMode, controllerUserId: null, streamMode: false, chatOpen: false });
+    controlMode: state.controlMode, controllerUserId: state.controllerUserId, streamMode: state.streamMode, chatOpen: state.chatOpen });
   // 공개 채팅(커뮤니티) 기록 — 이 장면을 먼저 본 사람들의 글
   const PUBLIC = [
     [1900, 21, '민지', '소름 돋았다 진짜', 3], [1912, 22, '준호', '이 복선 아까부터 느꼈어', 0], [1921, 23, '하은', '와 여기서 터지는 거였어?!', 5],
@@ -99,6 +111,8 @@ window.__ready = (async function () {
     if (/\/playback$/.test(path)) { const c = window.__canon; return json({ episodeId: 202, time: c.time, playing: c.playing, pauseReason: null, updatedBy: CFG.host, updatedAtMs: c.at, seq: c.seq, adWaiting: 0, adWatcherIds: [], platformEpisodeId: '222', contentVersion: 0, episode: EP }); }
     if (/\/rooms$/.test(path) && method === 'POST') { window.__canon = { time: window.__now(), playing: true, at: Date.now(), seq: 1 };
       return json({ roomId: 'r1', episodeId: 202, platformEpisodeId: '222', hostUserId: CFG.me, contentVersion: 0, inviteToken: 'tk-r1', controlMode: (body && body.controlMode) || 'ALL', kind: 'BASIC', streamMode: false, chatOpen: false, navIntent: false, episode: EP }); }
+    if (/\/stream-overlay$/.test(path)) return json({ token: 'tk-overlay' });
+    if (/\/chat-open$/.test(path)) { state.chatOpen = !!(body && body.open); return json(membersRes()); }
     if (/\/rooms\/mine$/.test(path)) return json({ limit: null, keptLimit: 3, rooms: CFG.room ? [{ roomId: 'r1', inviteToken: 'tk-r1', hostUserId: CFG.host, memberCount: state.members.length, onlineCount: state.members.length, kind: 'BASIC', owned: CFG.me === CFG.host, evictAt: null, lastActiveAt: new Date().toISOString(), members: state.members, episode: EP }] : [] });
     return json(method === 'GET' ? {} : membersRes(), method === 'DELETE' ? 204 : 200);
   };
@@ -128,7 +142,7 @@ window.__ready = (async function () {
     read: () => ({ time: window.__now(), inAd: false }) });
   ReplixChat.init(deps); ReplixReport.init(deps); ReplixRoom.init(deps);
   ReplixScenes.init({ root, isGroupMode: () => ReplixRoom.isGroupMode(), getCurrentTime: () => window.__now(), nextChatAfter: () => null, seekTo() {}, isFollowing: () => true, realign() {} });
-  if (CFG.room) ReplixRoom.enterRoom({ roomId: 'r1', hostUserId: CFG.host, controllerUserId: null, kind: 'BASIC', controlMode: 'ALL', streamMode: false, chatOpen: false,
+  if (CFG.room) ReplixRoom.enterRoom({ roomId: 'r1', hostUserId: CFG.host, controllerUserId: state.controllerUserId, kind: 'BASIC', controlMode: state.controlMode, streamMode: STREAM, chatOpen: !!CFG.chat,
     episodeId: 202, contentId: 1, contentVersion: 0, inviteToken: 'tk-r1', platformEpisodeId: '222', episode: EP });
 
   const topic = (suffix) => subs.filter((s) => s.topic.endsWith(suffix)).at(-1);
@@ -171,6 +185,16 @@ window.__ready = (async function () {
     ] },
     discord: { len: 2600, keep: 'last', acts: [[700, () => window.__poll()], [1000, () => RX.say(2, '수민', '딱 맞춰 왔네 👋')]] },
     solo: { len: 1800, keep: 'last', acts: [] },
+    streamer: { len: 2600, keep: 'last', acts: [[600, () => window.__poll()]] },
+    streamermenu: { len: 3000, keep: 'last', acts: [[600, () => window.__poll()], [1500, () => RX.click('#rx-room-more')]] },
+    streamset: { len: 3400, keep: 'last', acts: [[600, () => window.__poll()], [1400, () => RX.click('#rx-room-more')], [1900, () => RX.click('#rx-room-menu-settings')]] },
+    streamlobby: { len: 2200, keep: 'last', acts: [[900, () => RX.click('#rx-lob-stream')]] },
+    streamerlive: { len: 4200, keep: 'last', acts: [[600, () => window.__poll()], [1200, () => RX.say(100, '단풍', '오 자동으로 맞춰지네')], [1600, () => RX.say(103, '새벽감성', '타이머 안 봐도 돼서 편하다')],
+      [2000, () => RX.pause(1)], [2700, () => RX.say(101, '별사탕', '화장실 타임 ㅋㅋ')], [3100, () => RX.play(1)], [3500, () => RX.say(1, '루나', '다 들어왔지? 이어서 볼게')]] },
+    viewerlive: { len: 4200, keep: 'last', acts: [[600, () => window.__poll()], [1200, () => RX.say(100, '단풍', '오 자동으로 맞춰지네')], [1600, () => RX.say(2, '모카', '방금 들어왔는데 바로 같은 장면이야')],
+      [2000, () => RX.pause(1)], [2700, () => RX.say(101, '별사탕', '화장실 타임 ㅋㅋ')], [3100, () => RX.play(1)], [3500, () => RX.say(1, '루나', '다 들어왔지? 이어서 볼게')]] },
+    viewer: { len: 2600, keep: 'last', acts: [[600, () => window.__poll()]] },
+    viewerdelay: { len: 3200, keep: 'last', acts: [[600, () => window.__poll()], [1500, () => RX.click('#rx-room-delay-chip')], [2100, () => RX.click('[data-delay-step=\"0.5\"]')], [2300, () => RX.click('[data-delay-step=\"0.5\"]')], [2500, () => RX.click('[data-delay-step=\"0.1\"]')]] },
     live: { len: 6500, keep: 'all', acts: [
       [1400, () => RX.live('서윤', 31, '지금 이 장면 보는 사람 있어?')],
       [2900, () => RX.live('수민', 32, '나! 방금 소리 지름 ㅋㅋ')],

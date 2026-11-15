@@ -36,6 +36,10 @@ const SCENES = [
   { name: 'discord', w: 300, h: 429 },
   { name: 'solo', w: 360, h: 424 },
   { name: 'live', w: 360, h: 530, loop: 11000 },
+  // 스트리머 방(HP-876)
+  { name: 'streamlobby', w: 360, h: 560 }, { name: 'streamer', w: 360, h: 560 }, { name: 'streamerlive', w: 360, h: 560 },
+  { name: 'streamermenu', w: 360, h: 560 }, { name: 'streamset', w: 360, h: 660 },
+  { name: 'viewer', w: 360, h: 560 }, { name: 'viewerlive', w: 360, h: 560 }, { name: 'viewerdelay', w: 360, h: 560 },
 ];
 
 const version = JSON.parse(readFileSync(join(EXT, 'manifest.json'), 'utf8')).version;
