@@ -82,8 +82,10 @@
   <link rel="stylesheet" href="css/close-footer.css">
   <!-- 친구랑 같이 보기·디스코드 휴대폰 높이·혼자 볼 때 머리말·따라오는 설치 버튼 — HP-664 -->
   <link rel="stylesheet" href="css/friends.css">
-  <!-- 첫 화면(#top) 재생 화면 연출 — HP-662. 스타일 = css/top.css, 연출 = js/top.js(main.js 가 불러온다) -->
+  <!-- 첫 화면(#top) 재생 화면 연출 — HP-662. 스타일 = css/top.css, 연출 = js/top.js(아래에서 직접 부른다) -->
   <link rel="stylesheet" href="css/top.css">
+  <!-- 익스텐션 실제 화면(ext/panel.html)을 넣는 자리의 크기·틀(HP-677) -->
+  <link rel="stylesheet" href="css/ext-panel.css">
   <!-- 패널은 닫힌 넷플릭스 화면(.is-shut)에서 시작해 연출이 연다 — 스크립트가 없으면 열린 채로 둔다 -->
   <noscript><style>.ys.hx-screen.is-shut { --open: 1; }</style></noscript>
   <!-- 휴대폰 기기 표식(rx-mobile-device)을 첫 그림 전에 단다(HP-662). 문구를 바꿔 끼우는 이 표식(css/tokens.css .rx-mobile-only)을
@@ -120,6 +122,7 @@
   <!-- 첫 화면 연출은 HTML 만 부른다(HP-666). main.js 를 거치면 두 가지가 깨진다 — ① 배포 뒤 10분 안(GitHub Pages max-age=600)에
        새로고침한 방문자에게 새 HTML + 캐시에 남은 옛 main.js 가 섞여 연출이 아예 돌지 않는다(2026-10-17 실제로 일어남) ② top.js 를
        받지 못하면 main.js 묶음 전체(섹션 등장·FAQ·계측)가 함께 멈춘다. -->
+  <script src="js/ext-panels.js"></script>
   <script type="module" src="js/top.js"></script>
 </head>
 
@@ -147,10 +150,10 @@
 
 <!-- ─── 첫 화면 (HP-662, 2026-10-16 조현빈 결정) ──────────────────────
      광고('친구와 같이 보기')와 같은 말로 시작한다 — 1041px 이상은 왼쪽 제목·버튼, 오른쪽 재생 화면(그 아래는 위아래).
-     재생 화면은 넷플릭스 기본 플레이어 모양에 Replix 그룹방 패널이 열리는 한 바퀴(13.9초)를 연출한다: 패널이 닫힌 넷플릭스 화면 →
+     재생 화면은 넷플릭스 기본 플레이어 모양에 Replix 그룹방 패널이 열리는 한 바퀴(14.7초)를 연출한다: 패널이 닫힌 넷플릭스 화면 →
      패널 열림 → 이 회차로 방 만들기 → 초대 링크 복사 → 친구 둘 입장 → 내가 멈춤 → 32:30 으로 옮김 → 재생 → 패널 닫힘.
      작품 '밤의 정원'은 가상이고 영상은 Pexels 무료 영상이다 — 넷플릭스·실제 작품 화면이 아니다(출처 = notes/hero-scene.md).
-     패널 문구는 익스텐션 새 그룹방(HP-655·656)의 실제 문구다. 휴대폰 기기면 버튼이 'PC로 설치 링크 보내기'로 바뀌고
+     패널은 761px 이상에서 익스텐션의 실제 화면을 구워 둔 것이다(HP-677, notes/ext-panel.md — 휴대폰은 정리형 띠). 휴대폰 기기면 버튼이 'PC로 설치 링크 보내기'로 바뀌고
      js/install-guide.js 가 안내 시트를 띄운다. 스타일 = css/top.css, 연출 = js/top.js -->
 <section class="hv hv-split" id="top">
   <div class="hv-glow" aria-hidden="true"></div>
@@ -174,6 +177,7 @@
           <div class="ys-sub" aria-hidden="true"></div>
           <div class="floaters" aria-hidden="true"></div>
           <div class="hx-flash" aria-hidden="true"></div>
+          <span class="rxh rxh-l" aria-hidden="true">인기 장면</span><span class="rxh rxh-r" aria-hidden="true">Replix</span>
           <div class="nf-flash" aria-hidden="true"><svg class="fz" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg><svg class="fp" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg></div>
           <div class="nf-top" aria-hidden="true"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4h11.5l-2 3.8 2 3.7H6"/></svg></div>
           <div class="nf-preview" aria-hidden="true"><img src="assets/scene/firefly-thumb.jpg" alt="" width="120" height="68"><span>32:30</span></div>
@@ -182,30 +186,25 @@
             <div class="nf-row"><span class="nf-l"><svg class="nf-pp ic-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg><svg class="nf-pp ic-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5a7.5 7.5 0 1 1-7.1 5.1"/><path d="M4.4 3.6v5.3h5.3"/><text x="12" y="15.4" font-size="7.2" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">10</text></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5a7.5 7.5 0 1 0 7.1 5.1"/><path d="M19.6 3.6v5.3h-5.3"/><text x="12" y="15.4" font-size="7.2" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">10</text></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></span><span class="nf-title"><b>밤의 정원</b> 3화<em>밤에만 피는 꽃</em></span><span class="nf-r"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 5l9 7-9 7z" fill="currentColor"/><path d="M17.5 5v14"/></svg><svg class="nf-hide-s" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="9" width="13" height="10" rx="1.2"/><path d="M7 5.5h13.5v10"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5h16v11.5H9.5L5 19.5v-3.5H4z"/><path d="M8 9h8M8 12.2h5"/></svg><svg class="nf-hide-s" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15.5a8 8 0 1 1 16 0"/><path d="M12 15.5l4.2-5"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></span></div>
           </div>
         </div>
-        <aside class="hv-panel" aria-hidden="true"><div class="yp-in">
-          <div class="yp-top"><span class="yp-mark">REPLIX</span><span class="yp-icons" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.3 3.2-5 6.5-5s5.8 1.7 6.5 5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 15c1.6.6 2.7 2.2 3 5"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></span></div>
+        <!-- 패널 — 761px 이상은 익스텐션의 실제 화면(ext/panel.html#hero — 익스텐션을 구워 둔 것, notes/ext-panel.md), 휴대폰(760px 이하)은 아래 정리형 띠(.yp-in).
+             연출(js/top.js)이 둘을 같은 대본으로 함께 움직인다. 정리형 띠에는 휴대폰에 보이는 것만 둔다(HP-677 — 익스텐션 1.6.0 에서 없어진
+             로고 글자표·활동 기록 단추·재생 제어 옵션을 뺐다). -->
+        <aside class="hv-panel rxfit" data-fit="hero" aria-hidden="true"><iframe class="rxp" data-src="ext/panel.html#hero" title="Replix 익스텐션 화면 예시" tabindex="-1" aria-hidden="true" scrolling="no"></iframe><div class="yp-in">
           <div class="yp-body">
             <section class="yp-lobby">
-              <div class="yp-nav"><i>‹</i>그룹방</div>
-              <!-- 만들기 영역 — 익스텐션 시작 화면과 같이 버튼과 옵션이 붉은 기가 도는 면 하나에 있다(HP-665 5차 시안 C, 2026-10-17 조현빈) -->
               <div class="yp-create">
               <div class="yp-hero">
                 <div class="yp-hero-row"><span class="yp-pair"><i class="yp-av" data-who="지우">지</i><i class="yp-plus">+</i></span><div><b>친구와 같이 보기</b><span>밤의 정원 3화</span></div></div>
-                <p>초대한 친구끼리 같은 화면을 보며 이야기해요.</p>
                 <button class="yp-make" type="button" tabindex="-1">이 회차로 방 만들기</button>
               </div>
-              <div class="yp-opt"><div><b>재생 제어</b><span>재생 위치를 조작해요</span></div><span class="yp-seg"><i class="on">나만</i><i>모두</i></span></div>
-              <div class="yp-opt"><div><b>목록에 남겨 두기</b><span>모두 나가도 방이 목록에 남고 대화가 유지돼요</span></div><span class="yp-toggle"></span></div>
               </div>
             </section>
             <section class="yp-room">
               <div class="yp-bar">
-                <div class="yp-bar-top"><span class="yp-back">‹</span><div class="yp-name"><b>지우의 방</b><span class="yp-meta">3화<i></i><em class="yp-state">혼자 보는 중</em></span></div><span class="yp-chip">맞추는 중</span><span class="yp-more">⋯</span></div>
+                <div class="yp-bar-top"><div class="yp-name"><b>지우의 방</b><span class="yp-meta">3화<i></i><em class="yp-state">혼자 보는 중</em></span></div><span class="yp-chip">맞추는 중</span></div>
                 <div class="yp-strip"><ul class="yp-mates"></ul><button class="yp-invite" type="button" tabindex="-1"><span class="pl">+</span><span class="cp">✓ 복사됨</span></button></div>
-                <div class="yp-ctl"><span>내가 재생을 제어해요</span><b>활동 기록</b></div>
               </div>
               <div class="yp-feed"></div>
-              <div class="yp-input"><span>방 사람들에게 메시지... (Enter)</span><i>☺</i></div>
             </section>
             <div class="yp-toast"></div>
           </div>
@@ -218,7 +217,7 @@
 <!-- ─── 친구랑 같이 보기 (HP-664, 2026-10-17 조현빈 결정) ─────────────────
      첫 화면 바로 아래에서 그룹방을 쓰는 법을 세 단계로 보여 주고, 설득이 끝나는 자리에 설치 버튼(계측 위치값 friends)을 둔다.
      3단계의 '누가 멈추거나 넘기면 모두의 화면이 함께 움직여요'는 옛 #rooms 그룹방 소개 문구 그대로다(HP-496 — 실제 기본값과
-     다른 걸 알고 고른 문구라 동작에 맞춰 고치지 않는다). 오른쪽 카드는 옛 #rooms 의 그룹방 카드(css/rooms.css)를 옮긴 것이고,
+     다른 걸 알고 고른 문구라 동작에 맞춰 고치지 않는다). 오른쪽 카드는 익스텐션 그룹방 창의 실제 화면이고(HP-677 — 옛 #rooms 그룹방 카드를 바꿨다),
      휴대폰 폭에서는 숨긴다. 이 구성 이전의 랜딩(공개 채팅 중심)은 git 태그 landing-v1 에 있다(notes/docs.md). 스타일 = css/friends.css -->
 <section class="pad band-white gt" id="friends">
   <div class="wrap gt-grid">
@@ -254,37 +253,8 @@
       </div>
     </div>
     <figure class="gt-card reveal">
-          <div class="rm-card" role="img"
-               aria-label="그룹방 화면 예시: 지혜의 방에서 밤의 정원 3화를 재생을 맞춰 보는 중이다. 지혜, 수민, 현우가 들어와 있고, 지혜가 재생하고 현우가 잠시 멈추는 사이 대화가 이어진다.">
-            <div class="rm-rhead">
-              <svg class="rm-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
-              <div class="rm-rname"><b>지혜의 방</b><span>밤의 정원 3화</span></div>
-              <span class="rm-sync"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>재생 맞춤</span>
-            </div>
-            <div class="rm-crew">
-              <span class="rm-mate"><i class="rm-av" style="--bg:hsl(262 45% 88%); --fg:hsl(262 35% 34%)">지</i>지혜</span>
-              <span class="rm-mate"><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i>수민</span>
-              <span class="rm-mate"><i class="rm-av" style="--bg:hsl(168 45% 86%); --fg:hsl(168 40% 26%)">현</i>현우</span>
-              <span class="rm-invite">
-                <svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>초대 링크
-              </span>
-            </div>
-            <div class="rm-msgs">
-              <span class="rm-sys"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg>지혜님이 재생했어요</span>
-              <div class="rm-them">
-                <i class="rm-av" style="--bg:hsl(262 45% 88%); --fg:hsl(262 35% 34%)">지</i>
-                <div><b>지혜</b><p class="rm-bub">여기 다시 보자</p></div>
-              </div>
-              <div class="rm-them">
-                <i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i>
-                <div><b>수민</b><p class="rm-bub">방금 그 표정 봤어? 소름 돋았어</p><span class="rm-react">❤️ 2</span></div>
-              </div>
-              <span class="rm-sys"><svg viewBox="0 0 24 24"><path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z"/></svg>현우님이 잠시 멈췄어요</span>
-              <p class="rm-mine">다음 화는 주말에 같이 보자</p>
-              <span class="rm-mono rm-stamp">32:47</span>
-            </div>
-            <div class="rm-input">그룹방에 메시지 보내기 (Enter)</div>
-          </div>
+          <!-- 그룹방 창 — 익스텐션의 실제 화면(라이트 테마)을 구워 둔 것(HP-677, notes/ext-panel.md) -->
+          <div class="rxcard rxfit" data-w="360" role="img" aria-label="그룹방 화면 예시: 지혜의 방에서 밤의 정원 3화를 함께 보는 중이다. 지혜, 수민, 현우가 들어와 있고, 대화 사이에 누가 멈추고 다시 재생했는지가 남는다."><iframe class="rxp" data-src="ext/panel.html#friends" title="Replix 익스텐션 화면 예시" tabindex="-1" aria-hidden="true" scrolling="no" loading="lazy"></iframe></div>
     </figure>
   </div>
 </section>
@@ -356,14 +326,8 @@
             <div class="xt-bar"><span class="xt-dots"><i></i><i></i><i></i></span><span class="xt-tab">밤의 정원 시즌2 1화</span></div>
             <div class="xt-body">
               <div class="xt-video"><div class="rm-night"><i class="rm-moon"></i><svg class="rm-ridge rm-ridge--far" viewBox="0 0 400 120" preserveAspectRatio="none"><path d="M0 64 L52 40 L110 56 L170 22 L238 50 L300 30 L360 48 L400 36 L400 120 L0 120 Z"/></svg><svg class="rm-ridge rm-ridge--near" viewBox="0 0 400 80" preserveAspectRatio="none"><path d="M0 40 L70 28 L140 40 L220 20 L300 36 L400 24 L400 80 L0 80 Z"/></svg></div><span class="xt-title">밤의 정원 시즌2 1화</span><span class="rm-bar"><i class="dx-play"></i></span></div>
-              <div class="xt-panel dx-room">
-                <div class="xt-phead"><img src="/assets/logo/replix-horizontal-light.png" alt=""></div>
-                <div class="rm-rhead"><div class="rm-rname"><b>지혜의 방</b><span>밤의 정원 시즌2 1화</span></div><span class="rm-sync"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>재생 맞춤</span></div>
-                <div class="dx-crew"><span class="dx-faces"><i class="rm-av" style="--bg:hsl(262 45% 88%); --fg:hsl(262 35% 34%)">지</i><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i><i class="rm-av" style="--bg:hsl(168 45% 86%); --fg:hsl(168 40% 26%)">현</i><span class="dx-new"><i class="rm-av" style="--bg:hsl(330 45% 90%); --fg:hsl(330 35% 36%)">민</i></span></span>4명이 함께 보는 중</div>
-                <div class="rm-msgs">
-                  <span class="rm-sys dx-sysline"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg>민지님이 들어왔어요</span>
-                  <div class="rm-them dx-bubble"><i class="rm-av" style="--bg:hsl(18 45% 88%); --fg:hsl(18 40% 32%)">수</i><div><b>수민</b><p class="rm-bub">딱 맞춰 왔네 👋</p></div></div>
-                </div>
+              <!-- 패널 — 익스텐션의 실제 화면(폭 300px 로 구운 것)을 줄여 넣는다(HP-677) -->
+              <div class="xt-panel rxfit" data-w="300"><iframe class="rxp" data-src="ext/panel.html#discord" title="Replix 익스텐션 화면 예시" tabindex="-1" aria-hidden="true" scrolling="no" loading="lazy"></iframe>
               </div>
             </div>
           </div>
@@ -480,42 +444,8 @@
   <div class="wrap">
 
     <div class="how-row reveal">
-      <div class="how-panel how-panel--solo">
-        <div class="panel-head">
-          <img class="panel-logo" src="assets/logo/replix-horizontal-dark.png" alt="Replix" height="20">
-          <span class="ep-chip" style="margin-left:auto">3화</span>
-        </div>
-        <div class="how-sub">
-          <svg class="solo-ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M5 20c.8-3.2 3.6-5 7-5s6.2 1.8 7 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <span>지금은 나 혼자 보는 중 · 32:15</span>
-        </div>
-        <div class="panel-feed">
-          <div class="msg">
-            <span class="av" style="background:#4e5a9e">민</span>
-            <div class="msg-body">
-              <span class="msg-name">민지</span><span class="msg-time">3일 전</span>
-              <div class="msg-text">소름 돋았다 진짜</div>
-            </div>
-          </div>
-          <div class="msg">
-            <span class="av" style="background:#9e6a4e">준</span>
-            <div class="msg-body">
-              <span class="msg-name">준호</span><span class="msg-time">어제</span>
-              <div class="msg-text">이 복선 아까부터 느꼈어</div>
-            </div>
-          </div>
-          <div class="msg">
-            <span class="av" style="background:#2daa6e">하</span>
-            <div class="msg-body">
-              <span class="msg-name">하은</span><span class="msg-time">방금</span>
-              <div class="msg-text">와 여기서 터지는 거였어?!</div>
-            </div>
-          </div>
-        </div>
-        <div class="panel-input">
-          <span>지금 이 장면에 반응을 남겨보세요</span><span class="caret"></span>
-        </div>
-      </div>
+      <!-- 커뮤니티 칸 — 익스텐션의 실제 화면을 구워 둔 것(HP-677, notes/ext-panel.md) -->
+      <div class="how-panel how-panel--solo rxfit rxhow" data-w="360" style="--rxh:400px" role="img" aria-label="커뮤니티 화면 예시: 이 장면을 먼저 본 사람들이 남긴 채팅이 장면 시각과 함께 보인다."><iframe class="rxp" data-src="ext/panel.html#solo" title="Replix 익스텐션 화면 예시" tabindex="-1" aria-hidden="true" scrolling="no" loading="lazy"></iframe></div>
 
       <div class="how-copy">
         <span class="rm-eyebrow">혼자 볼 때</span>
@@ -526,63 +456,12 @@
     </div>
 
     <div class="how-row how-row--reverse reveal">
-      <div class="how-panel how-panel--live">
-        <div class="panel-head">
-          <img class="panel-logo" src="assets/logo/replix-horizontal-dark.png" alt="Replix" height="20">
-          <span class="ep-chip" style="margin-left:auto">3화</span>
-        </div>
-        <div class="how-sub">
-          <span class="dot-live"></span>
-          <span><b class="num" style="color:var(--s-text)">12</b>명 함께 시청 중</span>
-          <span class="how-crowd" aria-hidden="true">
-            <i style="background:#d4594e">서</i><i style="background:#7c5cbf">수</i><i style="background:#3b8fd4">유</i><i class="how-crowd-more">+9</i>
-          </span>
-        </div>
-        <div class="panel-feed">
-          <div class="msg">
-            <span class="av" style="background:#4e5a9e">민</span>
-            <div class="msg-body">
-              <span class="msg-name">민지</span><span class="msg-time">3일 전</span>
-              <div class="msg-text">소름 돋았다 진짜</div>
-            </div>
-          </div>
-          <div class="msg how-live-row how-arrive" style="--d:.4s">
-            <span class="av" style="background:#d4594e">서</span>
-            <div class="msg-body">
-              <span class="msg-name">서윤</span><span class="how-live-badge"><i></i>LIVE</span>
-              <div class="msg-text">지금 이 장면 보는 사람 있어?</div>
-            </div>
-          </div>
-          <div class="msg">
-            <span class="av" style="background:#9e6a4e">준</span>
-            <div class="msg-body">
-              <span class="msg-name">준호</span><span class="msg-time">어제</span>
-              <div class="msg-text">이 복선 아까부터 느꼈어</div>
-            </div>
-          </div>
-          <div class="msg msg--reply how-live-row how-arrive" style="--d:1.5s">
-            <span class="av" style="background:#7c5cbf">수</span>
-            <div class="msg-body">
-              <span class="msg-name">수민</span><span class="how-live-badge"><i></i>LIVE</span>
-              <div class="msg-text">나! 방금 소리 지름 ㅋㅋ</div>
-            </div>
-          </div>
-          <div class="msg msg--reply how-live-row how-arrive" style="--d:2.6s">
-            <span class="av" style="background:#d4594e">서</span>
-            <div class="msg-body">
-              <span class="msg-name">서윤</span><span class="how-live-badge"><i></i>LIVE</span>
-              <div class="msg-text">ㅋㅋㅋ 나만 놀란 게 아니었네</div>
-            </div>
-          </div>
-        </div>
+      <div class="how-panel how-panel--live rxfit rxhow" data-w="360" style="--rxh:500px" role="img" aria-label="커뮤니티 화면 예시: 같은 장면을 보고 있는 사람들의 채팅이 방금 남김 표시와 함께 실시간으로 들어온다."><iframe class="rxp" data-src="ext/panel.html#live" title="Replix 익스텐션 화면 예시" tabindex="-1" aria-hidden="true" scrolling="no" loading="lazy"></iframe>
         <div class="how-floats" aria-hidden="true">
           <i style="--fd:.5s">❤️</i>
           <i style="--fd:1.8s">🔥</i>
           <i style="--fd:3.2s">😂</i>
           <i style="--fd:4.6s">❤️</i>
-        </div>
-        <div class="panel-input">
-          <span>지금 이 장면에 반응을 남겨보세요</span><span class="caret"></span>
         </div>
       </div>
 

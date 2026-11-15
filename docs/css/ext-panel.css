@@ -1,0 +1,36 @@
+/* ═══ 익스텐션 실제 화면을 넣는 자리(HP-677, 2026-11-16 조현빈 결정) ═══════════════════════════════
+   랜딩의 익스텐션 화면은 손으로 그린 모형이 아니라 익스텐션의 실제 화면을 구워 둔 것이다(ext/panel.html — notes/ext-panel.md).
+   패널은 구운 크기(대개 폭 360px)로 그리고 자리(.rxfit)의 폭에 맞춰 통째로 줄인다 — 비율 --k 와 높이는 js/ext-panels.js 가 잰다.
+   패널은 누를 수 없는 그림이다(pointer-events: none). 설명은 자리의 aria-label 이 한다. */
+.rxp { display: block; border: 0; width: 360px; height: 560px; transform-origin: 0 0; transform: scale(var(--k, 1));
+  background: transparent; pointer-events: none; }
+.rxfit { overflow: hidden; }
+
+/* 첫 화면(#top) — 761px 이상은 실제 패널, 휴대폰(760px 이하)은 정리형 띠(.yp-in, css/top.css) */
+.hv-panel > .rxp { display: none; }
+@media (min-width: 761px) {
+  .hv-panel > .yp-in { display: none; }
+  .hv-panel > .rxp { display: block; }
+  .hv-panel { background: #0b0b0f; }
+}
+/* 가장자리 손잡이 — 넷플릭스 조작 막대가 뜰 때 함께 보인다(익스텐션 #replix-live-tab · #replix-tab 의 모양을 화면 비율만큼 줄인 것).
+   익스텐션에서도 조작 막대가 사라지면 손잡이가 함께 사라진다. 휴대폰 화면에는 자리가 없어 뺀다. */
+.rxh { position: absolute; z-index: 6; top: 13%; writing-mode: vertical-lr; font: 800 9.5px/1 var(--sans); letter-spacing: .04em;
+  padding: 9px 5px; color: #fff; opacity: 0; transition: opacity .3s var(--ease); pointer-events: none; }
+.rxh-r { right: 0; border-radius: 6px 0 0 6px; background: linear-gradient(160deg, #e50914, #a3060f); }
+.rxh-l { left: 0; border-radius: 0 6px 6px 0; background: rgba(24, 24, 30, .88); color: #d6d6dc; font-weight: 700; letter-spacing: .12em; }
+.nf.nf-on .rxh { opacity: 1; }
+@media (max-width: 760px) { .rxh { display: none; } }
+
+/* 친구랑 같이 보기(#friends) — 그룹방 창(라이트 테마). 760px 이하에서는 카드째 숨는다(css/friends.css) */
+.rxcard { width: 360px; height: 560px; margin-inline: auto; border-radius: 20px; border: 1px solid rgba(16, 16, 24, .1);
+  box-shadow: 0 1px 2px rgba(16, 16, 24, .05), 0 28px 56px -32px rgba(16, 16, 24, .28); background: #fff; }
+@media (min-width: 1041px) { .gt-card { display: grid; place-items: center; } }
+
+/* 디스코드(#discord) — 크롬 창 속 패널. 칸 폭(210px)이 좁아 패널을 폭 300px 로 구워 줄여 넣는다(360px 로 구우면 글자가 6px 대가 된다) */
+.xt-panel.rxfit { display: block; background: #fff; }
+
+/* 혼자 볼 때(#how) — 커뮤니티 칸 두 장 */
+.how-panel.rxhow { width: 340px; height: var(--rxh, 420px); background: #0b0b0f; }
+.how-panel.rxhow .how-floats { z-index: 2; }
+@media (max-width: 480px) { .how-panel.rxhow { width: 300px; } }

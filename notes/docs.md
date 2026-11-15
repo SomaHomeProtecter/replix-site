@@ -34,7 +34,8 @@ python3 -m http.server 8000     # http://localhost:8000
 | `css/hero.css` `scenes.css` `chart.css` `how.css` `rooms.css` `discord.css` `start-faq.css` `close-footer.css` | 구획별 스타일. 지금 랜딩(HP-664)에 쓰이지 않는 규칙도 남아 있다 — 숨긴 옛 섹션과 이전 랜딩(아래 '이전 랜딩 보관')을 되살릴 때 쓴다 |
 | `css/friends.css` | '친구랑 같이 보기'(`#friends`)·디스코드 휴대폰 높이·혼자 볼 때 머리말·휴대폰 따라오는 설치 버튼(HP-664) |
 | `css/floaters.css` | 페이지 곳곳에 떠 있는 장면 카드(`.fcard`) — 전역 장식이라 따로 뒀다 |
-| `css/top.css` `js/top.js` | 첫 화면(#top) — 넷플릭스 기본 플레이어 모양 옆에 Replix 그룹방 패널이 열리는 한 바퀴(13.9초) 연출(HP-662). 영상은 `assets/scene/`(가상의 작품 '밤의 정원', Pexels 무료 영상 — 출처 `notes/hero-scene.md`) |
+| `ext/` `css/ext-panel.css` `js/ext-panels.js` | **익스텐션의 실제 화면을 구워 둔 것**(HP-677) — 첫 화면 패널·그룹방 카드·디스코드 창 속 패널·혼자 볼 때 두 장이 `ext/panel.html#<장면>` iframe 이다. `ext/film-*.js`·`panel.css`·`fonts/` 는 `scripts/ext-panel/bake.mjs` 가 만든 파일이라 손으로 고치지 않는다. 굽는 법·다시 굽는 때 = `notes/ext-panel.md` |
+| `css/top.css` `js/top.js` | 첫 화면(#top) — 넷플릭스 기본 플레이어 모양 옆에 Replix 그룹방 패널이 열리는 한 바퀴(14.7초) 연출(HP-662). 패널은 761px 이상에서 구운 실제 화면(`ext/panel.html#hero`), 휴대폰은 정리형 띠(`.yp-in`)다(HP-677). 영상은 `assets/scene/`(가상의 작품 '밤의 정원', Pexels 무료 영상 — 출처 `notes/hero-scene.md`) |
 | `js/common.js` | 여러 구획이 함께 쓰는 값·헬퍼. **반응 밀도 함수 `density()` 를 히어로와 히트맵이 공유**하는 것이 핵심이다 — 두 그래프가 어긋나지 않는다 |
 | `js/hero.js` `scenes.js` `chart.js` `rooms.js` `faq.js` | 구획별 시뮬레이션. 각자 자기 DOM 을 찾아 스스로 붙는다 |
 | `js/reveal.js` | 스크롤 조립·숫자 카운트업·내비 경계선(전역 동작), 섹션 도달·페이지 깊이 계측 |
@@ -89,9 +90,10 @@ python3 -m http.server 8000     # http://localhost:8000
   `?replix_analytics_debug=1` 로 그 브라우저에 표시를 남긴다(`=0` 해제). 팀원 브라우저는 운영에서 `?replix_internal=1` 로 한 번 들어가
   `traffic_type=internal` 표시를 남긴다(버리지 않고 표시만, 트래킹 플랜 §5). **웹 스토어 링크에는 `utm_source=replix.tv&utm_medium=<위치>`**
   를 붙인다(트래킹 플랜 §12 — 빠지면 검사가 깨진다).
-- **화면 안 UI 는 익스텐션의 실제 구조·색을 옮긴 것**이다. `--accent: #e50914` 등
-  토큰이 `Replix-extension/styles.css` 와 짝이므로 임의로 바꾸면 설치 전후가
-  다른 제품으로 보인다.
+- **화면 안 익스텐션 패널은 익스텐션의 실제 화면을 구워 둔 것**이다(HP-677, `notes/ext-panel.md`). 패널의 모양·문구를 랜딩에서
+  손으로 고치지 않는다 — 익스텐션이 바뀌면 그 버전으로 다시 굽는다. 휴대폰 첫 화면의 정리형 띠(`.yp-in`)만 손으로 그린 것이고, 그 문구는
+  익스텐션 `room.js` 의 실제 문구를 따른다. `--accent: #e50914` 등 랜딩 토큰은 `Replix-extension/styles.css` 와 짝이므로 임의로 바꾸면
+  설치 전후가 다른 제품으로 보인다.
 - **없는 기능을 그리지 않는다.** 익스텐션에 없는 UI(정렬 셀렉터, 회차 드롭다운 등)는
   의도적으로 뺐다.
 - **이미지는 전부 실제 작품 실물 캡처다**(2026-08-03 조현빈 결정). 생성 이미지는
@@ -110,7 +112,7 @@ python3 -m http.server 8000     # http://localhost:8000
 | --- | --- | --- |
 | `LIVE` | `js/hero.js` | 히어로 라이브 채팅의 도착 시각과 내용 |
 | `DM_*` | `js/hero.js` | 탄막 레인·속도·지연. 익스텐션 `features/danmaku.js` 값을 옮겼다 |
-| `run([...])` · `SUBS` | `js/top.js` | 첫 화면 연출의 대본(밀리초)과 영상 자막. 영상 시각과 장면 = `assets/scene/garden.mp4`(`notes/hero-scene.md`) |
+| `steps` · `SUBS` | `js/top.js` | 첫 화면 연출의 대본(밀리초)과 영상 자막. 구운 패널의 시각표(`scripts/ext-panel/harness.html` `SCRIPTS.hero`)와 짝이다 — 한쪽을 옮기면 다른 쪽도 옮기고 다시 굽는다. 영상 시각과 장면 = `assets/scene/garden.mp4`(`notes/hero-scene.md`) |
 | `PEAKS` / `density()` | `js/common.js` | 반응 밀도. 히트맵과 채팅 생성이 이 함수 하나를 공유한다 |
 | `CHAT_POOL` / `ARCHIVE` | `js/scenes.js` | 회차에 쌓인 반응. 밀도 함수로 생성하며 시드 고정 |
 | `PLAY_STEP` | `js/scenes.js` | 히트맵 재생 속도 |
