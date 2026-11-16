@@ -84,6 +84,7 @@
   <link rel="stylesheet" href="css/friends.css">
   <!-- 첫 화면(#top) 재생 화면 연출 — HP-662. 스타일 = css/top.css, 연출 = js/top.js(아래에서 직접 부른다) -->
   <link rel="stylesheet" href="css/top.css">
+  <link rel="stylesheet" href="css/platforms.css">
   <!-- 익스텐션 실제 화면(ext/panel.html)을 넣는 자리의 크기·틀(HP-677) -->
   <link rel="stylesheet" href="css/ext-panel.css">
   <!-- 패널은 닫힌 넷플릭스 화면(.is-shut)에서 시작해 연출이 연다 — 스크립트가 없으면 열린 채로 둔다 -->
@@ -160,14 +161,16 @@
   <div class="wrap hv-split-grid">
     <div class="hv-split-copy">
     <p class="hv-eyebrow"><i></i>PC 크롬 익스텐션 · 무료</p>
-    <h1>친구랑 넷플릭스,<br>이제 <b>진짜 같이</b></h1>
-    <p class="hv-sub">링크를 누른 친구는 내가 보던 장면에서 시작하고, 내가 멈추면 다 같이 멈춰요.</p>
+    <h1 class="hv-h1-link"><span class="hv-nw">링크 하나로 <b>같이보기</b>,</span><br>우리끼리 상영회</h1>
+    <p class="hv-sub">친구에게도 방송에도, 링크만 보내면 보던 장면에서 같이 시작해요.</p>
     <div class="hv-act">
       <a class="btn btn--primary hv-cta" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=hero" target="_blank" rel="noopener" data-cta="hero">
         <span class="hv-lab rx-pc-only"><span class="chrome-ic" aria-hidden="true"><img src="assets/icons/chrome-logo.png" alt="" width="17" height="17"></span>크롬에 Replix 설치하기</span>
         <span class="hv-lab rx-mobile-only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>PC로 설치 링크 보내기</span>
       </a>
       <p class="hv-note"><span class="rx-pc-only">무료 · 회원가입 30초 · 링크로 친구 초대</span><span class="rx-mobile-only">PC 크롬 웹스토어에서 <b>'리플릭스'</b>를 검색해도 돼요</span></p>
+      <!-- 휴대폰(760px 이하) — 지원 플랫폼을 설치 버튼 바로 밑에 작게 둔다. 아래 큰 줄은 휴대폰에서 숨긴다(HP-884, css/platforms.css) -->
+      <p class="hv-plat-m" aria-label="지금 쓸 수 있는 곳: 넷플릭스, 디즈니+, 라프텔"><span class="pl pl-nf">넷플릭스</span><span class="pl pl-dp">디즈니+</span><span class="pl pl-lt">라프텔</span></p>
     </div>
     </div>
     <div class="hx-vis">
@@ -211,6 +214,13 @@
         </div></aside>
       </div>
     </div>
+  </div>
+  <!-- 지원 플랫폼 줄(HP-884) — 로고·워드마크 없이 이름 글자만 쓴다(css/platforms.css 머리 주석). 라프텔은 재생 화면에서
+       처음 한 번 사이트 권한을 허용해야 해서 별표로 밝힌다. 순서는 지원한 순서(넷플릭스 → 디즈니+ → 라프텔). 휴대폰은 버튼 밑 작은 칩(.hv-plat-m). -->
+  <div class="wrap hv-plat">
+    <p class="hv-plat-in"><span class="hv-plat-lab">지금 쓸 수 있는 곳</span>
+      <span class="hv-plat-names" role="list"><span role="listitem" class="pl pl-nf">넷플릭스</span><span role="listitem" class="pl pl-dp">디즈니+</span><span role="listitem" class="pl pl-lt">라프텔<sup aria-hidden="true">*</sup></span></span></p>
+    <p class="hv-plat-foot"><span aria-hidden="true">* </span>라프텔은 재생 화면에서 처음 한 번만 허용하면 돼요</p>
   </div>
 </section>
 
@@ -261,7 +271,7 @@
 
 <!-- ─── 디스코드에서 같이 보기 (HP-497) ─────────────────────────
      친구랑 같이 보기(#friends) 바로 뒤(HP-664 — 옛 함께 보기 #rooms 자리). 디스코드는 함께 보는 셋째 방식이 아니라 그룹방으로 들어오는 또 하나의 입구라
-     #rooms 의 셋째 칸이 아니라 따로 둔다. 2026-10-05 조현빈 결정(시안 3차) — '약속 없이 열리는 우리끼리 상영회' +
+     #rooms 의 셋째 칸이 아니라 따로 둔다. 2026-10-05 조현빈 결정(시안 3차) — 제목은 2026-11-17 '디스코드에서 바로 여는 즉석 상영회'로 바꿨다(HP-884, 첫 화면이 '우리끼리 상영회'를 쓴다) +
      움직이는 디스코드 창(친구들이 하나둘 들어오고 → 봇이 부르고 → [참여하기] → Replix 가 열린다). 사람·작품은
      #rooms 와 같은 가상 이름(지혜·수민·현우·민지, '밤의 정원'). [디스코드에 추가]의 주소는 /discord/ 페이지와 같다 —
      운영 봇 id 를 바꾸면 두 곳을 함께(scripts/test-discord.mjs 가 맞춰 본다). 스타일·움직임 = css/discord.css,
@@ -272,7 +282,7 @@
     <div class="dc-wrap">
       <div class="dc-copy reveal">
         <span class="rm-eyebrow">디스코드에서 같이 보기</span>
-        <h2>약속 없이 열리는<br>우리끼리 상영회</h2>
+        <h2>디스코드에서 바로 여는<br>즉석 상영회</h2>
         <p class="dc-lead">디스코드 음성 채널에서 <span class="dc-cmd">/같이보기</span> 를 입력하면 상영회가 열려요. 서버 친구들이 하나둘 들어오고, 중간에 와도 같은 장면부터 함께 봐요.</p>
         <div class="dc-cta">
           <a class="btn btn--ghost" href="/discord/" data-link="discord" data-link-loc="discord">자세히 보기</a>
@@ -498,8 +508,8 @@
 <!-- ─── 마지막 ──────────────────────────────────────────────── -->
 <section class="close" id="install">
   <div class="wrap">
-    <h2>혼자서도 같이 보는 즐거움,<br>Replix에서</h2>
-    <p>설치하면 넷플릭스 재생 화면에서 바로 시작할 수 있습니다.</p>
+    <h2>우리가 함께 보는 모든 순간,<br>Replix</h2>
+    <p>설치하면 넷플릭스·디즈니+·라프텔 재생 화면에서 바로 시작할 수 있습니다.</p>
     <a class="btn btn--white btn--chrome" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=close" target="_blank" rel="noopener" data-cta="close">
       <span class="cta-lab rx-pc-only"><span class="chrome-ic" aria-hidden="true"><img src="assets/icons/chrome-logo.png" alt="" width="17" height="17"></span>크롬 익스텐션 설치하기</span>
       <!-- 휴대폰 기기(익스텐션 설치 불가)면 이 문구로 바뀌고 js/install-guide.js 가 안내 시트를 띄운다(HP-662 — 첫 화면 버튼과 같은 말) -->
@@ -530,8 +540,8 @@
       </div>
     </div>
     <p class="foot-legal">
-      Replix 는 Netflix 와 제휴하거나 후원받지 않는 독립 프로젝트입니다.
-      Netflix 는 Netflix, Inc. 의 상표입니다. 이 익스텐션은 재생 시점 정보만 읽으며,
+      Replix 는 Netflix, Disney+, 라프텔과 제휴하거나 후원받지 않는 독립 프로젝트입니다.
+      각 서비스 이름은 Netflix, Inc., The Walt Disney Company, 주식회사 라프텔 등 각 권리자의 상표입니다. 이 익스텐션은 재생 시점 정보만 읽으며,
       영상이나 자막을 저장하거나 재배포하지 않습니다. 권리자 요청은 위 메일로 접수합니다.
       화면에 보이는 작품명은 넷플릭스에서 서비스 중인 실제 작품이며, Replix 는 해당
       작품·제작사와 무관합니다. 채팅·시청 인원 등 활동 수치는 모두 예시입니다.
