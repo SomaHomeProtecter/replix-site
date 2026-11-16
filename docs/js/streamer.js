@@ -74,9 +74,9 @@ if (sec) {
   };
   var layout = function () {
     if (!wrap || !ringC || !ringM || !mineNum) return;
+    fit();   // 줄이기는 타이머가 다 그려지기 전에도 먼저 한다 — 안 하면 1194px 무대가 칸 밖으로 잘린 채 남는다(아이폰 사파리, 2026-11-17)
     var cr = castNumRect();
     if (!cr) { wrap.classList.remove('sx-linked'); return; }
-    fit();
     var o = wrap.getBoundingClientRect();
     K = o.width / (wrap.offsetWidth || o.width) || 1;
     var a = place(ringC, cr, o, 5);
@@ -121,6 +121,7 @@ if (sec) {
     fitEl.style.height = Math.ceil((wrap.offsetHeight + 40) * k) + 'px';
   };
   window.addEventListener('resize', layout);
+  fit();
   setInterval(function () { if (near) layout(); }, 200);
 
   setInterval(paint, 200);

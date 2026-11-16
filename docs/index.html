@@ -171,7 +171,7 @@
       </a>
       <p class="hv-note"><span class="rx-pc-only">무료 · 회원가입 30초 · 링크로 친구 초대</span><span class="rx-mobile-only">PC 크롬 웹스토어에서 <b>'리플릭스'</b>를 검색해도 돼요</span></p>
       <!-- 휴대폰(760px 이하) — 지원 플랫폼을 설치 버튼 바로 밑에 작게 둔다. 아래 큰 줄은 휴대폰에서 숨긴다(HP-884, css/platforms.css) -->
-      <p class="hv-plat-m" aria-label="지금 쓸 수 있는 곳: 넷플릭스, 디즈니+, 라프텔"><span class="pl pl-nf">넷플릭스</span><span class="pl pl-dp">디즈니+</span><span class="pl pl-lt">라프텔</span></p>
+      <p class="hv-plat-m" aria-label="지원 OTT: 넷플릭스, 디즈니+, 라프텔"><span class="pl pl-nf">넷플릭스</span><span class="pl pl-dp">디즈니+</span><span class="pl pl-lt">라프텔</span></p>
     </div>
     </div>
     <div class="hx-vis">
@@ -216,12 +216,11 @@
       </div>
     </div>
   </div>
-  <!-- 지원 플랫폼 줄(HP-884) — 로고·워드마크 없이 이름 글자만 쓴다(css/platforms.css 머리 주석). 라프텔은 재생 화면에서
-       처음 한 번 사이트 권한을 허용해야 해서 별표로 밝힌다. 순서는 지원한 순서(넷플릭스 → 디즈니+ → 라프텔). 휴대폰은 버튼 밑 작은 칩(.hv-plat-m). -->
+  <!-- 지원 플랫폼 줄(HP-884) — 로고·워드마크 없이 이름 글자만 쓴다(css/platforms.css 머리 주석). 라프텔의 첫 한 번 권한 허용 안내는
+       FAQ 에만 둔다(2026-11-17 조현빈). 순서는 지원한 순서(넷플릭스 → 디즈니+ → 라프텔). 휴대폰은 버튼 밑 작은 칩(.hv-plat-m). -->
   <div class="wrap hv-plat">
-    <p class="hv-plat-in"><span class="hv-plat-lab">지금 쓸 수 있는 곳</span>
-      <span class="hv-plat-names" role="list"><span role="listitem" class="pl pl-nf">넷플릭스</span><span role="listitem" class="pl pl-dp">디즈니+</span><span role="listitem" class="pl pl-lt">라프텔<sup aria-hidden="true">*</sup></span></span></p>
-    <p class="hv-plat-foot"><span aria-hidden="true">* </span>라프텔은 재생 화면에서 처음 한 번만 허용하면 돼요</p>
+    <p class="hv-plat-in"><span class="hv-plat-lab">지원 OTT</span>
+      <span class="hv-plat-names" role="list"><span role="listitem" class="pl pl-nf">넷플릭스</span><span role="listitem" class="pl pl-dp">디즈니+</span><span role="listitem" class="pl pl-lt">라프텔</span></span></p>
   </div>
 </section>
 
@@ -285,7 +284,7 @@
         <h2>재생은 스트리머에게 맡기고<br>우리는 같이보기만</h2>
       </div>
       <div class="sx-side reveal">
-        <p class="sx-lead">스트리머가 재생·일시정지·구간 이동을 하면 시청자 화면도 즉시 동기화돼요. 편하게 채팅하며 상영회를 즐기세요.</p>
+        <p class="sx-lead">스트리머와 시청자를 위한 기능도 있어요. 같이보기 방송에서 서로의 화면 싱크를 실시간으로 맞춰줘요.</p>
         <div class="sx-act">
           <a class="btn btn--primary btn--chrome sx-cta" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=streamer" target="_blank" rel="noopener" data-cta="streamer">
             <span class="cta-lab rx-pc-only"><span class="chrome-ic" aria-hidden="true"><img src="assets/icons/chrome-logo.png" alt="" width="17" height="17"></span>크롬에 Replix 설치하기</span>
@@ -321,7 +320,7 @@
               <p><b style="--c:#d9c2ff">이불밖</b>둘이 걷는 거 봐 ㅠㅠ</p>
             </div>
             <div class="sx-timer">
-              <iframe src="overlay/sample.html#t=sample&amp;v=corner" title="같이보기 타이머 예시" tabindex="-1" aria-hidden="true" scrolling="no" loading="lazy"></iframe>
+              <iframe src="overlay/sample.html#t=sample&amp;v=corner" title="같이보기 타이머 예시" tabindex="-1" aria-hidden="true" scrolling="no"></iframe>
             </div>
 
             <!-- 희미한 컨트롤 줄 — 재생·소리 | 설정·전체화면 (일반 아이콘) -->

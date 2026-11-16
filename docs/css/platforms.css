@@ -23,8 +23,6 @@
 .pl-nf { background: linear-gradient(135deg, #b0121b 0%, #e5333c 100%); }
 .pl-dp { background: linear-gradient(135deg, #16328f 0%, #2f6ae0 100%); }
 .pl-lt { background: linear-gradient(135deg, #5b3fd6 0%, #8a5cf0 100%); }
-.pl sup { margin-left: 1px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,.8); vertical-align: top; }
-.hv-plat-foot { margin: 9px 0 0; font-size: 12.5px; color: var(--muted); }
 
 /* 휴대폰 — 버튼 밑 작은 칩만 두고 아래 큰 줄은 숨긴다 */
 .hv-plat-m { display: none; }
