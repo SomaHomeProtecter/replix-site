@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v27 (Amplitude + Google Analytics + Meta 픽셀)
+# replix.tv 웹 — 트래킹 플랜 v29 (Amplitude + Google Analytics + Meta 픽셀)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -95,10 +95,10 @@
 | 이벤트 | surface | 발화 시점 | 속성 | 질문 |
 | --- | --- | --- | --- | --- |
 | `page_viewed` | 둘 다 | 랜딩: `main.js` 끝 `page()` 1회 · 카탈로그: `App.tsx` 계측 effect — **페이지가 바뀔 때만**(`route-pure.js` `pageKey`: 홈 · 작품(작품마다) · 공지 · 내 활동). 홈 안 앵커(`#/ranking`·`#/hot`·`#/live`)·공지 항목·회차 선택·평가 칸 이동은 세지 않고, 로그인 왕복(IdP 로그인, 제3자 쿠키가 막힌 브라우저의 조용한 세션 확인 전체 리디렉트)으로 다시 열린 로드도 세지 않는다(`isAuthReturn`, HP-615). 동의 전 호출은 기억만 하고 허용 직후 1회 | `route`(카탈로그: `home` \| `title` \| `notice` \| `me`) | W1 분모 |
-| `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture). 휴대폰 기기(익스텐션 설치 불가)에서는 웹 스토어 대신 설치 안내 시트가 열리지만 클릭은 그대로 센다(HP-477). `/discord/` 는 이미 허용한 방문자의 클릭만(§11, HP-615) | `location`: `nav` \| `hero` \| `friends` \| `close` \| `float`(랜딩 — `friends` = '친구랑 같이 보기' 중간 버튼, `float` = 휴대폰 따라오는 버튼, HP-664) · `catalog_nav` \| `catalog_title_hero` \| `catalog_title` \| `catalog_footer` · `discord`(`/discord/` 위 띠). 스토어 링크의 `utm_medium` 과 같은 낱말(§12) | **W1** |
+| `install_cta_clicked` | 둘 다 | `[data-cta]` 요소 클릭(`analytics.js` 문서 위임, capture). 휴대폰 기기(익스텐션 설치 불가)에서는 웹 스토어 대신 설치 안내 시트가 열리지만 클릭은 그대로 센다(HP-477). `/discord/` 는 이미 허용한 방문자의 클릭만(§11, HP-615) | `location`: `nav` \| `hero` \| `friends` \| `streamer` \| `close` \| `float`(랜딩 — `friends` = '친구랑 같이 보기' 중간 버튼, `float` = 휴대폰 따라오는 버튼, HP-664 · `streamer` = '스트리머와 같이 보기' 버튼, HP-876) · `catalog_nav` \| `catalog_title_hero` \| `catalog_title` \| `catalog_footer` · `discord`(`/discord/` 위 띠). 스토어 링크의 `utm_medium` 과 같은 낱말(§12) | **W1** |
 | `install_guide_action` | 둘 다 | `install-guide.js` — 휴대폰 기기에서 설치 버튼으로 열린 'PC 크롬에서 써요' 시트 안의 행동. 열 때 1회(`opened`)와 버튼마다. 시트의 웹 스토어 링크에는 `data-cta` 가 없어 `install_cta_clicked` 와 겹쳐 세지 않는다. 복사·공유·메일로 보내는 주소는 싣지 않는다. 앱 안 브라우저(`in_app` ≠ `none`)에서는 '웹 스토어에서 PC로 보내기'가 보이지 않는다(크롬 로그인이 없어 막힌다). 두 번째 버튼은 공유 기능이 있으면 [공유하기], 없으면 앱 밖 브라우저에서만 [메일로 보내기](안드로이드 앱 안 웹뷰는 mailto 를 열지 못할 수 있어 [링크 복사] 하나만). [휴대폰으로는 작품 탐색부터 둘러보기]는 랜딩에서 연 시트에만 있다(HP-638, 규칙은 `install-guide.js` `sheetPlan`) | `action`: `opened` \| `copy_link` \| `share` \| `mail` \| `open_store` \| `open_catalog` · `in_app`: `instagram` \| `facebook` \| `kakaotalk` \| `naver` \| `line` \| `webview`(그 밖의 안드로이드 웹뷰, 'Safari/' 가 없는 iOS 앱 안 웹뷰) \| `none`(앱 밖 브라우저 — UA 로 가린다) | **W1**(휴대폰 갈래) |
 | `nav_link_clicked` | landing · `/discord/` | `[data-link]` 요소 클릭(`analytics.js` 문서 위임, capture) — 설치 CTA 가 **아닌** 랜딩의 모든 `<a>` + `/discord/` 의 [디스코드에 추가] 2곳(이미 허용한 방문자만 — §11, HP-671). 아래 표 | `target`(어디로) · `location`: `nav` \| `footer` \| `discord` \| `discord_page_hero` \| `discord_page_close` | **W6** |
-| `section_viewed` | landing | `reveal.js` — 섹션 상단이 뷰포트 위 60% 안에 들어올 때 페이지뷰당 1회 | `section`: `friends` \| `discord` \| `how` \| `faq` \| `install`(2026-10-17 HP-664 부터. 그 전 값 `intro` · `rooms` · `scenes` · `works` 는 git 태그 `landing-v1` 의 랜딩이다 — 전후를 섹션 이름으로 잇지 말고 `scroll_depth` 로 잇는다) | W3 |
+| `section_viewed` | landing | `reveal.js` — 섹션 상단이 뷰포트 위 60% 안에 들어올 때 페이지뷰당 1회 | `section`: `friends` \| `streamer` \| `discord` \| `how` \| `faq` \| `install`(2026-10-17 HP-664 부터, `streamer` 는 2026-11-17 HP-876 부터. 그 전 값 `intro` · `rooms` · `scenes` · `works` 는 git 태그 `landing-v1` 의 랜딩이다 — 전후를 섹션 이름으로 잇지 말고 `scroll_depth` 로 잇는다) | W3 |
 | `scroll_depth` | landing | `reveal.js` — 화면 아래 끝이 페이지 길이의 25·50·75·100% 를 지날 때 **값마다 페이지뷰당 1회**. 메뉴 링크처럼 건너뛰면 지난 값을 한꺼번에 보낸다. 섹션 구성과 상관없는 자라 구성을 바꿔도 전후를 비교할 수 있다(HP-664) | `percent`: `25` \| `50` \| `75` \| `100` | W3 |
 | `demo_interacted` | landing | **2026-10-17(HP-664)부터 발화 지점 없음** — 제품 화면 섹션(`#intro`)을 뺐다(되살리면 다시 난다, git 태그 `landing-v1`). 그 전: `hero.js` 제품 화면이 원본으로 보인 뒤 **스크롤로 전환 경계(화면 전체가 뷰포트에 들어온 위치)를 넘어 Replix 로 바뀌었을 때** 페이지뷰당 1회(2026-10-13 HP-602 부터 — 그 전엔 스크롤 비례 진행도가 1에 닿을 때). 이미 지나친 위치에서 열린 경우(앵커·새로고침)는 세지 않는다 | `demo`: `hero_toggle` · `action`: `scroll_complete` | W4 |
 | `faq_opened` | landing | `faq.js` 아코디언을 **열 때만** | `question_index`(0~6). ⚠️ 2026-10-17(HP-664) 질문 목록을 바꿔 순번이 가리키는 질문이 달라졌다(8개 → 7개, 휴대폰·친구 설치 질문이 맨 위) — 전후를 순번으로 잇지 않는다 | W4 |
@@ -148,7 +148,7 @@
 > `discord.guild_added`(`GET /api/v1/admin/stats/discord`, 표 `discord_daily_stats` — HP-671)이고, 디스코드 앱 프로필에서 바로 추가한
 > 것처럼 웹·익스텐션을 거치지 않은 추가도 거기에만 잡힌다. 익스텐션의 같은 버튼 3곳은 익스텐션 `feature_engaged{feature: discord_install}`.
 
-> ⚠️ **설치 버튼 5개는 여기 없다** — `install_cta_clicked{location: nav \| hero \| friends \| close \| float}` 로 이미 버튼마다 갈린다(W1). 둘을 합치지 않는다:
+> ⚠️ **설치 버튼 6개는 여기 없다** — `install_cta_clicked{location: nav \| hero \| friends \| streamer \| close \| float}` 로 이미 버튼마다 갈린다(W1). 둘을 합치지 않는다:
 > W1 퍼널·대시보드 차트가 `install_cta_clicked` 에 걸려 있고, "설치로 갔나 / 다른 데로 갔나"는 애초에 다른 질문이다.
 >
 > ⚠️ 값은 **열거값만** 보낸다(`analytics.js` `linkProps` 가 목록 밖을 버린다). `href`·링크 텍스트를 싣지 않는다(§2 전체 URL 금지).
@@ -330,6 +330,7 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | 랜딩 상단(헤더) 설치 버튼 | `nav` | `docs/index.html` |
 | 랜딩 히어로 | `hero` | `docs/index.html` |
 | 랜딩 '친구랑 같이 보기' 중간 버튼(HP-664) | `friends` | `docs/index.html` |
+| 랜딩 '스트리머와 같이 보기' 버튼(HP-876) | `streamer` | `docs/index.html` |
 | 랜딩 하단(마지막 설치 구획) | `close` | `docs/index.html` |
 | 랜딩 휴대폰 따라오는 버튼(HP-664 — 휴대폰 기기에서만 보인다) | `float` | `docs/index.html` |
 | 작품 탐색 헤더 | `catalog_nav` | `catalog/app/src/components/Chrome.tsx` |
@@ -426,3 +427,4 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v26 | 2026-10-22 | 광고 캠페인을 스토어 링크로(§12, HP-697). 스토어 자체 GA4 가 랜딩을 거친 설치를 모두 `replix.tv / hero`·`(referral)` 로만 보여 어느 광고가 설치를 낳았는지 가를 수 없었다 — 광고로 들어온 방문이면 스토어 링크에 `utm_campaign=<utm_source>.<utm_campaign>.<utm_content>`(자리 고정, 자리마다 영문·숫자·`_`·`-` 32자까지)를 더한다. `utm_source=replix.tv`·`utm_medium=<위치>` 는 그대로, `utm_medium`·`utm_term`·`utm_id`·광고 클릭 식별값은 싣지 않는다. 지금 주소, 없으면 같은 출처 리퍼러에서 읽고 브라우저에 저장하지 않는다. 부트 때 문서의 스토어 링크를, 그 뒤에 그려진 링크는 누르는 순간(capture) 바꾼다. 동의와 무관(링크 주소), 계측 이벤트·동의 버전은 그대로 — 조현빈(Claude Code) |
 | v27 | 2026-10-25 | Google 광고 재방문은 GA 에 유입으로 싣지 않는다(§10, HP-700). 주소창에 남은 utm·`gad_*` 로 다시 열린 로드가 `youtube / paid_video` 접점이 되어 `google / cpc` 클릭의 전환을 Google Ads 가 받지 못했다 — `gad_*` 는 있는데 Google 광고 클릭 식별값이 없으면 `page_location` 의 캠페인 쿼리를 빼고 `ignore_referrer` 를 싣는다. 계측 이벤트·Amplitude·스토어 링크·동의 버전은 그대로 — 조현빈(Claude Code) |
 | v28 | 2026-10-27 | 라프텔 재생 딥링크(HP-709) — `watch_link_clicked.platform` 에 `laftel` 을 더했다. 작품 탐색·내 활동의 라프텔 작품이 `laftel.net/player/<작품>/<회차>` 로 가고(시작 시각이 없어 `has_timestamp` 는 false), `platform` 은 고정값 대신 딥링크 호스트에서 읽는다(`watch-pure.js` `watchPlatformOf`). 새 이벤트·속성 없음, 작품·회차 ID 는 그대로 싣지 않는다 — 고경우 |
+| v29 | 2026-11-17 | 랜딩 '스트리머와 같이 보기' 섹션(HP-876) — '친구랑 같이 보기' 바로 뒤. `install_cta_clicked.location`·스토어 링크 `utm_medium` 에 `streamer`, `section_viewed.section` 에 `streamer` 를 더했다. 새 이벤트 없음 — 조현빈 |

@@ -12,6 +12,7 @@ import './faq.js';
 import './float-cta.js';   /* 휴대폰 따라오는 설치 버튼(HP-664) */
 import './stats.js';
 import './reveal.js';
+import './streamer.js';  /* 스트리머와 같이 보기(#streamer) — 시계와 '같은 장면' 이음(HP-876) */
 
 /* 인기 작품 섹션은 운영 결정으로 숨겨져 있다. 숨긴 상태에서도 chart.js를 정적 import하면
    API 응답을 받아 보이지 않는 카드 DOM을 만들므로, 섹션을 실제로 되살린 배포에서만 모듈을

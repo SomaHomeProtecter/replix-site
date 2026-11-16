@@ -86,6 +86,7 @@
   <link rel="stylesheet" href="css/top.css">
   <!-- 익스텐션 실제 화면(ext/panel.html)을 넣는 자리의 크기·틀(HP-677) -->
   <link rel="stylesheet" href="css/ext-panel.css">
+  <link rel="stylesheet" href="css/streamer.css">
   <!-- 패널은 닫힌 넷플릭스 화면(.is-shut)에서 시작해 연출이 연다 — 스크립트가 없으면 열린 채로 둔다 -->
   <noscript><style>.ys.hx-screen.is-shut { --open: 1; }</style></noscript>
   <!-- 휴대폰 기기 표식(rx-mobile-device)을 첫 그림 전에 단다(HP-662). 문구를 바꿔 끼우는 이 표식(css/tokens.css .rx-mobile-only)을
@@ -256,6 +257,132 @@
           <!-- 그룹방 창 — 익스텐션의 실제 화면(라이트 테마)을 구워 둔 것(HP-677, notes/ext-panel.md) -->
           <div class="rxcard rxfit" data-w="360" role="img" aria-label="그룹방 화면 예시: 지혜의 방에서 밤의 정원 3화를 함께 보는 중이다. 지혜, 수민, 현우가 들어와 있고, 대화 사이에 누가 멈추고 다시 재생했는지가 남는다."><iframe class="rxp" data-src="ext/panel.html#friends" title="Replix 익스텐션 화면 예시" tabindex="-1" aria-hidden="true" scrolling="no" loading="lazy"></iframe></div>
     </figure>
+  </div>
+</section>
+
+<!-- ─── 스트리머와 같이 보기 (HP-876, 2026-11-17 조현빈 결정 — 시안 26) ─────────
+     같이보기 방송을 하는 스트리머와 그 시청자에게 스트리머 방을 소개한다. 위는 스트리머 '루나'의 방송 화면(특정 방송 플랫폼을 닮지 않은 중립 틀,
+     장면은 AI 생성 그림 — notes/stream-scene.md), 오른쪽 아래에 시청자의 '내 화면'(넷플릭스 플레이어 모양, 가상 작품 '밤의 정원')이 걸친다.
+     방송 화면 안의 같이보기 타이머는 실제 타이머 페이지를 예시 값으로 돌린 사본(overlay/sample.html — scripts/make-overlay-sample.mjs 가 만든다)이고,
+     방송 타이머의 시각과 내 화면의 시각을 빨간 테두리·연결선·'같은 장면' 배지로 잇는다(js/streamer.js). 빨강은 이 이음에만 쓴다.
+     방송 화면에는 작품 영상을 넣지 않는다 — Replix 는 영상을 내보내지 않고, 시청자가 자기 계정으로 튼 플레이어를 맞춘다(규칙 문서 A4).
+     휴대폰도 같은 그림을 칸 폭에 맞춰 줄여 보인다 — 휴대폰에서 같이 볼 수 있는 것처럼 읽히지 않게 PC 화면 그대로 둔다. 스타일 = css/streamer.css -->
+<section class="pad sx" id="streamer">
+  <div class="wrap">
+    <div class="sx-head">
+      <div class="sx-title reveal">
+        <span class="rm-eyebrow">스트리머와 같이 보기</span>
+        <h2>재생은 스트리머에게 맡기고<br>우리는 같이보기만</h2>
+      </div>
+      <div class="sx-side reveal">
+        <p class="sx-lead">스트리머가 재생·일시정지·구간 이동을 하면 시청자 화면도 즉시 동기화돼요. 편하게 채팅하며 상영회를 즐기세요.</p>
+        <div class="sx-act">
+          <a class="btn btn--primary btn--chrome sx-cta" href="https://chromewebstore.google.com/detail/replix/lgfllmbombkdbebcepigebnbmeaacikp?utm_source=replix.tv&amp;utm_medium=streamer" target="_blank" rel="noopener" data-cta="streamer">
+            <span class="cta-lab rx-pc-only"><span class="chrome-ic" aria-hidden="true"><img src="assets/icons/chrome-logo.png" alt="" width="17" height="17"></span>크롬에 Replix 설치하기</span>
+            <span class="cta-lab rx-mobile-only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>PC로 설치 링크 보내기</span>
+          </a>
+          <p class="sx-note"><span class="rx-pc-only">스트리머는 스트리밍 모드를 켜고 방을 만들어요</span><span class="rx-mobile-only">PC 크롬 웹스토어에서 <b>'리플릭스'</b>를 검색해도 돼요</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- v13: 태블릿·휴대폰도 PC 구성을 그대로 보여 준다 — 1194px 로 그린 무대를 칸 폭에 맞춰 줄인다(js/streamer.js fit). 휴대폰에서 같이 보는 것처럼 오해하지 않게 하려는 것(조현빈 2026-11-17) -->
+    <div class="sx-fit"><div class="sx-stagewrap">
+      <!-- 방송 화면 — 인터넷 방송 화면으로 읽히되 특정 플랫폼(이름·로고·고유 색·고유 아이콘)을 닮지 않은 중립 틀(v9, 2026-11-17).
+           영상 위: 왼쪽 위 LIVE·경과 시간, 오른쪽 위 시청자 수, 아래 희미한 컨트롤 줄 / 영상 아래: 채널 줄 / 오른쪽: 방송 채팅.
+           색은 랜딩 토큰의 중립 어두운 색과 강조 빨강만 쓴다. 안의 장면은 AI 생성 그림 한 장(가상 스트리머 루나와 방, notes/stream-scene.md). -->
+      <figure class="sx-cast reveal" role="img" aria-label="방송 화면 예시: 스트리머 루나가 밤의 정원 3화 같이 보기 방송을 하고 있다. 방송 화면 왼쪽 위의 같이보기 타이머가 스트리머가 지금 보는 시각을 보여 주고, 채팅 공지에는 같이보기 초대 링크가 걸려 있다.">
+        <div class="sx-cast-main" aria-hidden="true">
+          <div class="sx-stage">
+            <img class="sx-room" src="assets/scene/stream-vtuber.jpg" alt="" width="1600" height="900" loading="lazy" decoding="async">
+            <span class="sx-shade"></span>
+
+            <!-- 방송 표시 — 왼쪽 위는 LIVE·경과 시간, 오른쪽 위는 시청자 수(예시 숫자). 타이머 카드와 자리를 나눈다 -->
+            <span class="sx-onair"><b class="sx-live"><i></i>LIVE</b><span class="sx-pill rm-mono" data-sx-up>1:12:40</span></span>
+            <span class="sx-pill sx-viewers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/></svg><span class="rm-mono">1,284</span></span>
+
+            <!-- 같이보기 타이머 — 스트리머가 방송 프로그램(OBS 등)으로 영상 위에 띄운 실제 오버레이 페이지(코너 카드). demo=1 은 이 시안 사본에서만 끼운 예시 값 대역이다. -->
+            <!-- v18: 스트리머가 방송 프로그램으로 얹은 오버레이 채팅창(방송 화면의 일부) — 플랫폼 채팅 칸과 별개로, 방송을 보는 사람 모두에게 보인다 -->
+            <div class="sx-ovchat" aria-hidden="true">
+              <p><b style="--c:#ffd27a">새벽세시</b>3화 시작!</p>
+              <p><b style="--c:#9fd8ff">호두과자</b>오프닝 넘겨요?</p>
+              <p><b style="--c:#ffb3c1">모카</b>등불 장면 미쳤다</p>
+              <p><b style="--c:#c5f0a4">구름빵</b>루나 표정 ㅋㅋ</p>
+              <p><b style="--c:#d9c2ff">이불밖</b>둘이 걷는 거 봐 ㅠㅠ</p>
+            </div>
+            <div class="sx-timer">
+              <iframe src="overlay/sample.html#t=sample&amp;v=corner" title="같이보기 타이머 예시" tabindex="-1" aria-hidden="true" scrolling="no" loading="lazy"></iframe>
+            </div>
+
+            <!-- 희미한 컨트롤 줄 — 재생·소리 | 설정·전체화면 (일반 아이콘) -->
+            <div class="sx-ctrl">
+              <svg viewBox="0 0 24 24" class="f" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" class="fl"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg>
+              <span class="sx-ctrl-gap"></span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+            </div>
+          </div>
+
+          <!-- 채널 줄 — 프로필은 방송 그림에서 얼굴을 잘라 쓴다 -->
+          <div class="sx-channel">
+            <span class="sx-avatar"><i></i></span>
+            <div class="sx-ch-text">
+              <p class="sx-ch-title">밤의 정원 3화 같이 보기 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></p>
+              <p class="sx-ch-meta"><b>루나</b><span class="sx-tag">#같이보기</span><span class="sx-tag">#드라마</span></p>
+            </div>
+            <span class="sx-follow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>팔로우</span>
+          </div>
+        </div>
+
+        <aside class="sx-chat" aria-hidden="true">
+          <p class="sx-chat-h">채팅</p>
+          <p class="sx-pin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg><span><b><i class="sx-pin-k">공지 · </i>같이보기 링크</b><u>replix.tv/invite<i class="sx-pin-q">?w=…</i></u></span></p>
+          <ul class="sx-msgs">
+            <li><b style="--c:#a9b8c8">구름빵</b>저녁 먹고 왔어요</li>
+            <li><i class="sx-bdg sx-bdg--fan"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.4C19 15.6 12 20 12 20Z"/></svg></i><b style="--c:#cdb4d6">고양이발</b>루나 안녕~</li>
+            <li><b style="--c:#c9b48a">호두과자</b>2화 엔딩 아직도 생각남</li>
+            <li><b style="--c:#b7c2a0">이불밖</b>여주 표정 봐 ㅠ</li>
+            <li><b style="--c:#e8a0a8">유자차</b>오늘 끝까지 보는 거죠?</li>
+            <li><i class="sx-bdg sx-bdg--fan"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.4C19 15.6 12 20 12 20Z"/></svg></i><b style="--c:#d6c27a">새벽세시</b>ㅋㅋㅋ 다들 준비 완료</li>
+            <li><b style="--c:#c9b48a">호두과자</b>오 오늘 3화 한다</li>
+            <li><i class="sx-bdg sx-bdg--fan"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.4C19 15.6 12 20 12 20Z"/></svg></i><b style="--c:#e8a0a8">모카</b>3화 틀었어요</li>
+            <li><b style="--c:#a9b8c8">단풍</b>오프닝 넘겨요?</li>
+            <li><b style="--c:#d6c27a">새벽세시</b>등불 장면 미쳤다</li>
+            <li class="sx-host"><i class="sx-bdg sx-bdg--host"><svg viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></i><b style="--c:#ff8a90">루나</b>다 들어왔지? 이어서 볼게</li>
+            <li><i class="sx-bdg sx-bdg--fan"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.4C19 15.6 12 20 12 20Z"/></svg></i><b style="--c:#b7c2a0">별사탕</b>이 장면 분위기 좋다</li>
+            <li><b style="--c:#cdb4d6">고양이발</b>등불 너무 예뻐요</li>
+            <li><b style="--c:#a9b8c8">구름빵</b>다음 화도 봐요?</li>
+            <li><i class="sx-bdg sx-bdg--fan"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.4C19 15.6 12 20 12 20Z"/></svg></i><b style="--c:#e8a0a8">모카</b>둘이 걷는 거 봐 ㅠㅠ</li>
+            <li><b style="--c:#d6c27a">새벽세시</b>여기 정원 어디서 찍었을까</li>
+          </ul>
+          <p class="sx-chat-in"><span>채팅을 입력해 주세요</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8.6 14.2a4.2 4.2 0 0 0 6.8 0M9.2 10h.01M14.8 10h.01"/></svg><i>보내기</i></p>
+        </aside>
+      </figure>
+
+      <div class="sx-low">
+        <!-- '같은 장면' 이음 — 방송 타이머의 시각과 내 화면 플레이어의 시각을 같은 빨간 테두리(.sx-ring)로 묶고, js/streamer.js 가
+             두 숫자의 자리를 재서 SVG 연결선(.sx-wire)을 이 배지를 거쳐 그린다(창 크기가 바뀌면 다시 그린다). 휴대폰은 연결선 없이 두 화면 사이에 배지만 둔다. -->
+        <p class="sx-same" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><small>방송 타이머 <em class="rm-mono" data-sx-now>32:56</em> = 내 화면 <em class="rm-mono" data-sx-now>32:56</em></small><b>같은 장면</b></span></p>
+        <p class="sx-foot reveal">시청자도 PC 크롬과 Replix 익스텐션이 필요해요. 영상은 각자 자기 계정으로 봐요.</p>
+        <!-- 내 화면 — 시청자의 PC 크롬. 작품 장면은 가상 작품 '밤의 정원'(AI 생성 정지 그림)을 시네마 비율(2.39:1)로 레터박스해 16:9 플레이어에 넣었다 -->
+        <figure class="sx-mine reveal">
+          <div class="sx-mine-bar" aria-hidden="true"><span class="sx-dots"><i></i><i></i><i></i></span><span class="sx-tab">밤의 정원 3화 | 넷플릭스</span><span class="sx-mine-lab">내 화면</span></div>
+          <div class="sx-mine-body">
+            <div class="sx-player" aria-hidden="true">
+              <div class="sx-pic"><img class="sx-still" src="assets/scene/garden-still.jpg" alt="" width="1600" height="900" loading="lazy" decoding="async"></div>
+              <p class="sx-sub">응. 밤에만<br>열리는 곳이래.</p>
+              <div class="sx-nf-top"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4h11.5l-2 3.8 2 3.7H6"/></svg></div><div class="sx-nf-bottom"><div class="sx-nf-bar"><span class="sx-nf-track"><i class="sx-nf-buf"></i><i class="sx-nf-fill"></i><i class="sx-nf-knob"></i></span><em class="rm-mono" data-sx-now data-sx-ring="mine">32:56</em></div><div class="sx-nf-row"><span class="sx-nf-l"><svg class="sx-nf-pp" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5a7.5 7.5 0 1 1-7.1 5.1"/><path d="M4.4 3.6v5.3h5.3"/><text x="12" y="15.4" font-size="7.2" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">10</text></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5a7.5 7.5 0 1 0 7.1 5.1"/><path d="M19.6 3.6v5.3h-5.3"/><text x="12" y="15.4" font-size="7.2" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">10</text></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></span><span class="sx-nf-title"><b>밤의 정원 3화</b><em>밤에만 피는 꽃</em></span><span class="sx-nf-r"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 5l9 7-9 7z" fill="currentColor"/><path d="M17.5 5v14"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="9" width="13" height="10" rx="1.2"/><path d="M7 5.5h13.5v10"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5h16v11.5H9.5L5 19.5v-3.5H4z"/><path d="M8 9h8M8 12.2h5"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15.5a8 8 0 1 1 16 0"/><path d="M12 15.5l4.2-5"/></svg><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></span></div></div>
+            </div>
+          </div>
+        </figure>
+      </div>
+
+      <svg class="sx-wire" aria-hidden="true"><path class="sx-wire-halo"/><path class="sx-wire-line"/><circle class="sx-wire-end" r="3.5"/><circle class="sx-wire-end" r="3.5"/></svg>
+      <i class="sx-ring" data-ring="cast" aria-hidden="true"></i>
+      <i class="sx-ring" data-ring="mine" aria-hidden="true"></i>
+    </div></div>
+    <p class="sx-foot-m">시청자도 PC 크롬과 Replix 익스텐션이 필요해요. 영상은 각자 자기 계정으로 봐요.</p>
   </div>
 </section>
 

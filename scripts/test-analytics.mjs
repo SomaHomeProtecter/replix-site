@@ -262,10 +262,10 @@ assert.match(src, /_gaBlocked = true/, '같은 페이지 재허용에 옛 client
 assert.match(src, /typeof window !== 'undefined' && typeof document !== 'undefined'\) boot\(\)/, 'node import 가 부트하면 안 된다');
 assert.match(read('docs/js/main.js'), /import \{ page \} from '\.\/analytics\.js'/);
 assert.match(read('docs/js/main.js'), /^page\(\);/m, '랜딩 page_viewed 는 main.js 가 1회 부른다');
-for (const loc of ['data-cta="nav"', 'data-cta="hero"', 'data-cta="friends"', 'data-cta="close"', 'data-cta="float"', 'data-analytics-settings']) {
+for (const loc of ['data-cta="nav"', 'data-cta="hero"', 'data-cta="friends"', 'data-cta="streamer"', 'data-cta="close"', 'data-cta="float"', 'data-analytics-settings']) {
   assert.ok(index.includes(loc), `index.html 에 ${loc}`);
 }
-assert.equal((index.match(/data-cta="/g) || []).length, 5, '랜딩 설치 CTA 는 다섯 곳 — HP-664 로 친구랑 같이 보기 중간 버튼(friends)·휴대폰 따라오는 버튼(float)이 더해졌다');
+assert.equal((index.match(/data-cta="/g) || []).length, 6, '랜딩 설치 CTA 는 여섯 곳 — HP-664 로 친구랑 같이 보기 중간 버튼(friends)·휴대폰 따라오는 버튼(float), HP-876 으로 스트리머와 같이 보기(streamer)가 더해졌다');
 
 // 랜딩 링크(HP-437) — 설치 CTA 가 아닌 버튼·링크는 nav_link_clicked{target, location} 로 버튼마다 구분해 센다.
 // 열거값 밖은 보내지 않는다: 마크업 오타가 새 값으로 쌓이면 차트가 조용히 갈라진다.
@@ -305,15 +305,15 @@ assert.match(read('docs/js/faq.js'), /track\('faq_opened', \{ question_index:/);
 assert.match(read('docs/js/hero.js'), /track\('demo_interacted', \{ demo: 'hero_toggle', action: 'scroll_complete' \}\)/);
 assert.doesNotMatch(read('docs/js/hero.js'), /addEventListener\("click"/, '제품 화면 전환은 클릭이 아니라 스크롤이다(HP-467)');
 assert.doesNotMatch(index, /<button[^>]*id="heroToggle"/, '토글 알약은 누르는 버튼이 아니라 진행 표시다(HP-467)');
-const order = ['top', 'friends', 'discord', 'how', 'faq', 'install'].map((id) => index.indexOf(`id="${id}"`));
+const order = ['top', 'friends', 'streamer', 'discord', 'how', 'faq', 'install'].map((id) => index.indexOf(`id="${id}"`));
 assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])),
-  '섹션 순서: 첫 화면 → 친구랑 같이 보기 → 디스코드 → 혼자 볼 때 → FAQ → 마지막 버튼 (HP-664, 2026-10-17 조현빈) — 그 전 순서(HP-467)는 git 태그 landing-v1');
+  '섹션 순서: 첫 화면 → 친구랑 같이 보기 → 스트리머와 같이 보기(HP-876) → 디스코드 → 혼자 볼 때 → FAQ → 마지막 버튼 (HP-664, 2026-10-17 조현빈) — 그 전 순서(HP-467)는 git 태그 landing-v1');
 for (const gone of ['intro', 'rooms', 'scenes', 'works']) {
   assert.ok(!index.includes(`id="${gone}"`), `#${gone} 는 HP-664 로 뺐다 — 되살리면 reveal.js SECTIONS 와 트래킹 플랜 §6 을 같이`);
 }
 assert.match(read('docs/js/reveal.js'), /track\('section_viewed', \{ section: e\.target\.id \}\)/);
 assert.match(read('docs/js/reveal.js'), /rootMargin: '0px 0px -40% 0px'/, '뷰포트보다 큰 섹션도 발화하게 threshold 0 + rootMargin');
-assert.match(read('docs/js/reveal.js'), /var SECTIONS = \['friends', 'discord', 'how', 'faq', 'install'\];/, '섹션 도달 열거값 = 트래킹 플랜 §6');
+assert.match(read('docs/js/reveal.js'), /var SECTIONS = \['friends', 'streamer', 'discord', 'how', 'faq', 'install'\];/, '섹션 도달 열거값 = 트래킹 플랜 §6');
 // 페이지 깊이(W3, HP-664) — 구성과 상관없이 같은 자로 재는 값. 열거값은 트래킹 플랜 §6 과 같다.
 assert.match(read('docs/js/reveal.js'), /var DEPTHS = \[25, 50, 75, 100\]/);
 assert.match(read('docs/js/reveal.js'), /track\('scroll_depth', \{ percent: DEPTHS\[depthSent\] \}\)/);
@@ -409,7 +409,7 @@ const storeHrefs = (html) => [...html.matchAll(/href="(https:\/\/chromewebstore\
 const htmlFiles = (dir) => readdirSync(resolve(root, dir), { withFileTypes: true }).flatMap((d) =>
   d.isDirectory() ? htmlFiles(`${dir}/${d.name}`) : d.name.endsWith('.html') ? [`${dir}/${d.name}`] : []);
 const EXPECTED_MEDIUMS = {
-  'docs/index.html': ['nav', 'hero', 'friends', 'close', 'float'],
+  'docs/index.html': ['nav', 'hero', 'friends', 'streamer', 'close', 'float'],
   'docs/invite/index.html': ['invite'],
   'docs/together/index.html': ['together'],
   'docs/discord/index.html': ['discord'],

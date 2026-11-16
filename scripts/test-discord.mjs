@@ -35,13 +35,14 @@ for (const tag of links) {
   assert.match(tag, /rel="noopener"/, '새 탭에 이 페이지를 넘기지 않는다');
 }
 
-// ── 랜딩: 친구랑 같이 보기(#friends) 바로 뒤(HP-664 — 그 전엔 함께 보기 #rooms 뒤), '자세히 보기'는 /discord/
+// ── 랜딩: 친구랑 같이 보기(#friends) → 스트리머와 같이 보기(#streamer, HP-876) 바로 뒤(HP-664 — 그 전엔 함께 보기 #rooms 뒤), '자세히 보기'는 /discord/
 const friends = landing.indexOf('id="friends"');
+const streamer = landing.indexOf('id="streamer"');
 const discord = landing.indexOf('id="discord"');
 const next = landing.indexOf('<section', discord);   // 디스코드 섹션 다음 섹션의 여는 태그
-assert.ok(friends > 0 && discord > friends && next > discord, '디스코드 섹션은 친구랑 같이 보기 바로 뒤');
-assert.equal(landing.slice(friends, discord).split('<section').length - 1, 1,
-  '친구랑 같이 보기와 디스코드 섹션 사이에 다른 섹션이 없다(잘라 낸 구간의 <section 은 디스코드 섹션 자신의 여는 태그 하나)');
+assert.ok(friends > 0 && streamer > friends && discord > streamer && next > discord, '디스코드 섹션은 친구랑 같이 보기·스트리머와 같이 보기 바로 뒤');
+assert.equal(landing.slice(streamer, discord).split('<section').length - 1, 1,
+  '스트리머와 같이 보기와 디스코드 섹션 사이에 다른 섹션이 없다(잘라 낸 구간의 <section 은 디스코드 섹션 자신의 여는 태그 하나)');
 assert.match(landing, /<link rel="stylesheet" href="css\/discord\.css">/);
 const section = landing.slice(discord, next);
 assert.match(section, /href="\/discord\/"/, "섹션의 '자세히 보기'");

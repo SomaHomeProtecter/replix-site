@@ -33,6 +33,7 @@ python3 -m http.server 8000     # http://localhost:8000
 | `css/base.css` | 내비·구획 배경 등 화면 공통 |
 | `css/hero.css` `scenes.css` `chart.css` `how.css` `rooms.css` `discord.css` `start-faq.css` `close-footer.css` | 구획별 스타일. 지금 랜딩(HP-664)에 쓰이지 않는 규칙도 남아 있다 — 숨긴 옛 섹션과 이전 랜딩(아래 '이전 랜딩 보관')을 되살릴 때 쓴다 |
 | `css/friends.css` | '친구랑 같이 보기'(`#friends`)·디스코드 휴대폰 높이·혼자 볼 때 머리말·휴대폰 따라오는 설치 버튼(HP-664) |
+| `css/streamer.css` `js/streamer.js` | '스트리머와 같이 보기'(`#streamer`, HP-876) — 스트리머 방송 화면(AI 생성 그림, `notes/stream-scene.md`)과 걸친 '내 화면'. 같이보기 타이머는 `overlay/sample.html`(운영 타이머를 예시 값으로 돌린 사본 — `scripts/make-overlay-sample.mjs` 가 만들고 `scripts/test-overlay-sample.mjs` 가 낡았는지 본다). 두 시각을 빨간 테두리·연결선·'같은 장면' 배지로 잇는다. 휴대폰은 같은 그림을 칸 폭에 맞춰 줄인다 |
 | `css/floaters.css` | 페이지 곳곳에 떠 있는 장면 카드(`.fcard`) — 전역 장식이라 따로 뒀다 |
 | `ext/` `css/ext-panel.css` `js/ext-panels.js` | **익스텐션의 실제 화면을 구워 둔 것**(HP-677) — 첫 화면 패널·그룹방 카드·디스코드 창 속 패널·혼자 볼 때 두 장이 `ext/panel.html#<장면>` iframe 이다. `ext/film-*.js`·`panel.css`·`fonts/` 는 `scripts/ext-panel/bake.mjs` 가 만든 파일이라 손으로 고치지 않는다. 굽는 법·다시 굽는 때 = `notes/ext-panel.md` |
 | `css/top.css` `js/top.js` | 첫 화면(#top) — 넷플릭스 기본 플레이어 모양 옆에 Replix 그룹방 패널이 열리는 한 바퀴(14.7초) 연출(HP-662). 패널은 761px 이상에서 구운 실제 화면(`ext/panel.html#hero`), 휴대폰은 정리형 띠(`.yp-in`)다(HP-677). 영상은 `assets/scene/`(가상의 작품 '밤의 정원', Pexels 무료 영상 — 출처 `notes/hero-scene.md`) |
