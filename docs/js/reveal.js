@@ -43,7 +43,7 @@ new IntersectionObserver(function (es) {
    섹션 상단이 뷰포트 위 60% 안에 들어오면 페이지뷰당 1회. 50% 노출 threshold 를 쓰지 않는 이유:
    뷰포트보다 큰 섹션은 교차 비율이 0.5 에 영영 못 미쳐 절대 발화하지 않는다. */
 /* HP-664(2026-10-17) 구성. 그 전 값(intro·rooms·scenes·works)은 git 태그 landing-v1 의 랜딩이다(트래킹 플랜 §6). */
-var SECTIONS = ['friends', 'discord', 'how', 'faq', 'install'];
+var SECTIONS = ['friends', 'streamer', 'discord', 'how', 'faq', 'install'];   // streamer = HP-876
 var sio = new IntersectionObserver(function (es) {
   es.forEach(function (e) {
     if (!e.isIntersecting) return;
