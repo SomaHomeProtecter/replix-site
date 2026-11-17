@@ -1,10 +1,10 @@
 /* ═══ 친구랑 같이 보기 (#friends, HP-664 — 2026-10-17 조현빈 결정) ════════════════════
    첫 화면 바로 아래 흰 지면. 1041px 이상은 왼쪽 세 단계·버튼, 오른쪽 그룹방 카드(css/rooms.css .rm-card — 옛 #rooms 둘째 칸).
-   카드는 761~1040px 에서 단계 아래로 내려가고, 760px 이하(휴대폰)에서는 길이를 줄이려고 숨긴다 — 단계마다 붙은 화면 조각(초대 링크
-   알약·방 시스템 줄)이 대신 보여 준다. 이 파일은 디스코드 휴대폰 높이, 혼자 볼 때(#how) 머리말, 따라오는 설치 버튼도 맡는다. */
+   카드는 761~1040px 에서 단계 아래로 내려가고, 760px 이하(휴대폰)에서는 길이를 줄이려고 숨긴다 — 단계마다 붙은 화면 조각(.gt-ui —
+   링크 칸·입장 얼굴·멈춘 재생 막대)이 대신 보여 준다. 이 파일은 디스코드 휴대폰 높이, 혼자 볼 때(#how) 머리말, 따라오는 설치 버튼도 맡는다. */
 .gt { border-block: 1px solid var(--line); }
-.gt-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
-  gap: clamp(40px, 6vw, 96px); align-items: center; }
+.gt-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 640px);
+  gap: clamp(40px, 4vw, 64px); align-items: center; }
 .gt-head h2 { margin-top: 14px; font-size: clamp(30px, 3.6vw, 48px); letter-spacing: -.05em; line-height: 1.1; }
 
 .gt-steps { list-style: none; margin: 38px 0 0; padding: 0; display: grid; gap: 24px; }
@@ -13,16 +13,31 @@
   background: var(--tint-red); color: var(--accent); font-family: var(--mono); font-size: 15px; font-weight: 800; }
 .gt-steps h3 { margin-top: 4px; font-size: 19px; font-weight: 750; letter-spacing: -.03em; line-height: 1.3; }
 .gt-steps p { margin-top: 4px; font-size: 15.5px; line-height: 1.6; color: var(--ink-2); }
-/* 단계마다 익스텐션 화면의 한 조각(초대 링크 알약·방 시스템 줄)을 붙여 '실제로 이렇게 보인다'를 말로 풀지 않고 보여 준다 */
-.gt-chip { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
-  padding: 5px 12px 5px 10px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line);
-  font-size: 12.5px; font-weight: 600; line-height: 1.25; color: var(--ink-2); white-space: nowrap; }
-.gt-chip svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor;
-  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.gt-chip svg.gt-fill { width: 10px; height: 10px; fill: currentColor; stroke: none; color: var(--muted); }
-.gt-chip em { margin-left: 3px; padding: 1px 8px; border-radius: 999px; font-style: normal;
-  background: #e8f5ef; color: #0b7a52; font-size: 11.5px; font-weight: 700; }
-.gt-chip b { margin-left: 3px; font-size: 12px; font-weight: 700; color: var(--ink); }
+/* 단계마다 화면의 한 조각을 작게 그린다(HP-885 시안 C, 2026-11-17 조현빈 결정) — 링크 칸과 복사 단추 / 들어온 얼굴과 재생 시각 / 멈춘 재생 막대.
+   글로 풀지 않고 '이렇게 보인다'를 보여 준다. 휴대폰에서는 그룹방 카드가 숨으므로 이 조각이 화면을 대신한다. */
+.gt-ui { margin-top: 10px; display: inline-flex; align-items: center; gap: 10px; max-width: 100%; height: 38px; padding: 0 6px 0 12px;
+  border-radius: 10px; background: var(--soft); border: 1px solid var(--line); font-size: 12.5px; line-height: 1.25; color: var(--ink-2); white-space: nowrap; }
+.gt-ui svg { flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.gt-ui svg.gt-fill { fill: currentColor; stroke: none; }
+.gt-ui .gt-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.gt-ui b { font-size: 12px; font-weight: 700; color: var(--ink); padding-right: 8px; }
+.gt-url { font: 600 12px var(--mono); color: var(--muted); min-width: 150px; }
+.gt-copied { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 7px;
+  background: #0b7a52; color: #fff; font-size: 12px; font-weight: 700; }
+.gt-copied svg { width: 11px; height: 11px; }
+.gt-ui-join { padding-left: 8px; }
+.gt-avs { display: flex; flex: none; }
+.gt-avs i { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800;
+  background: hsl(var(--h) 75% 86%); color: hsl(var(--h) 50% 32%); border: 2px solid var(--soft); }
+.gt-avs i + i { margin-left: -5px; }
+.gt-avs i.gt-new { box-shadow: 0 0 0 2px #10b981; }
+.gt-ui-bar { padding-left: 6px; }
+.gt-ui-bar .gt-t { padding-right: 8px; }
+.gt-pp { flex: none; width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: var(--ink); color: #fff; }
+.gt-pp svg { width: 11px; height: 11px; }
+.gt-track { position: relative; flex: none; width: 110px; height: 4px; border-radius: 2px; background: rgba(16, 16, 24, .12); }
+.gt-track i { position: absolute; inset: 0 auto 0 0; width: 62%; border-radius: 2px; background: var(--accent); }
+.gt-track i::after { content: ""; position: absolute; right: -5px; top: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
 
 .gt-act { margin-top: 36px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
 .gt-cta .cta-lab { display: inline-flex; align-items: center; gap: 9px; }
@@ -33,12 +48,39 @@
 .gt-note { font-size: 13.5px; color: var(--muted); }
 .gt-note b { color: var(--ink-2); }
 
-.gt-card { margin: 0; }
-.gt-card .rm-card { margin-top: 0; }
+.gt-card { margin: 0; width: 100%; }
+/* 그룹방 카드 연출(HP-885, 2026-11-17 조현빈 결정 — 움직임 = js/friends-fx.js). 재생 화면만 → 옆에 패널이 열림 → 재생 화면이 접히고 패널만 커짐.
+   --fk = 패널 배율(구운 360×560 패널을 몇 배로 그리나), --fo = 패널 칸 열림(0~1). 1단계(.fx 기본)는 재생 화면 + 패널, 2단계(.is-solo)는
+   재생 화면이 접히고 패널만 --k2 배율로 커진다. 숫자(--bw · --k1 · --k2 · --fh)는 js/friends-fx.js 가 자리 폭으로 잰다. */
+@property --fk { syntax: '<number>'; inherits: true; initial-value: .6; }
+@property --fo { syntax: '<number>'; inherits: true; initial-value: 1; }
+.fx { position: relative; width: 100%; height: var(--fh, 560px); display: grid; place-items: center; }
+.fx-box { --fk: var(--k1, .6); --fo: 1; position: relative; display: flex; width: var(--bw, 100%); height: calc(560px * var(--fk));
+  border-radius: 14px; overflow: hidden; background: #000; border: 1px solid rgba(16, 16, 24, .1);
+  box-shadow: 0 1px 2px rgba(16, 16, 24, .05), 0 28px 56px -32px rgba(16, 16, 24, .32);
+  transition: --fk .8s var(--ease), --fo .6s var(--ease), width .8s var(--ease), border-radius .8s var(--ease), opacity .5s ease; }
+.fx.is-shut .fx-box { --fo: 0; }
+.fx.is-solo .fx-box { --fk: var(--k2, 1); width: calc(360px * var(--k2, 1)); border-radius: 20px; background: #fff; }
+.fx.is-gone .fx-box { opacity: 0; }
+.fx.no-anim .fx-box, .fx.no-anim .fx-stage { transition: none; }
+.fx-stage { position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden; background: #000; transition: opacity .5s ease; }
+.fx.is-solo .fx-stage { opacity: 0; }
+/* 패널이 열려 칸이 좁아지면 영상은 16:9 를 지키고 위아래에 검은 띠(레터박스)가 생긴다 — 실제 플레이어가 좁아질 때처럼 */
+.fx-stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.fx-sub { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); width: max-content; max-width: 90%;
+  text-align: center; color: #fff; font-size: 13px; font-weight: 600; line-height: 1.35; text-shadow: 0 1px 3px rgba(0,0,0,.9); }
+.fx-panel { flex: none; width: calc(360px * var(--fk) * var(--fo)); overflow: hidden; background: #fff; }
+.fx-panel .fx-frame { display: block; border: 0; width: 360px; height: 560px; transform-origin: 0 0; transform: scale(var(--fk)); pointer-events: none; }
+.fx-cur { position: absolute; left: 0; top: 0; z-index: 5; width: 22px; height: 22px; opacity: 0; pointer-events: none;
+  transition: transform .55s var(--ease), opacity .25s ease; filter: drop-shadow(0 2px 4px rgba(0,0,0,.35)); }
+.fx-cur.on { opacity: 1; }
+.fx-cur svg { width: 100%; height: 100%; display: block; }
+.fx-cur.tap svg { animation: fx-tap .25s ease; }
+@keyframes fx-tap { 50% { transform: scale(.82); } }
 
 @media (max-width: 1040px) {
   .gt-grid { grid-template-columns: minmax(0, 1fr); }
-  .gt-card { width: 100%; max-width: 460px; margin-inline: auto; }
+  .gt-card { max-width: 640px; margin-inline: auto; }
 }
 @media (max-width: 760px) { .gt-card { display: none; } }
 @media (max-width: 480px) {
@@ -48,7 +90,9 @@
   .gt-n { width: 28px; height: 28px; font-size: 13px; }
   .gt-steps h3 { margin-top: 2px; font-size: 16.5px; }
   .gt-steps p { font-size: 14px; }
-  .gt-chip { margin-top: 8px; font-size: 12px; }
+  .gt-ui { margin-top: 8px; font-size: 12px; }
+  .gt-url { min-width: 0; }
+  .gt-track { width: 72px; }
   .gt-act { margin-top: 28px; flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
   .gt-cta { justify-content: center; }
   .gt-note { font-size: 12.5px; }
