@@ -2,7 +2,7 @@
    film-<장면>.js 가 구워 둔 장면 목록(RX_FILM.frames — { t: 시각 ms, c: 재생 위치 초, p: 재생 중 1/0, h: 패널 HTML })을 차례로 보인다.
    장면을 통째로 갈아 끼우지 않고 달라진 곳만 고친다(morph) — 그대로인 줄은 깜빡이지 않고, 새로 생긴 줄만 떠오른다.
    재생 위치 시계(그룹방 카드·커뮤니티 '지금' 줄)는 장면 사이에도 1초마다 흐른다.
-   바깥(랜딩 js/top.js)이 쓰는 손잡이 = window.RX: play()(처음부터 재생) · still()(마지막 장면에 멈춤) · rect(선택자)(단추 자리 — 커서가 그 위로 간다). */
+   바깥(랜딩 js/top.js · js/friends-fx.js)이 쓰는 손잡이 = window.RX: play()(처음부터 재생) · still()(마지막 장면에 멈춤) · rect(선택자)(단추 자리 — 커서가 그 위로 간다). */
 (function () {
   var scene = (location.hash || '#hero').slice(1).replace(/[^a-z]/g, '') || 'hero';
   var root = document.getElementById('replix-root');
@@ -75,8 +75,8 @@
     film = window.RX_FILM; if (!film) return;
     if (film.light) root.setAttribute('data-rx-theme', 'light');
     var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // 첫 화면(hero)은 바깥 대본이 play() 로 돌린다 — 그 전에는 첫 장면(시작 화면)을 보인다. 나머지는 스스로 돈다.
-    if (scene === 'hero') show(0); else if (film.frames.length > 1 && !calm) play(); else still();
+    // 첫 화면(hero)·친구랑 같이 보기(friends)는 바깥 대본이 play() 로 돌린다 — 그 전에는 첫 장면을 보인다. 나머지는 스스로 돈다.
+    if (scene === 'hero' || scene === 'friends') show(0); else if (film.frames.length > 1 && !calm) play(); else still();
     setInterval(tick, 500);
     try { parent.postMessage({ rxPanelReady: scene }, location.origin); } catch (_) {}
   };

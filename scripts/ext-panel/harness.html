@@ -79,7 +79,7 @@ window.__ready = (async function () {
   const EP = { contentId: 1, contentTitle: CFG.title, seasonNumber: CFG.season, episodeNumber: CFG.ep, platform: 'netflix', platformEpisodeId: '222' };
   const m = (userId, displayName, online) => ({ userId, displayName, profileImageUrl: null, online });
   const state = { hostUserId: CFG.host, controllerUserId: null, kind: 'BASIC', controlMode: 'ALL', streamMode: false, chatOpen: false,
-    members: (SCENE === 'hero' ? CFG.people.slice(0, 1) : SCENE === 'discord' ? CFG.people : CFG.people).map((p) => m(p[0], p[1], true)) };
+    members: (SCENE === 'hero' || SCENE === 'friends' ? CFG.people.slice(0, 1) : SCENE === 'discord' ? CFG.people : CFG.people).map((p) => m(p[0], p[1], true)) };
   const json = (o, status = 200) => ({ ok: status < 400, status, json: async () => o, text: async () => JSON.stringify(o) });
   const membersRes = () => ({ roomId: 'r1', members: state.members, hostAbsent: false, hostUserId: state.hostUserId, kind: state.kind,
     controlMode: state.controlMode, controllerUserId: null, streamMode: false, chatOpen: false });
@@ -164,10 +164,14 @@ window.__ready = (async function () {
       [11400, () => RX.say(3, '현우', '여기 진짜 명장면')],
       [12300, () => RX.say(1, '지우', '다음 화도 같이 보자')],
     ] },
-    friends: { len: 4200, keep: 'last', acts: [
-      [700, () => window.__poll()], [1000, () => RX.play(1)], [1350, () => RX.say(1, '지혜', '여기 다시 보자')],
-      [1650, () => RX.say(2, '수민', '방금 그 표정 봤어? 소름 돋았어')], [1950, () => RX.pause(3)],
-      [2300, () => RX.say(3, '현우', '잠깐, 이 장면 한 번만 더')], [2600, () => RX.play(3)], [2900, () => RX.say(1, '지혜', '다음 화는 주말에 같이 보자')],
+    // friends — 랜딩 js/friends-fx.js 가 play() 로 돌린다. 시각은 그 파일의 steps 와 같아야 한다(초대 복사 2.2초 · 입장 3.6·7.4초)
+    friends: { len: 12000, keep: 'all', acts: [
+      [2200, () => RX.click('#rx-room-invite-copy')],
+      [3600, () => RX.join(2, '수민')], [5600, () => RX.say(2, '수민', '오 딱 내가 보던 장면이네')],
+      [6500, () => RX.say(1, '지혜', '지금부터 같이 보자')],
+      [7400, () => RX.join(3, '현우')], [8200, () => RX.say(3, '현우', '나도 왔어 ㅋㅋ')],
+      [9100, () => RX.say(2, '수민', '방금 그 표정 봤어? 소름 돋았어')], [10000, () => RX.say(3, '현우', '여기 진짜 명장면')],
+      [10900, () => RX.say(1, '지혜', '다음 화는 주말에 같이 보자')],
     ] },
     discord: { len: 2600, keep: 'last', acts: [[700, () => window.__poll()], [1000, () => RX.say(2, '수민', '딱 맞춰 왔네 👋')]] },
     solo: { len: 1800, keep: 'last', acts: [] },

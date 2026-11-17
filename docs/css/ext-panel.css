@@ -22,10 +22,7 @@
 .nf.nf-on .rxh { opacity: 1; }
 @media (max-width: 760px) { .rxh { display: none; } }
 
-/* 친구랑 같이 보기(#friends) — 그룹방 창(라이트 테마). 760px 이하에서는 카드째 숨는다(css/friends.css) */
-.rxcard { width: 360px; height: 560px; margin-inline: auto; border-radius: 20px; border: 1px solid rgba(16, 16, 24, .1);
-  box-shadow: 0 1px 2px rgba(16, 16, 24, .05), 0 28px 56px -32px rgba(16, 16, 24, .28); background: #fff; }
-@media (min-width: 1041px) { .gt-card { display: grid; place-items: center; } }
+/* 친구랑 같이 보기(#friends) 카드는 이 틀을 쓰지 않는다 — 재생 화면과 함께 움직여 css/friends.css(.fx)·js/friends-fx.js 가 크기를 맞춘다(HP-885) */
 
 /* 디스코드(#discord) — 크롬 창 속 패널. 칸 폭(210px)이 좁아 패널을 폭 300px 로 구워 줄여 넣는다(360px 로 구우면 글자가 6px 대가 된다) */
 .xt-panel.rxfit { display: block; background: #fff; }
