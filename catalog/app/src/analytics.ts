@@ -35,7 +35,7 @@ export function track(name: string, props?: Props) { call((b) => b.track(name, p
 export function page(props?: Props) { call((b) => b.page(props)) }
 
 export type WatchFrom = 'title_hero' | 'moment' | 'home_billboard' | 'home_hot' | 'home_live' | 'my_activity'
-/** 재생 딥링크 클릭(W5 전환). platform 은 딥링크 호스트에서 읽는다(netflix | laftel, HP-709). url 은 watchUrl 이 만든 것만 오므로
+/** 재생 딥링크 클릭(W5 전환). platform 은 딥링크 호스트에서 읽는다(netflix | laftel | tving, HP-709·HP-882). url 은 watchUrl 이 만든 것만 오므로
  *  'other' 는 닿지 않는 갈래다 — 속성 타입(null 불가)을 맞추고, 혹시 모르는 호스트가 생기면 계측에서 드러나게 둔다. */
 export function trackWatch(url: string | null, from: WatchFrom) {
   if (!url) return

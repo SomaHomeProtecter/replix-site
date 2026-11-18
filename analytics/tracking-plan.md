@@ -1,4 +1,4 @@
-# replix.tv 웹 — 트래킹 플랜 v29 (Amplitude + Google Analytics + Meta 픽셀)
+# replix.tv 웹 — 트래킹 플랜 v30 (Amplitude + Google Analytics + Meta 픽셀)
 
 > **이 문서가 정본이다.** 계측을 바꿀 때는 코드가 아니라 여기부터 고친다.
 > 코드에만 있고 여기 없는 이벤트는 **버그로 취급**한다 — 아무도 그게 언제 찍히는지 모르기 때문이다.
@@ -103,7 +103,7 @@
 | `demo_interacted` | landing | **2026-10-17(HP-664)부터 발화 지점 없음** — 제품 화면 섹션(`#intro`)을 뺐다(되살리면 다시 난다, git 태그 `landing-v1`). 그 전: `hero.js` 제품 화면이 원본으로 보인 뒤 **스크롤로 전환 경계(화면 전체가 뷰포트에 들어온 위치)를 넘어 Replix 로 바뀌었을 때** 페이지뷰당 1회(2026-10-13 HP-602 부터 — 그 전엔 스크롤 비례 진행도가 1에 닿을 때). 이미 지나친 위치에서 열린 경우(앵커·새로고침)는 세지 않는다 | `demo`: `hero_toggle` · `action`: `scroll_complete` | W4 |
 | `faq_opened` | landing | `faq.js` 아코디언을 **열 때만** | `question_index`(0~6). ⚠️ 2026-10-17(HP-664) 질문 목록을 바꿔 순번이 가리키는 질문이 달라졌다(8개 → 7개, 휴대폰·친구 설치 질문이 맨 위) — 전후를 순번으로 잇지 않는다 | W4 |
 | `catalog_engaged` | catalog | 아래 표 | `feature`, `action`(+`has_results`·`sort`·`source`·`kind`·`score`·`category`). GA 에서는 `source` 가 `click_source` 로 온다(§10) | W5 |
-| `watch_link_clicked` | catalog | 재생 딥링크 `<a>` 클릭(`analytics.ts` `trackWatch`) | `platform`(`netflix` \| `laftel` — 딥링크 호스트, HP-709. 그 밖 호스트는 `other` — 닿지 않는 갈래), `from`: `title_hero` \| `moment` \| `home_billboard` \| `home_hot` \| `home_live` \| `my_activity`, `has_timestamp`(bool — `?t=` 유무) | **W5** |
+| `watch_link_clicked` | catalog | 재생 딥링크 `<a>` 클릭(`analytics.ts` `trackWatch`) | `platform`(`netflix` \| `laftel` \| `tving` — 딥링크 호스트, HP-709·HP-882. 그 밖 호스트는 `other` — 닿지 않는 갈래), `from`: `title_hero` \| `moment` \| `home_billboard` \| `home_hot` \| `home_live` \| `my_activity`, `has_timestamp`(bool — `?t=` 유무) | **W5** |
 | `login_started` | catalog | `LoginModal.tsx` 제공자 버튼 클릭 — IdP 로 떠나기 직전 | `provider`: `google` \| `kakao` \| `naver` | **W7** |
 | `login_completed` | catalog | `auth.ts` — 로그인 왕복 뒤 이미 동의한 회원으로 확인됐을 때(`is_new_user: false`), 동의 모달에서 저장했을 때(`is_new_user: true` — 문서 개정 재동의 포함, 익스텐션 §5.5 와 같은 뜻). 새로고침으로 세션을 되살린 것은 세지 않는다(되살린 세션이라도 동의 모달에서 저장하면 센다 — 그 저장이 가입이거나 재동의다) | `is_new_user`(bool — **동의 모달을 거쳤는가. 가입 수가 아니다 — 가입은 `login_kind: signup`**) · `login_kind`: `signup` \| `reconsent` \| `login` \| `consent`(아래, HP-619) | **W7** |
 
@@ -428,3 +428,4 @@ Amplitude 와 **같은 배너·같은 동의** 뒤에서 GA4(`G-MVDJ0Z60LJ`)도 
 | v27 | 2026-10-25 | Google 광고 재방문은 GA 에 유입으로 싣지 않는다(§10, HP-700). 주소창에 남은 utm·`gad_*` 로 다시 열린 로드가 `youtube / paid_video` 접점이 되어 `google / cpc` 클릭의 전환을 Google Ads 가 받지 못했다 — `gad_*` 는 있는데 Google 광고 클릭 식별값이 없으면 `page_location` 의 캠페인 쿼리를 빼고 `ignore_referrer` 를 싣는다. 계측 이벤트·Amplitude·스토어 링크·동의 버전은 그대로 — 조현빈(Claude Code) |
 | v28 | 2026-10-27 | 라프텔 재생 딥링크(HP-709) — `watch_link_clicked.platform` 에 `laftel` 을 더했다. 작품 탐색·내 활동의 라프텔 작품이 `laftel.net/player/<작품>/<회차>` 로 가고(시작 시각이 없어 `has_timestamp` 는 false), `platform` 은 고정값 대신 딥링크 호스트에서 읽는다(`watch-pure.js` `watchPlatformOf`). 새 이벤트·속성 없음, 작품·회차 ID 는 그대로 싣지 않는다 — 고경우 |
 | v29 | 2026-11-17 | 랜딩 '스트리머와 같이 보기' 섹션(HP-876) — '친구랑 같이 보기' 바로 뒤. `install_cta_clicked.location`·스토어 링크 `utm_medium` 에 `streamer`, `section_viewed.section` 에 `streamer` 를 더했다. 새 이벤트 없음 — 조현빈 |
+| v30 | 2026-11-18 | 티빙 재생 딥링크(HP-882) — `watch_link_clicked.platform` 에 `tving` 을 더했다. 작품 탐색·내 활동의 티빙 작품이 `www.tving.com/player/<회차>` 로 간다 — 회차 id 하나로 열려 잠정 작품(작품 id 없음)도 링크가 되고, 시작 시각을 싣지 않아 `has_timestamp` 는 false. 새 이벤트·속성 없음, 작품·회차 ID 는 그대로 싣지 않는다 — 김지호(Claude Code) |

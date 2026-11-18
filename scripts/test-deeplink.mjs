@@ -17,9 +17,20 @@ assert.equal(watchUrl('laftel', '99909', 120, ''), null);
 assert.equal(watchUrl('laftel', '99909', 120), null);
 assert.equal(watchUrl('laftel', null, 120, '47088'), null);
 assert.equal(watchUrl('laftel', '9 9', 0, '4/7'), 'https://laftel.net/player/4%2F7/9%209', 'URL 조립 방어(encodeURIComponent)');
+// 티빙(HP-882) — 회차 id 하나로 열린다(작품 id 불필요), 시작 시각 파라미터는 약속하지 않는다
+assert.equal(watchUrl('tving', 'E004627952', 120, null), 'https://www.tving.com/player/E004627952');
+assert.equal(watchUrl('tving', 'E004627952', 120, 'P001791157'), 'https://www.tving.com/player/E004627952', '티빙은 작품 id 를 쓰지 않는다');
+assert.equal(watchUrl('tving', 'M000377673'), 'https://www.tving.com/player/M000377673');
+assert.equal(watchUrl('tving', null, 0, 'P001791157'), null);
+assert.equal(watchUrl('tving', 'E 1/2'), 'https://www.tving.com/player/E%201%2F2', 'URL 조립 방어');
+assert.equal(watchPlatformOf('https://www.tving.com/player/E004627952'), 'tving');
+assert.equal(watchPlatformOf('https://evil.com/www.tving.com'), null);
+assert.equal(platformName('tving'), '티빙');
+assert.equal(watchCta('tving', '12:34'), '티빙에서 보기', '티빙은 시각을 약속하지 않는다');
+assert.equal(watchSceneTitle('tving', '1:00–1:30'), '티빙에서 이 회차 보기');
 // 그 밖(디즈니+ 등)은 종전처럼 null — 사이트는 디즈니+ 딥링크를 만들지 않는다
 assert.equal(watchUrl('disney_plus', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 0, 'entity-x'), null);
-assert.equal(watchUrl('tving', '1', 0, '1'), null);
+assert.equal(watchUrl('wavve', '1', 0, '1'), null);
 // 계측 — URL 호스트로 플랫폼을 적는다(trackWatch)
 assert.equal(watchPlatformOf('https://www.netflix.com/watch/81234567?t=1'), 'netflix');
 assert.equal(watchPlatformOf('https://laftel.net/player/47088/99909'), 'laftel');
@@ -29,11 +40,11 @@ assert.equal(watchPlatformOf(null), null);
 assert.equal(platformName('netflix'), '넷플릭스');
 assert.equal(platformName('laftel'), '라프텔');
 assert.equal(platformName('disney_plus'), '디즈니+');
-assert.equal(platformName('tving'), 'tving', '모르는 플랫폼은 코드 그대로(던지지 않는다)');
+assert.equal(platformName('wavve'), 'wavve', '모르는 플랫폼은 코드 그대로(던지지 않는다)');
 assert.equal(watchCta('netflix', '12:34'), '넷플릭스에서 12:34부터 보기');
 assert.equal(watchCta('netflix', undefined), '넷플릭스에서 보기');
 assert.equal(watchCta('laftel', '12:34'), '라프텔에서 보기', '라프텔은 그 시각부터 열리지 않으니 "부터"를 쓰지 않는다');
-assert.equal(watchCta('tving', '1:00'), 'tving에서 보기');
+assert.equal(watchCta('wavve', '1:00'), 'wavve에서 보기');
 assert.equal(watchSceneTitle('netflix', undefined), '넷플릭스에서 이 장면 보기');
 assert.equal(watchSceneTitle('netflix', '1:00–1:30'), '넷플릭스에서 이 장면 보기 (1:00–1:30)');
 assert.equal(watchSceneTitle('laftel', '1:00–1:30'), '라프텔에서 이 회차 보기', '라프텔은 회차 처음에 닿으므로 장면·구간을 약속하지 않는다');
