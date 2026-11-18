@@ -32,7 +32,7 @@ function epCell(e: EpisodeRef, w: MyActivityWork): string {
   return episodeLabel(e, w.contentType) || (w.contentType === 'MOVIE' ? '' : '회차')
 }
 
-/** 채팅 한 줄 — 회차·시각을 누르면 그 플랫폼의 장면(넷플릭스·라프텔)이 새 탭(뜨거운 순간과 같은 watchUrl). 답글이면 본문 위에 원문 한 줄.
+/** 채팅 한 줄 — 회차·시각을 누르면 그 플랫폼의 장면(넷플릭스·라프텔·티빙)이 새 탭(뜨거운 순간과 같은 watchUrl). 답글이면 본문 위에 원문 한 줄.
  *  watchUrl 이 null(지원 플랫폼이 아니거나 회차·작품 id 없음)이면 링크가 아니라 글만 둔다. 라프텔 작품 id 는 Work.platformContentId(HP-709). */
 function ChatRow({ w, c }: { w: MyActivityWork; c: MyActivityChat }) {
   const url = watchUrl(w.platform, c.platformEpisodeId, c.playbackTime, w.platformContentId)

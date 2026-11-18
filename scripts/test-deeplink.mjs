@@ -19,6 +19,7 @@ assert.equal(watchUrl('laftel', null, 120, '47088'), null);
 assert.equal(watchUrl('laftel', '9 9', 0, '4/7'), 'https://laftel.net/player/4%2F7/9%209', 'URL 조립 방어(encodeURIComponent)');
 // 티빙(HP-882) — 회차 id 하나로 열린다(작품 id 불필요), 시작 시각 파라미터는 약속하지 않는다
 assert.equal(watchUrl('tving', 'E004627952', 120, null), 'https://www.tving.com/player/E004627952');
+assert.equal(watchUrl('tving', 'E004627952', 120, 'P001791157'), 'https://www.tving.com/player/E004627952', '티빙은 작품 id 를 쓰지 않는다');
 assert.equal(watchUrl('tving', 'M000377673'), 'https://www.tving.com/player/M000377673');
 assert.equal(watchUrl('tving', null, 0, 'P001791157'), null);
 assert.equal(watchUrl('tving', 'E 1/2'), 'https://www.tving.com/player/E%201%2F2', 'URL 조립 방어');
