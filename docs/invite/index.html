@@ -212,8 +212,9 @@
     // 플랫폼별 재생 URL (HP-318). 조립 규칙의 정본은 익스텐션의 `replix-net.js` PLATFORM_NAV이고
     // 여기는 그 사본이다 — 이 페이지는 익스텐션 코드에 닿을 수 없는 정적 웹 표면이라 어쩔 수 없다.
     // ⚠ 플랫폼을 추가하면 세 곳을 함께 고쳐야 한다: replix-net.js · 익스텐션 background.js · 이 파일.
+    // 티빙은 회차 id 하나(`/player/<회차>`) — 익스텐션 PLATFORM_NAV.tving·INVITE_WATCH_URL.tving 과 같은 꼴(HP-882).
     // 라프텔은 작품 id 가 필수(`/player/<작품>/<회차>`) — 두 인자. 익스텐션 PLATFORM_NAV.laftel·INVITE_WATCH_URL.laftel 과 같은 꼴(HP-709).
-    // 작품 id 가 없으면 null — 회차 id 를 작품 자리에 넣어 추측하지 않는다(틀린 작품 id 는 404). 넷플릭스·디즈니+ 는 둘째 인자를 무시한다.
+    // 작품 id 가 없으면 null — 회차 id 를 작품 자리에 넣어 추측하지 않는다(틀린 작품 id 는 404). 넷플릭스·디즈니+·티빙은 둘째 인자를 무시한다.
     var NAV = {
       netflix: {
         name: '넷플릭스',
@@ -226,6 +227,10 @@
       laftel: {
         name: '라프텔',
         url: function (id, showId) { return showId ? 'https://laftel.net/player/' + encodeURIComponent(showId) + '/' + encodeURIComponent(id) : null; },
+      },
+      tving: {
+        name: '티빙',
+        url: function (id) { return 'https://www.tving.com/player/' + encodeURIComponent(id); },
       },
     };
     var p = new URLSearchParams(location.search);

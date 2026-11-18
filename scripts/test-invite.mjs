@@ -93,6 +93,9 @@ assert.match(invite, /laftel: \{\s*name: '라프텔',\s*url: function \(id, show
   '라프텔 재생 URL 은 작품 id 가 있을 때만 — 없으면 null(회차 id 를 작품 자리에 넣지 않는다)');
 const navBlock = /var NAV = \{[\s\S]*?\};/.exec(invite);
 assert.ok(navBlock && navBlock[0].includes("'https://laftel.net/player/'"), 'NAV 블록이 라프텔 재생 URL 리터럴을 담는다(HP-709)');
+// 티빙(HP-882) — 셋째 사본. 익스텐션 PLATFORM_NAV.tving·INVITE_WATCH_URL.tving 과 같은 꼴(회차 id 하나, encodeURIComponent 조립)이어야 한다.
+assert.match(navBlock[0], /tving: \{\s*name: '티빙',\s*url: function \(id\) \{ return 'https:\/\/www\.tving\.com\/player\/' \+ encodeURIComponent\(id\); \},/,
+  '티빙 재생 URL 은 회차 id 하나로 — 작품 id 를 받지 않는다');
 assert.match(invite, /var s = p\.get\('s'\);/, '작품 id 는 링크의 s(BE DiscordText.inviteUrl·익스텐션 buildInviteLink 와 같은 이름)');
 assert.match(invite, /function buildUrl\(showId\) \{[\s\S]*?NAV\[pk\]\.url\(w, showId\)[\s\S]*?'#replix-invite=' \+ encodeURIComponent\(t\)/, '토큰은 해시로');
 assert.match(invite, /if \(!url && preview && typeof preview\.platformContentId === 'string'\) url = buildUrl\(preview\.platformContentId\);/,
@@ -165,6 +168,19 @@ for (const preview of [null, {}, { platformContentId: 47088 }, { platformContent
   assert.equal(stub('?w=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa&t=tok&p=disney_plus').api.url,
     'https://www.disneyplus.com/play/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa#replix-invite=tok');
 }
+// 티빙(HP-882) — 회차 id 하나로 연다. 라프텔과 달리 작품 id 가 필요 없어 s 가 없어도 주소가 있고, 있어도 쓰지 않는다.
+const TVING = 'https://www.tving.com/player/E004627952#replix-invite=tok';
+{
+  const { api, el } = stub('?w=E004627952&t=tok&p=tving');
+  assert.equal(api.pk, 'tving');
+  assert.equal(api.url, TVING, '작품 id(s)가 없어도 회차 id 하나로 만든다');
+  api.applyPreview(null); // PC 가 설치 안내를 여는 자리(showInstall)와 같다 — 요약이 실패해도 보조 링크가 보인다
+  assert.deepEqual([el('open').hidden, el('open').attrs.href, el('open').textContent], [false, TVING, '이미 설치했어요. 티빙에서 열기']);
+}
+{
+  const { api } = stub('?w=E004627952&t=tok&p=tving&s=P001791157');
+  assert.equal(api.url, TVING, 's 는 무시한다');
+}
 // p 가 없는 링크(HP-318 이전, 익스텐션 0.8.0 이하)는 회차 id 모양으로 추측하지 않는다(HP-749) — 숫자·UUID 회차 모두 잘못된 링크 화면.
 // 익스텐션도 같은 링크를 가로채지 않는다(core/link-rules.js parseReplixLink).
 for (const q of ['?w=81234567&t=tok', '?w=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa&t=tok', '?w=81234567&t=tok&p=']) {
@@ -173,7 +189,7 @@ for (const q of ['?w=81234567&t=tok', '?w=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa&t
   assert.equal(bare.api.url, null, q);
 }
 // 모르는 p·프로토타입 키도 플랫폼이 아니다(hasOwnProperty 가드) — 숫자 회차여도 넷플릭스로 추측하지 않는다(익스텐션 inviteWatchUrl 과 같다).
-for (const bogus of ['__proto__', 'constructor', 'toString', 'bogus', 'tving']) {
+for (const bogus of ['__proto__', 'constructor', 'toString', 'bogus', 'wavve']) {
   const odd = stub(`?w=81234567&t=tok&p=${bogus}`);
   assert.equal(odd.api.pk, null, bogus);
   assert.equal(odd.api.url, null, bogus);
